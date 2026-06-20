@@ -2,44 +2,87 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useCallback, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "./ThemeProvider";
 import Icon from "./Icon";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: "home" },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  exact?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { href: "/", label: "Dashboard", icon: "home", exact: true },
   { href: "/notes", label: "记录列表", icon: "list" },
-  { href: "/notes/new", label: "新增记录", icon: "plus" },
-  { href: "/today", label: "今日汇总", icon: "calendar" },
-  { href: "/stats", label: "统计", icon: "chart" },
+  { href: "/notes/new", label: "新增记录", icon: "plus", exact: true },
+  { href: "/today", label: "今日汇总", icon: "calendar", exact: true },
+  { href: "/stats", label: "统计", icon: "chart", exact: true },
   { href: "/ai", label: "AI 助手", icon: "sparkles", exact: true },
-  { href: "/ai/settings", label: "AI 配置", icon: "settings" },
+  { href: "/ai/settings", label: "AI 配置", icon: "settings", exact: true },
 ];
 
 /**
- * Determine if a nav item is "active" for the current pathname.
- * - "/" is only active on exact match
- * - items marked `exact: true` require exact match (e.g. "/ai" should not match "/ai/settings")
- * - other items use startsWith so sub-pages highlight the parent (e.g. "/notes/123" highlights "/notes")
+ * Determine which nav item is "active" for the current pathname.
+ *
+ * Strategy: pick the MOST SPECIFIC match.
+ *   1. Exact match always wins (e.g. pathname "/notes/new" → item "/notes/new")
+ *   2. If no exact match, the longest prefix match wins
+ *      (e.g. pathname "/notes/abc123/edit" → item "/notes")
+ *   3. Items with `exact: true` only match on exact pathname equality
+ *
+ * This prevents "/notes" and "/notes/new" from both being highlighted.
  */
-function isNavActive(pathname: string, item: typeof navItems[number]) {
-  if (item.href === "/") return pathname === "/";
-  if ((item as { exact?: boolean }).exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(item.href + "/");
+function getActiveHref(pathname: string, items: NavItem[]): string | null {
+  // First pass: look for an exact match
+  for (const item of items) {
+    if (pathname === item.href) return item.href;
+  }
+  // Second pass: longest prefix match (skip exact-only items)
+  let bestMatch: string | null = null;
+  for (const item of items) {
+    if (item.exact) continue;
+    if (pathname.startsWith(item.href + "/")) {
+      if (!bestMatch || item.href.length > bestMatch.length) {
+        bestMatch = item.href;
+      }
+    }
+  }
+  return bestMatch;
 }
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const activeHref = getActiveHref(pathname, navItems);
+
+  // Smooth navigation with React transition
+  const handleNav = useCallback(
+    (href: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      setMobileOpen(false);
+      if (href === pathname) return; // already there
+      startTransition(() => {
+        router.push(href);
+      });
+    },
+    [pathname, router]
+  );
 
   return (
-    <nav style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-primary)" }}>
+    <nav className="navbar">
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
           {/* Logo */}
           <Link
             href="/"
+            onClick={(e) => handleNav("/", e)}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               fontWeight: 700, fontSize: 16, color: "var(--text-primary)",
@@ -60,26 +103,15 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <div style={{ display: "flex", alignItems: "center", gap: 2 }} className="hidden md:flex">
             {navItems.map((item) => {
-              const isActive = isNavActive(pathname, item);
+              const isActive = activeHref === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "6px 12px", borderRadius: 8,
-                    fontSize: 13, fontWeight: 500,
-                    color: isActive ? "var(--accent-blue)" : "var(--text-secondary)",
-                    background: isActive ? "var(--accent-blue-light)" : "transparent",
-                    textDecoration: "none",
-                    transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.background = "var(--bg-tertiary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.background = "transparent";
-                  }}
+                  prefetch={true}
+                  onClick={(e) => handleNav(item.href, e)}
+                  className={`nav-link ${isActive ? "nav-link-active" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <Icon name={item.icon} size={15} />
                   {item.label}
@@ -90,6 +122,10 @@ export default function Navbar() {
 
           {/* Theme + Mobile toggle */}
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {/* Navigation loading indicator */}
+            {isPending && (
+              <div className="nav-loading-dot" />
+            )}
             <button
               onClick={toggle}
               className="btn btn-ghost btn-sm"
@@ -107,28 +143,27 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Nav */}
-        {mobileOpen && (
-          <div style={{
-            padding: "8px 0 12px",
-            display: "flex", flexDirection: "column", gap: 2,
-          }}
+        <div
           className="md:hidden"
-          >
+          style={{
+            overflow: "hidden",
+            maxHeight: mobileOpen ? 400 : 0,
+            opacity: mobileOpen ? 1 : 0,
+            transition: "max-height 0.25s ease, opacity 0.2s ease",
+            paddingBottom: mobileOpen ? 12 : 0,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingTop: 8 }}>
             {navItems.map((item) => {
-              const isActive = isNavActive(pathname, item);
+              const isActive = activeHref === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "10px 12px", borderRadius: 8,
-                    fontSize: 14, fontWeight: 500,
-                    color: isActive ? "var(--accent-blue)" : "var(--text-secondary)",
-                    background: isActive ? "var(--accent-blue-light)" : "transparent",
-                    textDecoration: "none",
-                  }}
+                  prefetch={true}
+                  onClick={(e) => handleNav(item.href, e)}
+                  className={`nav-link-mobile ${isActive ? "nav-link-mobile-active" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <Icon name={item.icon} size={18} />
                   {item.label}
@@ -136,7 +171,7 @@ export default function Navbar() {
               );
             })}
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );
