@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+
+  project   String?
+  module    String?
+
+  type      String   @default("note")
+  priority  String   @default("P2")
+  status    String   @default("open")
+
+  owner     String?
+  dueDate   String?
+  source    String   @default("manual")
+
+  tags      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiProvider {
+  id        String   @id @default(cuid())
+  name      String
+  label     String
+  baseUrl   String
+  apiKey    String
+  model     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
