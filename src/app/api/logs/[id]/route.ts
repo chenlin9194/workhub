@@ -30,21 +30,23 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { workDate, title, content, type, source, project, module, tags, itemId } = body;
+
+    // Build update data - only include fields that are provided
+    const data: Record<string, unknown> = {};
+
+    if ("workDate" in body) data.workDate = body.workDate;
+    if ("title" in body) data.title = body.title;
+    if ("content" in body) data.content = body.content;
+    if ("type" in body) data.type = body.type;
+    if ("source" in body) data.source = body.source;
+    if ("project" in body) data.project = body.project === "" ? null : body.project;
+    if ("module" in body) data.module = body.module === "" ? null : body.module;
+    if ("tags" in body) data.tags = body.tags === "" ? null : body.tags;
+    if ("itemId" in body) data.itemId = body.itemId === "" ? null : body.itemId;
 
     const log = await prisma.workLog.update({
       where: { id },
-      data: {
-        workDate,
-        title,
-        content,
-        type,
-        source,
-        project,
-        module,
-        tags,
-        itemId,
-      },
+      data,
     });
 
     return NextResponse.json(log);

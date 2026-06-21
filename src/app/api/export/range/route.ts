@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { WORK_ITEM_TYPE_LABELS, WORK_LOG_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS, SOURCE_LABELS } from "@/lib/constants";
+import { WORK_LOG_TYPE_LABELS, WORK_ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS, SOURCE_LABELS } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,27 +17,18 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(end);
     endDate.setDate(endDate.getDate() + 1);
 
-    const [
-      logs,
-      closedItems,
-      updatedItems,
-    ] = await Promise.all([
+    const [workLogs, closedItems, updatedItems] = await Promise.all([
       prisma.workLog.findMany({
-        where: {
-          workDate: { gte: start, lte: end },
-        },
+        where: { workDate: { gte: start, lte: end } },
+        include: { item: { select: { id: true, title: true } } },
         orderBy: { workDate: "desc" },
       }),
       prisma.workItem.findMany({
-        where: {
-          closedAt: { gte: startDate, lt: endDate },
-        },
+        where: { closedAt: { gte: startDate, lt: endDate } },
         orderBy: { closedAt: "desc" },
       }),
       prisma.workItem.findMany({
-        where: {
-          updatedAt: { gte: startDate, lt: endDate },
-        },
+        where: { updatedAt: { gte: startDate, lt: endDate } },
         orderBy: { updatedAt: "desc" },
       }),
     ]);
@@ -46,56 +37,73 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         start,
         end,
-        logs,
+        workLogs,
         closedItems,
         updatedItems,
       });
     }
 
-    // Generate Markdown
+    // Generate Markdown (consistent with /export/range page)
     let md = `# 工作汇总 - ${start} 至 ${end}\n\n`;
 
     // Summary
     md += `## 概览\n\n`;
-    md += `- 日志数量: ${logs.length} 条\n`;
+    md += `- 日志数量: ${workLogs.length} 条\n`;
     md += `- 关闭事项: ${closedItems.length} 项\n`;
     md += `- 更新事项: ${updatedItems.length} 项\n\n`;
 
     // Group logs by date
-    const logsByDate = logs.reduce((acc, log) => {
+    const logsByDate = workLogs.reduce((acc, log) => {
       if (!acc[log.workDate]) {
         acc[log.workDate] = [];
       }
       acc[log.workDate].push(log);
       return acc;
-    }, {} as Record<string, typeof logs>);
+    }, {} as Record<string, typeof workLogs>);
 
     const dates = Object.keys(logsByDate).sort((a, b) => b.localeCompare(a));
 
-    // Logs by date
+    // 一、工作日志
     if (dates.length > 0) {
-      md += `## 工作日志\n\n`;
+      md += `## 一、工作日志\n\n`;
       dates.forEach((date) => {
         md += `### ${date}\n\n`;
         logsByDate[date].forEach((log) => {
           md += `#### ${log.title}\n`;
-          md += `- 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-          if (log.project) md += `- 项目: ${log.project}\n`;
+          md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
+          if (log.project) md += `- 项目: ${log.project}`;
+          if (log.module) md += ` | 模块: ${log.module}`;
+          if (log.project || log.module) md += "\n";
+          if (log.tags) md += `- 标签: ${log.tags}\n`;
+          if (log.item) md += `- 关联事项: ${log.item.title}\n`;
           md += `\n${log.content}\n\n`;
         });
       });
     }
 
-    // Closed Items
+    // 二、关闭事项
     if (closedItems.length > 0) {
-      md += `## 关闭事项\n\n`;
+      md += `## 二、关闭事项\n\n`;
       closedItems.forEach((item) => {
-        md += `- **${item.title}** (${WORK_ITEM_TYPE_LABELS[item.type] || item.type}) - 关闭于 ${item.closedAt?.toISOString().split("T")[0]}\n`;
+        md += `### ${item.title}\n`;
+        md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority}\n`;
+        if (item.owner) md += `- 责任人: ${item.owner}\n`;
+        if (item.closedAt) md += `- 关闭时间: ${item.closedAt.toISOString().split("T")[0]}\n`;
+        if (item.description) md += `\n${item.description}\n`;
+        md += "\n";
       });
-      md += `\n`;
     }
 
-    // Prompt for AI
+    // 三、更新事项
+    if (updatedItems.length > 0) {
+      md += `## 三、更新事项\n\n`;
+      updatedItems.forEach((item) => {
+        md += `- **${item.title}** - ${STATUS_LABELS[item.status] || item.status} (${PRIORITY_LABELS[item.priority] || item.priority})\n`;
+      });
+      md += "\n";
+    }
+
+    // AI Prompt
     md += `---\n\n`;
     md += `## AI 提示词\n\n`;
     md += `请根据以上工作内容，生成一份周报。要求：\n`;

@@ -34,39 +34,42 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, project, module, type, priority, status, owner, dueDate, nextAction, tags } = body;
 
-    // Get current item to check status change
+    // Get current item
     const currentItem = await prisma.workItem.findUnique({ where: { id } });
 
     if (!currentItem) {
       return NextResponse.json({ error: "工作事项不存在" }, { status: 404 });
     }
 
+    // Build update data - only include fields that are provided
+    const data: Record<string, unknown> = {};
+
+    if ("title" in body) data.title = body.title;
+    if ("description" in body) data.description = body.description === "" ? null : body.description;
+    if ("project" in body) data.project = body.project === "" ? null : body.project;
+    if ("module" in body) data.module = body.module === "" ? null : body.module;
+    if ("type" in body) data.type = body.type;
+    if ("priority" in body) data.priority = body.priority;
+    if ("status" in body) data.status = body.status;
+    if ("owner" in body) data.owner = body.owner === "" ? null : body.owner;
+    if ("dueDate" in body) data.dueDate = body.dueDate === "" ? null : body.dueDate;
+    if ("nextAction" in body) data.nextAction = body.nextAction === "" ? null : body.nextAction;
+    if ("tags" in body) data.tags = body.tags === "" ? null : body.tags;
+
     // Handle closedAt logic
-    let closedAt = currentItem.closedAt;
-    if (status === "closed" && currentItem.status !== "closed") {
-      closedAt = new Date();
-    } else if (status !== "closed" && currentItem.status === "closed") {
-      closedAt = null;
+    if ("status" in body) {
+      const newStatus = body.status;
+      if (newStatus === "closed" && currentItem.status !== "closed") {
+        data.closedAt = new Date();
+      } else if (newStatus !== "closed" && currentItem.status === "closed") {
+        data.closedAt = null;
+      }
     }
 
     const item = await prisma.workItem.update({
       where: { id },
-      data: {
-        title,
-        description,
-        project,
-        module,
-        type,
-        priority,
-        status,
-        owner,
-        dueDate,
-        nextAction,
-        tags,
-        closedAt,
-      },
+      data,
     });
 
     return NextResponse.json(item);

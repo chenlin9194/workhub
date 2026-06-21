@@ -1,27 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getTodayStr, generateWorkItemMarkdown, generateWorkLogMarkdown } from "@/lib/utils";
-import { WORK_ITEM_TYPE_LABELS, WORK_LOG_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS, SOURCE_LABELS } from "@/lib/constants";
+import { getLocalDateString } from "@/lib/utils";
+import { WORK_LOG_TYPE_LABELS, WORK_ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS, SOURCE_LABELS } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const format = searchParams.get("format") || "markdown";
-    const today = getTodayStr();
+    const today = getLocalDateString();
     const todayStart = new Date(today);
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
     const [
-      todayLogs,
-      todayClosedItems,
-      todayUpdatedItems,
-      p0p1Items,
-      todayDueItems,
+      workLogs,
+      closedItems,
+      updatedItems,
+      openHighPriorityItems,
+      dueTodayItems,
       overdueItems,
+      riskAndBlockerLogs,
+      decisionLogs,
     ] = await Promise.all([
       prisma.workLog.findMany({
         where: { workDate: today },
+        include: { item: { select: { id: true, title: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.workItem.findMany({
@@ -44,90 +47,156 @@ export async function GET(request: NextRequest) {
         where: { dueDate: { lt: today }, status: { not: "closed" } },
         orderBy: { dueDate: "asc" },
       }),
+      prisma.workLog.findMany({
+        where: { workDate: today, type: { in: ["risk", "blocker"] } },
+        include: { item: { select: { id: true, title: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.workLog.findMany({
+        where: { workDate: today, type: "decision" },
+        include: { item: { select: { id: true, title: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     if (format === "json") {
       return NextResponse.json({
         date: today,
-        logs: todayLogs,
-        closedItems: todayClosedItems,
-        updatedItems: todayUpdatedItems,
-        p0p1Items,
-        todayDueItems,
+        workLogs,
+        closedItems,
+        updatedItems,
+        openHighPriorityItems,
+        dueTodayItems,
         overdueItems,
+        riskAndBlockerLogs,
+        decisionLogs,
       });
     }
 
-    // Generate Markdown
+    // Generate Markdown (consistent with /export/today page)
     let md = `# 今日工作汇总 - ${today}\n\n`;
 
-    // Summary
+    // AI Prompt (at the top)
+    md += `## AI 日报提示词\n\n`;
+    md += `请根据以下今日工作数据，生成一份简洁的日报。要求：\n`;
+    md += `1. 总结今日主要工作成果\n`;
+    md += `2. 列出关键决策和风险\n`;
+    md += `3. 明日工作计划\n`;
+    md += `4. 需要协调的事项\n\n`;
+
+    // Overview
     md += `## 概览\n\n`;
-    md += `- 今日新增日志: ${todayLogs.length} 条\n`;
-    md += `- 今日关闭事项: ${todayClosedItems.length} 项\n`;
-    md += `- 今日更新事项: ${todayUpdatedItems.length} 项\n`;
-    md += `- P0/P1 未关闭: ${p0p1Items.length} 项\n`;
-    md += `- 今日到期: ${todayDueItems.length} 项\n`;
+    md += `- 今日新增日志: ${workLogs.length} 条\n`;
+    md += `- 今日关闭事项: ${closedItems.length} 项\n`;
+    md += `- 今日更新事项: ${updatedItems.length} 项\n`;
+    md += `- P0/P1 未关闭: ${openHighPriorityItems.length} 项\n`;
+    md += `- 今日到期: ${dueTodayItems.length} 项\n`;
     md += `- 逾期未关闭: ${overdueItems.length} 项\n\n`;
 
-    // Today Logs
-    if (todayLogs.length > 0) {
-      md += `## 今日日志\n\n`;
-      todayLogs.forEach((log) => {
+    // 一、今日新增日志
+    if (workLogs.length > 0) {
+      md += `## 一、今日新增日志\n\n`;
+      workLogs.forEach((log) => {
         md += `### ${log.title}\n`;
-        md += `- 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-        if (log.project) md += `- 项目: ${log.project}\n`;
+        md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
+        if (log.project) md += `- 项目: ${log.project}`;
+        if (log.module) md += ` | 模块: ${log.module}`;
+        if (log.project || log.module) md += "\n";
+        if (log.tags) md += `- 标签: ${log.tags}\n`;
+        if (log.item) md += `- 关联事项: ${log.item.title}\n`;
         md += `\n${log.content}\n\n`;
       });
     }
 
-    // P0/P1 Items
-    if (p0p1Items.length > 0) {
-      md += `## P0/P1 未关闭事项\n\n`;
-      p0p1Items.forEach((item) => {
+    // 二、今日关闭事项
+    if (closedItems.length > 0) {
+      md += `## 二、今日关闭事项\n\n`;
+      closedItems.forEach((item) => {
         md += `### ${item.title}\n`;
-        md += `- 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
+        md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
         if (item.owner) md += `- 责任人: ${item.owner}\n`;
         if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
-        md += `\n`;
+        if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
+        if (item.tags) md += `- 标签: ${item.tags}\n`;
+        if (item.description) md += `\n${item.description}\n`;
+        md += "\n";
       });
     }
 
-    // Today Due Items
-    if (todayDueItems.length > 0) {
-      md += `## 今日到期事项\n\n`;
-      todayDueItems.forEach((item) => {
-        md += `- **${item.title}** (${PRIORITY_LABELS[item.priority] || item.priority})\n`;
+    // 三、今日更新事项
+    if (updatedItems.length > 0) {
+      md += `## 三、今日更新事项\n\n`;
+      updatedItems.forEach((item) => {
+        md += `### ${item.title}\n`;
+        md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
+        if (item.owner) md += `- 责任人: ${item.owner}\n`;
+        if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
+        if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
+        if (item.tags) md += `- 标签: ${item.tags}\n`;
+        md += "\n";
       });
-      md += `\n`;
     }
 
-    // Overdue Items
+    // 四、当前 P0/P1 未关闭事项
+    if (openHighPriorityItems.length > 0) {
+      md += `## 四、当前 P0/P1 未关闭事项\n\n`;
+      openHighPriorityItems.forEach((item) => {
+        md += `### ${item.title}\n`;
+        md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
+        if (item.owner) md += `- 责任人: ${item.owner}\n`;
+        if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
+        if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
+        if (item.tags) md += `- 标签: ${item.tags}\n`;
+        if (item.description) md += `\n${item.description}\n`;
+        md += "\n";
+      });
+    }
+
+    // 五、今日到期事项
+    if (dueTodayItems.length > 0) {
+      md += `## 五、今日到期事项\n\n`;
+      dueTodayItems.forEach((item) => {
+        md += `- **${item.title}** (${PRIORITY_LABELS[item.priority] || item.priority}) - ${STATUS_LABELS[item.status] || item.status}`;
+        if (item.owner) md += ` - 责任人: ${item.owner}`;
+        md += "\n";
+      });
+      md += "\n";
+    }
+
+    // 六、逾期未关闭事项
     if (overdueItems.length > 0) {
-      md += `## 逾期未关闭事项\n\n`;
+      md += `## 六、逾期未关闭事项\n\n`;
       overdueItems.forEach((item) => {
-        md += `- **${item.title}** - 截止: ${item.dueDate} (${PRIORITY_LABELS[item.priority] || item.priority})\n`;
+        md += `- **${item.title}** - 截止: ${item.dueDate} (${PRIORITY_LABELS[item.priority] || item.priority}) - ${STATUS_LABELS[item.status] || item.status}`;
+        if (item.owner) md += ` - 责任人: ${item.owner}`;
+        md += "\n";
       });
-      md += `\n`;
+      md += "\n";
     }
 
-    // Closed Items
-    if (todayClosedItems.length > 0) {
-      md += `## 今日关闭事项\n\n`;
-      todayClosedItems.forEach((item) => {
-        md += `- **${item.title}** (${WORK_ITEM_TYPE_LABELS[item.type] || item.type})\n`;
+    // 七、今日风险/阻塞
+    if (riskAndBlockerLogs.length > 0) {
+      md += `## 七、今日风险/阻塞\n\n`;
+      riskAndBlockerLogs.forEach((log) => {
+        md += `### ${log.title}\n`;
+        md += `- 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
+        if (log.project) md += `- 项目: ${log.project}\n`;
+        if (log.item) md += `- 关联事项: ${log.item.title}\n`;
+        md += `\n${log.content}\n\n`;
       });
-      md += `\n`;
     }
 
-    // Prompt for AI
-    md += `---\n\n`;
-    md += `## AI 提示词\n\n`;
-    md += `请根据以上今日工作内容，生成一份简洁的日报。要求：\n`;
-    md += `1. 总结今日主要工作成果\n`;
-    md += `2. 列出关键决策和风险\n`;
-    md += `3. 明日工作计划\n`;
-    md += `4. 需要协调的事项\n`;
+    // 八、今日决策
+    if (decisionLogs.length > 0) {
+      md += `## 八、今日决策\n\n`;
+      decisionLogs.forEach((log) => {
+        md += `### ${log.title}\n`;
+        md += `- 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
+        if (log.project) md += `- 项目: ${log.project}\n`;
+        if (log.item) md += `- 关联事项: ${log.item.title}\n`;
+        md += `\n${log.content}\n\n`;
+      });
+    }
 
     return new NextResponse(md, {
       headers: {

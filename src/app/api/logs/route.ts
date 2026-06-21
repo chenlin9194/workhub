@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getLocalDateString } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const project = searchParams.get("project");
-    const module = searchParams.get("module");
+    const moduleParam = searchParams.get("module");
     const type = searchParams.get("type");
     const source = searchParams.get("source");
     const hasItem = searchParams.get("hasItem");
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       if (endDate) (where.workDate as Record<string, string>).lte = endDate;
     }
     if (project) where.project = project;
-    if (module) where.module = module;
+    if (moduleParam) where.module = moduleParam;
     if (type) where.type = type;
     if (source) where.source = source;
     if (hasItem === "true") where.itemId = { not: null };
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workDate, title, content, type, source, project, module, tags, itemId } = body;
+    const { workDate, title, content, type, source, project, module: mod, tags, itemId } = body;
 
     if (!title || !content) {
       return NextResponse.json({ error: "标题和内容不能为空" }, { status: 400 });
@@ -64,13 +65,13 @@ export async function POST(request: NextRequest) {
 
     const log = await prisma.workLog.create({
       data: {
-        workDate: workDate || new Date().toISOString().split("T")[0],
+        workDate: workDate || getLocalDateString(),
         title,
         content,
         type: type || "note",
         source: source || "manual",
         project,
-        module,
+        module: mod,
         tags,
         itemId,
       },

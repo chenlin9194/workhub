@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'local-work-log',
       script: 'npx',
-      args: 'next dev -p 3000 -H 0.0.0.0',
+      args: 'next dev -p 3000 -H 127.0.0.1',
       env: {
         NODE_ENV: 'development',
         DATABASE_URL: 'file:./dev.db',

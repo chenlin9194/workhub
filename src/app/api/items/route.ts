@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getLocalDateString } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const project = searchParams.get("project");
-    const module = searchParams.get("module");
+    const moduleParam = searchParams.get("module");
     const type = searchParams.get("type");
     const priority = searchParams.get("priority");
     const status = searchParams.get("status");
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (project) where.project = project;
-    if (module) where.module = module;
+    if (moduleParam) where.module = moduleParam;
     if (type) where.type = type;
     if (priority) where.priority = priority;
     if (status) where.status = status;
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       ];
     }
     if (overdue === "true") {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalDateString();
       where.dueDate = { lt: today };
       where.status = { not: "closed" };
     }
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, project, module, type, priority, status, owner, dueDate, nextAction, tags } = body;
+    const { title, description, project, module: mod, type, priority, status, owner, dueDate, nextAction, tags } = body;
 
     if (!title) {
       return NextResponse.json({ error: "标题不能为空" }, { status: 400 });
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         project,
-        module,
+        module: mod,
         type: type || "task",
         priority: priority || "P2",
         status: status || "open",

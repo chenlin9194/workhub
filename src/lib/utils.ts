@@ -1,13 +1,28 @@
+/**
+ * Get local date string in YYYY-MM-DD format
+ * Uses local timezone, not UTC
+ */
+export function getLocalDateString(date?: Date): string {
+  const d = date || new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * @deprecated Use getLocalDateString() instead
+ */
+export function getTodayStr() {
+  return getLocalDateString();
+}
+
 export function getTodayRange() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
   return { start, end };
-}
-
-export function getTodayStr() {
-  return new Date().toISOString().split("T")[0];
 }
 
 export function getWeekRange() {
@@ -18,14 +33,14 @@ export function getWeekRange() {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
-    start: monday.toISOString().split("T")[0],
-    end: sunday.toISOString().split("T")[0],
+    start: getLocalDateString(monday),
+    end: getLocalDateString(sunday),
   };
 }
 
 export function formatDate(date: string | Date, format: "short" | "full" | "iso" = "short") {
   const d = new Date(date);
-  if (format === "iso") return d.toISOString().split("T")[0];
+  if (format === "iso") return getLocalDateString(d);
   if (format === "full") return d.toLocaleString("zh-CN");
   return d.toLocaleDateString("zh-CN");
 }
@@ -62,7 +77,7 @@ export function groupWorkLogs(logs: { id: string; title: string; content: string
 
 export function isOverdue(dueDate: string | null | undefined, status: string): boolean {
   if (!dueDate || status === "closed") return false;
-  return dueDate < getTodayStr();
+  return dueDate < getLocalDateString();
 }
 
 export function cn(...classes: (string | undefined | false | null)[]) {

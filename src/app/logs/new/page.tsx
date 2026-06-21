@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WORK_LOG_TYPES, SOURCES, MODULES } from "@/lib/constants";
+import { getLocalDateString } from "@/lib/utils";
 
 function NewLogForm() {
   const router = useRouter();
@@ -10,7 +11,7 @@ function NewLogForm() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<{ id: string; title: string }[]>([]);
   const [form, setForm] = useState({
-    workDate: new Date().toISOString().split("T")[0],
+    workDate: getLocalDateString(),
     title: "",
     content: "",
     type: "note",

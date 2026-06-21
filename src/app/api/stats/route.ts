@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getLocalDateString } from "@/lib/utils";
 
 export async function GET() {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const todayStart = new Date(today);
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);

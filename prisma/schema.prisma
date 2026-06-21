@@ -47,7 +47,7 @@ model WorkLog {
   tags      String?
 
   itemId    String?
-  item      WorkItem? @relation(fields: [itemId], references: [id])
+  item      WorkItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
