@@ -7,41 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Note {
+model WorkItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+
+  project     String?
+  module      String?
+
+  type        String   @default("task")
+  priority    String   @default("P2")
+  status      String   @default("open")
+
+  owner       String?
+  dueDate     String?
+  nextAction  String?
+
+  tags        String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  closedAt    DateTime?
+
+  logs        WorkLog[]
+}
+
+model WorkLog {
   id        String   @id @default(cuid())
+  workDate  String
   title     String
   content   String
+
+  type      String   @default("note")
+  source    String   @default("manual")
 
   project   String?
   module    String?
 
-  type      String   @default("note")
-  priority  String   @default("P2")
-  status    String   @default("open")
-
-  owner     String?
-  dueDate   String?
-  source    String   @default("manual")
-
   tags      String?
+
+  itemId    String?
+  item      WorkItem? @relation(fields: [itemId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// 本机 AI Agent 配置 — 存在本地 SQLite，不入 git
-// 每台机器独立配置自己装了哪些 agent
-model AiAgent {
-  id          String   @id @default(cuid())
-  name        String            // 内部标识：claude-code, codex-cli, hermes, codex-desktop, custom
-  label       String            // 显示名称：Claude Code, Codex CLI, ...
-  description String   @default("") // 备注：运行在 WSL 里 / macOS 原生 / ...
-  command     String   @default("") // CLI 命令模板，{prompt_file} 会被替换为临时文件路径
-                                    // 例：cat {prompt_file} | claude
-                                    //     codex < {prompt_file}
-                                    //     cat {prompt_file}  (纯复制模式，不调 CLI)
-  isDefault   Boolean  @default(false)
-  enabled     Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

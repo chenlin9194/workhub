@@ -37,3 +37,6 @@ prisma/dev.db-journal
 # local dev
 dev.db
 dev.db-journal
+
+# AI exports and reports
+.local-ai/

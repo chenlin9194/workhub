@@ -16,24 +16,25 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: "home", exact: true },
-  { href: "/notes", label: "记录列表", icon: "list" },
-  { href: "/notes/new", label: "新增记录", icon: "plus", exact: true },
-  { href: "/today", label: "今日汇总", icon: "calendar", exact: true },
+  { href: "/items", label: "工作事项", icon: "list" },
+  { href: "/items/new", label: "新增事项", icon: "plus", exact: true },
+  { href: "/logs", label: "工作日志", icon: "file-text" },
+  { href: "/logs/new", label: "新增日志", icon: "plus", exact: true },
+  { href: "/today", label: "今日视图", icon: "calendar", exact: true },
   { href: "/stats", label: "统计", icon: "chart", exact: true },
-  { href: "/ai", label: "AI 助手", icon: "sparkles", exact: true },
-  { href: "/ai/settings", label: "AI 配置", icon: "settings", exact: true },
+  { href: "/export/today", label: "导出", icon: "download", exact: true },
 ];
 
 /**
  * Determine which nav item is "active" for the current pathname.
  *
  * Strategy: pick the MOST SPECIFIC match.
- *   1. Exact match always wins (e.g. pathname "/notes/new" → item "/notes/new")
+ *   1. Exact match always wins (e.g. pathname "/items/new" → item "/items/new")
  *   2. If no exact match, the longest prefix match wins
- *      (e.g. pathname "/notes/abc123/edit" → item "/notes")
+ *      (e.g. pathname "/items/abc123/edit" → item "/items")
  *   3. Items with `exact: true` only match on exact pathname equality
  *
- * This prevents "/notes" and "/notes/new" from both being highlighted.
+ * This prevents "/items" and "/items/new" from both being highlighted.
  */
 function getActiveHref(pathname: string, items: NavItem[]): string | null {
   // First pass: look for an exact match
@@ -97,7 +98,7 @@ export default function Navbar() {
             }}>
               <Icon name="clipboard-list" size={18} />
             </span>
-            Work Log
+            Work Hub
           </Link>
 
           {/* Desktop Nav */}

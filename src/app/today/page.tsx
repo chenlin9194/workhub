@@ -1,100 +1,128 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { STATUS_LABELS } from "@/lib/constants";
-import { getTodayRange, formatTodayStr, groupNotes } from "@/lib/utils";
+import WorkItemCard from "@/components/WorkItemCard";
+import WorkLogCard from "@/components/WorkLogCard";
+import { formatTodayStr, getTodayStr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  const { start, end } = getTodayRange();
+  const today = getTodayStr();
+  const todayStart = new Date(today);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
 
-  const notes = await prisma.note.findMany({
-    where: { createdAt: { gte: start, lt: end } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [
+    todayLogs,
+    todayClosedItems,
+    todayUpdatedItems,
+    p0p1Items,
+    todayDueItems,
+    overdueItems,
+    riskBlockerLogs,
+    decisionLogs,
+  ] = await Promise.all([
+    prisma.workLog.findMany({
+      where: { workDate: today },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.workItem.findMany({
+      where: { closedAt: { gte: todayStart, lt: todayEnd } },
+      orderBy: { closedAt: "desc" },
+    }),
+    prisma.workItem.findMany({
+      where: { updatedAt: { gte: todayStart, lt: todayEnd } },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    }),
+    prisma.workItem.findMany({
+      where: { priority: { in: ["P0", "P1"] }, status: { not: "closed" } },
+      orderBy: { priority: "asc" },
+    }),
+    prisma.workItem.findMany({
+      where: { dueDate: today, status: { not: "closed" } },
+      orderBy: { priority: "asc" },
+    }),
+    prisma.workItem.findMany({
+      where: { dueDate: { lt: today }, status: { not: "closed" } },
+      orderBy: { dueDate: "asc" },
+      take: 20,
+    }),
+    prisma.workLog.findMany({
+      where: { workDate: today, type: { in: ["risk", "blocker"] } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.workLog.findMany({
+      where: { workDate: today, type: "decision" },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
-  const groups = groupNotes(notes);
-  const completed = notes.filter((n) => n.status === "closed");
+  const sections = [
+    { title: "今日新增日志", items: todayLogs, type: "log", count: todayLogs.length },
+    { title: "今日关闭事项", items: todayClosedItems, type: "item", count: todayClosedItems.length },
+    { title: "今日更新事项", items: todayUpdatedItems, type: "item", count: todayUpdatedItems.length },
+    { title: "P0/P1 未关闭事项", items: p0p1Items, type: "item", count: p0p1Items.length },
+    { title: "今日到期事项", items: todayDueItems, type: "item", count: todayDueItems.length },
+    { title: "逾期未关闭事项", items: overdueItems, type: "item", count: overdueItems.length },
+    { title: "今日风险/阻塞日志", items: riskBlockerLogs, type: "log", count: riskBlockerLogs.length },
+    { title: "今日决策日志", items: decisionLogs, type: "log", count: decisionLogs.length },
+  ];
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>今日记录汇总</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>今日工作视图</h1>
           <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginTop: 2 }}>{formatTodayStr()}</p>
         </div>
-        <Link href="/ai" className="btn btn-purple">AI 生成日报</Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/export/today" className="btn btn-secondary">导出今日</Link>
+        </div>
       </div>
 
       {/* Stats bar */}
       <div className="card" style={{ padding: "12px 16px", display: "flex", gap: 20, flexWrap: "wrap", fontSize: 13 }}>
-        <span style={{ color: "var(--text-tertiary)" }}>今日共 <strong style={{ color: "var(--text-primary)" }}>{notes.length}</strong> 条</span>
-        <span style={{ color: "var(--text-tertiary)" }}>完成 <strong style={{ color: "var(--accent-green)" }}>{completed.length}</strong></span>
-        <span style={{ color: "var(--text-tertiary)" }}>
-          待处理 <strong style={{ color: "var(--accent-orange)" }}>{notes.filter((n) => n.status === "open").length}</strong>
-        </span>
-        <span style={{ color: "var(--text-tertiary)" }}>
-          跟进中 <strong style={{ color: "var(--accent-blue)" }}>{notes.filter((n) => n.status === "following").length}</strong>
-        </span>
+        <span style={{ color: "var(--text-tertiary)" }}>今日日志 <strong style={{ color: "var(--text-primary)" }}>{todayLogs.length}</strong> 条</span>
+        <span style={{ color: "var(--text-tertiary)" }}>关闭事项 <strong style={{ color: "var(--accent-green)" }}>{todayClosedItems.length}</strong></span>
+        <span style={{ color: "var(--text-tertiary)" }}>更新事项 <strong style={{ color: "var(--accent-blue)" }}>{todayUpdatedItems.length}</strong></span>
+        <span style={{ color: "var(--text-tertiary)" }}>P0/P1 <strong style={{ color: "var(--accent-red)" }}>{p0p1Items.length}</strong></span>
+        <span style={{ color: "var(--text-tertiary)" }}>逾期 <strong style={{ color: "var(--accent-red)" }}>{overdueItems.length}</strong></span>
       </div>
 
-      {notes.length === 0 ? (
-        <div className="card empty-state">
-          <div className="empty-icon">📅</div>
-          今日暂无记录
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {groups.map((group) => (
-            <div key={group.title} className="card" style={{ overflow: "hidden" }}>
-              <div className="section-header">
-                <span>{group.title}</span>
-                <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>
-                  {group.items.length} 条
-                </span>
-              </div>
-              <div>
-                {group.items.map((note) => (
-                  <Link
-                    key={note.id}
-                    href={`/notes/${note.id}`}
-                    className="today-row"
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                      padding: "10px 16px",
-                      borderBottom: "1px solid var(--border-primary)",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                        <span className={`badge badge-${note.priority.toLowerCase()}`} style={{ fontSize: 10 }}>{note.priority}</span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {note.title}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {note.content}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      {note.project && (
-                        <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)" }}>
-                          {note.project}
-                        </span>
-                      )}
-                      <span className={`badge badge-${note.status}`} style={{ fontSize: 11 }}>
-                        {STATUS_LABELS[note.status]}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+      {/* Sections */}
+      {sections.map((section) => (
+        <div key={section.title} className="card" style={{ overflow: "hidden" }}>
+          <div className="section-header">
+            <span>{section.title}</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>
+              {section.count} 条
+            </span>
+          </div>
+          {section.items.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
+              暂无数据
             </div>
-          ))}
+          ) : (
+            <div style={{ padding: 12 }}>
+              {section.type === "log" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+                  {(section.items as { id: string; workDate: string; title: string; content: string; type: string; source: string; project?: string | null; module?: string | null; itemId?: string | null; createdAt: Date; updatedAt: Date }[]).map((log) => (
+                    <WorkLogCard key={log.id} log={log} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+                  {(section.items as { id: string; title: string; description?: string | null; project?: string | null; module?: string | null; type: string; priority: string; status: string; owner?: string | null; dueDate?: string | null; createdAt: Date; updatedAt: Date; closedAt?: Date | null }[]).map((item) => (
+                    <WorkItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      ))}
     </div>
   );
 }

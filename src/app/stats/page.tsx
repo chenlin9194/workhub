@@ -1,90 +1,138 @@
-import { prisma } from "@/lib/prisma";
-import { TYPE_LABELS, STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useState, useEffect } from "react";
 
-export default async function StatsPage() {
-  const [total, byType, byStatus, byPriority, byProject, openCount, followingCount] =
-    await Promise.all([
-      prisma.note.count(),
-      prisma.note.groupBy({ by: ["type"], _count: true }),
-      prisma.note.groupBy({ by: ["status"], _count: true }),
-      prisma.note.groupBy({ by: ["priority"], _count: true }),
-      prisma.note.groupBy({ by: ["project"], _count: true }),
-      prisma.note.count({ where: { status: "open" } }),
-      prisma.note.count({ where: { status: "following" } }),
-    ]);
+interface Stats {
+  items: {
+    total: number;
+    open: number;
+    following: number;
+    blocked: number;
+    closed: number;
+    p0: number;
+    p1: number;
+    overdue: number;
+    todayDue: number;
+  };
+  logs: {
+    total: number;
+    today: number;
+  };
+}
 
-  const StatTable = ({ title, data, labelMap }: {
-    title: string;
-    data: Record<string, unknown>[];
-    labelMap?: Record<string, string>;
-  }) => (
-    <div className="card" style={{ overflow: "hidden" }}>
-      <div className="section-header">{title}</div>
-      <div>
-        {data.map((item, idx) => {
-          const key = Object.keys(item).find((k) => k !== "_count")!;
-          const value = item[key] as string;
-          const count = typeof item._count === "number" ? item._count : (item._count as Record<string, number>)?._all ?? 0;
-          const label = labelMap?.[value] || value || "(未设置)";
-          const pct = total > 0 ? Math.round((count as number / total) * 100) : 0;
-          return (
-            <div key={String(value) + idx} style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "10px 16px", borderBottom: "1px solid var(--border-primary)",
-              fontSize: 13,
-            }}>
-              <span style={{ color: "var(--text-secondary)" }}>{label}</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 80, height: 6, borderRadius: 3, background: "var(--bg-tertiary)", overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: "var(--accent-blue)", transition: "width 0.3s" }} />
-                </div>
-                <span style={{ fontWeight: 600, color: "var(--text-primary)", minWidth: 30, textAlign: "right" }}>{count as number}</span>
-              </div>
-            </div>
-          );
-        })}
-        {data.length === 0 && (
-          <div style={{ padding: 20, textAlign: "center", fontSize: 13, color: "var(--text-tertiary)" }}>暂无数据</div>
-        )}
-      </div>
-    </div>
-  );
+export default function StatsPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/stats");
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载中...</div>;
+  }
+
+  if (!stats) {
+    return <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载失败</div>;
+  }
+
+  const itemStats = [
+    { label: "总事项", value: stats.items.total, color: "var(--text-primary)" },
+    { label: "待处理", value: stats.items.open, color: "var(--accent-blue)" },
+    { label: "跟进中", value: stats.items.following, color: "var(--accent-green)" },
+    { label: "已阻塞", value: stats.items.blocked, color: "var(--accent-orange)" },
+    { label: "已关闭", value: stats.items.closed, color: "var(--text-tertiary)" },
+    { label: "P0 紧急", value: stats.items.p0, color: "#dc2626" },
+    { label: "P1 高优", value: stats.items.p1, color: "var(--accent-red)" },
+    { label: "逾期", value: stats.items.overdue, color: "var(--accent-red)" },
+    { label: "今日到期", value: stats.items.todayDue, color: "var(--accent-purple)" },
+  ];
+
+  const logStats = [
+    { label: "总日志", value: stats.logs.total, color: "var(--text-primary)" },
+    { label: "今日日志", value: stats.logs.today, color: "var(--accent-blue)" },
+  ];
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>数据统计</h1>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>统计数据</h1>
 
-      {/* Overview */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
-        <div className="stat-card">
-          <div className="stat-value">{total}</div>
-          <div className="stat-label">总记录数</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* Work Items Stats */}
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div className="section-header">
+            <span>工作事项统计</span>
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 16 }}>
+              {itemStats.map((s) => (
+                <div key={s.label} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: s.value > 0 ? s.color : "var(--text-tertiary)", marginBottom: 4 }}>
+                    {s.value}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--accent-blue)" }}>{openCount}</div>
-          <div className="stat-label">待处理</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--accent-orange)" }}>{followingCount}</div>
-          <div className="stat-label">跟进中</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--accent-green)" }}>{total - openCount - followingCount}</div>
-          <div className="stat-label">已关闭</div>
-        </div>
-      </div>
 
-      {/* Detail Tables */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 16 }}>
-        <StatTable title="按类型统计" data={byType} labelMap={TYPE_LABELS} />
-        <StatTable title="按状态统计" data={byStatus} labelMap={STATUS_LABELS} />
-        <StatTable title="按优先级统计" data={byPriority} labelMap={PRIORITY_LABELS} />
-        <StatTable
-          title="按项目/版本统计"
-          data={byProject.map((p) => ({ ...p, project: p.project || "(未设置)" }))}
-        />
+        {/* Work Logs Stats */}
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div className="section-header">
+            <span>工作日志统计</span>
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+              {logStats.map((s) => (
+                <div key={s.label} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: s.value > 0 ? s.color : "var(--text-tertiary)", marginBottom: 4 }}>
+                    {s.value}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Health Indicators */}
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div className="section-header">
+            <span>健康指标</span>
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
+              <div style={{ padding: 16, background: stats.items.p0 > 0 ? "var(--accent-red)" : "var(--accent-green)", borderRadius: 8, color: "white" }}>
+                <div style={{ fontSize: 14, marginBottom: 4 }}>P0 紧急事项</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{stats.items.p0}</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>{stats.items.p0 > 0 ? "需要立即处理" : "状态良好"}</div>
+              </div>
+              <div style={{ padding: 16, background: stats.items.overdue > 0 ? "var(--accent-orange)" : "var(--accent-green)", borderRadius: 8, color: "white" }}>
+                <div style={{ fontSize: 14, marginBottom: 4 }}>逾期事项</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{stats.items.overdue}</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>{stats.items.overdue > 0 ? "需要跟进" : "状态良好"}</div>
+              </div>
+              <div style={{ padding: 16, background: "var(--accent-blue)", borderRadius: 8, color: "white" }}>
+                <div style={{ fontSize: 14, marginBottom: 4 }}>今日日志</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{stats.logs.today}</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>今日已记录</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
