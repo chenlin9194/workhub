@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import WorkLogCard from "@/components/WorkLogCard";
-import { WORK_LOG_TYPES, SOURCES, MODULES } from "@/lib/constants";
+import Icon from "@/components/Icon";
+import { WORK_LOG_TYPES, SOURCES } from "@/lib/constants";
 
 interface WorkLog {
   id: string;
@@ -97,17 +98,22 @@ export default function LogsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>工作日志</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={copyMarkdown} className="btn btn-secondary" style={{ fontSize: 13 }}>复制 Markdown</button>
-          <Link href="/logs/new" className="btn btn-primary">+ 新增日志</Link>
+    <div className="command-list-page">
+      <div className="command-page-header">
+        <div>
+          <span className="section-eyebrow">SIGNAL ARCHIVE</span>
+          <h1>工作日志</h1>
+          <p>回看会议、进展、风险与决策留下的事实记录。</p>
+        </div>
+        <div className="page-header-actions">
+          <button onClick={copyMarkdown} className="btn btn-secondary" style={{ fontSize: 13 }}><Icon name="copy" size={14} />复制 Markdown</button>
+          <Link href="/logs/new" className="btn btn-primary"><Icon name="plus" size={14} />新增日志</Link>
         </div>
       </div>
 
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+      <div className="card filter-panel">
+        <div className="filter-panel-label"><Icon name="search" size={14} />日志筛选</div>
+        <div className="filter-grid">
           <input type="date" value={filters.startDate} onChange={(e) => handleFilterChange("startDate", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }} />
           <input type="date" value={filters.endDate} onChange={(e) => handleFilterChange("endDate", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }} />
           <input type="text" placeholder="关键词搜索" value={filters.keyword} onChange={(e) => handleFilterChange("keyword", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }} />
@@ -133,9 +139,14 @@ export default function LogsPage() {
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载中...</div>
       ) : logs.length === 0 ? (
-        <div className="card empty-state"><div className="empty-icon">📝</div>暂无工作日志</div>
+        <div className="card empty-state compact-list-empty">
+          <div className="empty-icon"><Icon name="file-text" size={25} /></div>
+          <strong>当前没有匹配的工作日志</strong>
+          <p>记录一条今天发生的事实，后续需要闭环时再关联事项。</p>
+          <div className="empty-actions"><Link href="/logs/new" className="btn btn-primary">记录今日进展</Link></div>
+        </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+        <div className="content-card-grid">
           {logs.map((log) => (<WorkLogCard key={log.id} log={log} />))}
         </div>
       )}

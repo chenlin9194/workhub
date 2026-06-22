@@ -13,14 +13,19 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
 
   if (!start || !end) {
     return (
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>日期范围导出</h1>
-        <div className="card" style={{ padding: 24 }}>
-          <p style={{ color: "var(--text-secondary)", marginBottom: 16 }}>请在 URL 中提供 start 和 end 参数：</p>
-          <code style={{ display: "block", padding: 16, background: "var(--bg-secondary)", borderRadius: 8, fontSize: 14 }}>
+      <div className="export-page">
+        <div className="export-header">
+          <div><span className="section-eyebrow">FACT PACKAGE / RANGE</span><h1>日期范围导出</h1></div>
+        </div>
+        <div className="card export-notice">
+          <div className="export-notice-icon">i</div>
+          <div><strong>请提供导出日期范围</strong><p>在 URL 中加入 start 和 end 参数，日期格式为 YYYY-MM-DD。</p></div>
+        </div>
+        <div className="card export-preview export-range-help">
+          <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-query.txt</span><span>INPUT</span></div>
+          <code>
             /export/range?start=2025-01-01&end=2025-01-07
           </code>
-          <p style={{ color: "var(--text-tertiary)", marginTop: 16, fontSize: 13 }}>日期格式：YYYY-MM-DD</p>
         </div>
       </div>
     );
@@ -116,19 +121,25 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+    <div className="export-page">
+      <div className="export-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>工作汇总导出</h1>
-          <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginTop: 2 }}>{start} 至 {end}</p>
+          <span className="section-eyebrow">FACT PACKAGE / RANGE</span>
+          <h1>工作汇总导出</h1>
+          <p>{start} 至 {end}</p>
         </div>
         <CopyButton text={md} />
       </div>
 
-      <div className="card" style={{ padding: 24 }}>
-        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 13, lineHeight: 1.6, color: "var(--text-primary)" }}>
-          {md}
-        </pre>
+      <div className="card export-notice">
+        <div className="export-notice-icon">i</div>
+        <div><strong>Work Hub 只导出事实，不调用 AI</strong><p>范围汇总已整理为 Markdown，可复制到外部工具中继续处理。</p></div>
+        <span className="export-ready-tag"><i />Ready for Claude Code / Codex</span>
+      </div>
+
+      <div className="card export-preview">
+        <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-facts.md</span><span>MARKDOWN</span></div>
+        <pre>{md}</pre>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import WorkItemCard from "@/components/WorkItemCard";
+import Icon from "@/components/Icon";
 import { WORK_ITEM_TYPES, PRIORITIES, STATUSES, MODULES } from "@/lib/constants";
 
 interface WorkItem {
@@ -16,6 +17,7 @@ interface WorkItem {
   status: string;
   owner?: string | null;
   dueDate?: string | null;
+  nextAction?: string | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
@@ -101,21 +103,26 @@ export default function ItemsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="command-list-page">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>工作事项</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div className="command-page-header">
+        <div>
+          <span className="section-eyebrow">EXECUTION QUEUE</span>
+          <h1>工作事项</h1>
+          <p>跟踪风险、问题、待办与跨团队依赖的闭环状态。</p>
+        </div>
+        <div className="page-header-actions">
           <button onClick={copyMarkdown} className="btn btn-secondary" style={{ fontSize: 13 }}>
-            复制 Markdown
+            <Icon name="copy" size={14} />复制 Markdown
           </button>
-          <Link href="/items/new" className="btn btn-primary">+ 新建跟踪事项</Link>
+          <Link href="/items/new" className="btn btn-primary"><Icon name="plus" size={14} />新建跟踪事项</Link>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+      <div className="card filter-panel">
+        <div className="filter-panel-label"><Icon name="search" size={14} />事项筛选</div>
+        <div className="filter-grid">
           <input
             type="text"
             placeholder="关键词搜索"
@@ -193,12 +200,17 @@ export default function ItemsPage() {
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载中...</div>
       ) : items.length === 0 ? (
-        <div className="card empty-state">
-          <div className="empty-icon">📋</div>
-          暂无事项，可先新建跟踪事项来记录需要闭环的风险、问题、待办或跨团队依赖。
+        <div className="card empty-state compact-list-empty">
+          <div className="empty-icon"><Icon name="clipboard-list" size={25} /></div>
+          <strong>当前没有匹配的工作事项</strong>
+          <p>新建需要持续跟踪的事项，或先记录今天发生的事实。</p>
+          <div className="empty-actions">
+            <Link href="/items/new" className="btn btn-primary">新建跟踪事项</Link>
+            <Link href="/logs/new" className="btn btn-secondary">先记录一条日志</Link>
+          </div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+        <div className="content-card-grid">
           {items.map((item) => (
             <WorkItemCard key={item.id} item={item} />
           ))}

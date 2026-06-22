@@ -137,40 +137,23 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
+      <div className="navbar-container">
+        <div className="navbar-main-row">
           <Link
             href="/"
             onClick={(e) => handleNav("/", e)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontWeight: 700,
-              fontSize: 16,
-              color: "var(--text-primary)",
-              textDecoration: "none",
-            }}
+            className="navbar-brand"
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, var(--accent-blue), var(--accent-purple))",
-                color: "white",
-                fontSize: 14,
-              }}
-            >
+            <span className="navbar-brand-mark">
               <Icon name="clipboard-list" size={18} />
             </span>
-            Work Hub
+            <span className="navbar-brand-copy">
+              <strong>Work Hub</strong>
+              <small>Local Delivery Console</small>
+            </span>
           </Link>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }} className="hidden md:flex">
+          <div className="desktop-nav">
             {navItems.map((item) => {
               const isActive = activeHref === item.href;
               return (
@@ -189,7 +172,7 @@ export default function Navbar() {
             })}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="navbar-actions">
             {isPending && <div className="nav-loading-dot" />}
             <button
               onClick={toggle}
@@ -208,7 +191,7 @@ export default function Navbar() {
                 aria-expanded={toolMenuOpen}
               >
                 <Icon name="menu" size={18} />
-                <span style={{ marginLeft: 6 }}>常用工具</span>
+                <span className="tool-button-label">常用工具</span>
               </button>
 
               {toolMenuOpen && (
@@ -302,6 +285,24 @@ export default function Navbar() {
               )}
             </div>
           </div>
+        </div>
+        <div className="mobile-nav" aria-label="移动端导航">
+          {navItems.map((item) => {
+            const isActive = activeHref === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                onClick={(e) => handleNav(item.href, e)}
+                className={`nav-link-mobile ${isActive ? "nav-link-mobile-active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon name={item.icon} size={15} />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>

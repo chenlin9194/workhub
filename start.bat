@@ -3,7 +3,7 @@ echo ========================================
 echo   Local Work Hub
 echo ========================================
 echo.
-echo Starting...
+echo Starting development server...
 echo Access: http://localhost:3000
 echo.
 echo Press Ctrl+C to stop

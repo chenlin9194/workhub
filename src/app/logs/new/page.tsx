@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MODULES, PRIORITIES, SOURCES, STATUSES, WORK_LOG_TYPES } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type RelationMode = "none" | "existing" | "new";
 
@@ -161,17 +162,21 @@ function NewLogForm() {
   const submitLabel = form.relationMode === "new" ? "先创建事项并保存日志" : "创建日志";
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>记录今日进展</h1>
-      <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.6 }}>
-        日志用于记录今天发生的事实。它可以不关联事项，也可以关联已有事项，或者先新建一个跟踪事项再一起保存。
-      </p>
+    <div className="log-entry-page">
+      <header className="command-page-header log-entry-header">
+        <div>
+          <span className="section-eyebrow">CAPTURE TODAY&apos;S SIGNALS</span>
+          <h1>记录今日进展</h1>
+          <p>日志记录今天发生的事实；需要持续跟进时再关联事项。</p>
+        </div>
+        <span className="capture-status"><i />FACT CAPTURE</span>
+      </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card log-entry-card">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
+            <div className="log-date-row">
+              <div className="log-date-field">
                 <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
                   工作日期 *
                 </label>
@@ -180,30 +185,33 @@ function NewLogForm() {
                   value={form.workDate}
                   onChange={(e) => setForm({ ...form, workDate: e.target.value })}
                   required
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  className="input"
                 />
               </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  关联方式
-                </label>
-                <select
-                  value={form.relationMode}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      relationMode: e.target.value as RelationMode,
-                      itemId: e.target.value === "existing" ? prev.itemId : "",
-                    }))
-                  }
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                >
-                  <option value="none">不关联事项</option>
-                  <option value="existing">关联已有事项</option>
-                  <option value="new">创建新事项并关联</option>
-                </select>
-              </div>
             </div>
+
+            <fieldset className="relation-fieldset">
+              <legend>关联方式</legend>
+              <div className="relation-mode-grid">
+                {([
+                  { value: "none", title: "不关联事项", description: "只记录事实，保持轻量", icon: "file-text" },
+                  { value: "existing", title: "关联已有事项", description: "把进展归入正在跟踪的事项", icon: "target" },
+                  { value: "new", title: "创建新事项并关联", description: "记录事实并立即建立闭环", icon: "plus" },
+                ] as const).map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    className={`relation-mode-card${form.relationMode === mode.value ? " is-selected" : ""}`}
+                    aria-pressed={form.relationMode === mode.value}
+                    onClick={() => setForm((prev) => ({ ...prev, relationMode: mode.value, itemId: mode.value === "existing" ? prev.itemId : "" }))}
+                  >
+                    <span className="relation-mode-icon"><Icon name={mode.icon} size={18} /></span>
+                    <span><strong>{mode.title}</strong><small>{mode.description}</small></span>
+                    <i className="relation-check"><Icon name="check-circle" size={15} /></i>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
             {form.relationMode === "existing" && (
               <div>
@@ -334,10 +342,10 @@ function NewLogForm() {
               <textarea
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
-                placeholder="输入日志内容"
-                rows={8}
+                placeholder="粘贴飞书消息、会议结论、问题进展、临时想法……"
+                rows={11}
                 required
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                className="input log-content-input"
               />
             </div>
 

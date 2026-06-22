@@ -32,6 +32,13 @@ const paths: Record<string, string> = {
   "key": "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z",
   "cpu": "M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z",
   "zap": "M13 10V3L4 14h7v7l9-11h-7z",
+  "user": "M20 21a8 8 0 00-16 0m12-13a4 4 0 11-8 0 4 4 0 018 0z",
+  "activity": "M3 12h4l3-9 4 18 3-9h4",
+  "target": "M12 22a10 10 0 100-20 10 10 0 000 20zm0-4a6 6 0 100-12 6 6 0 000 12zm0-4a2 2 0 100-4 2 2 0 000 4z",
+  "inbox": "M4 4h16l2 10v5a2 2 0 01-2 2H4a2 2 0 01-2-2v-5L4 4zm-2 10h5l2 3h6l2-3h5",
+  "clock": "M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z",
+  "flag": "M5 21V4m0 0h11l-1 4 1 4H5",
+  "message-square": "M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z",
 };
 
 export default function Icon({
