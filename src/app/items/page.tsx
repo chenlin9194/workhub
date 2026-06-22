@@ -109,7 +109,7 @@ export default function ItemsPage() {
           <button onClick={copyMarkdown} className="btn btn-secondary" style={{ fontSize: 13 }}>
             复制 Markdown
           </button>
-          <Link href="/items/new" className="btn btn-primary">+ 新增事项</Link>
+          <Link href="/items/new" className="btn btn-primary">+ 新建跟踪事项</Link>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ export default function ItemsPage() {
       ) : items.length === 0 ? (
         <div className="card empty-state">
           <div className="empty-icon">📋</div>
-          暂无工作事项
+          暂无事项，可先新建跟踪事项来记录需要闭环的风险、问题、待办或跨团队依赖。
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>

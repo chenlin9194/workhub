@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useCallback, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition, type MouseEvent as ReactMouseEvent } from "react";
 import { useTheme } from "./ThemeProvider";
 import Icon from "./Icon";
 
@@ -13,6 +12,16 @@ interface NavItem {
   icon: string;
   exact?: boolean;
 }
+
+interface ToolLink {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  sortOrder: number;
+}
+
+const refreshTargets = new Set(["/", "/today", "/items", "/logs", "/stats"]);
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: "home", exact: true },
@@ -24,23 +33,11 @@ const navItems: NavItem[] = [
   { href: "/stats", label: "统计", icon: "chart", exact: true },
 ];
 
-/**
- * Determine which nav item is "active" for the current pathname.
- *
- * Strategy: pick the MOST SPECIFIC match.
- *   1. Exact match always wins (e.g. pathname "/items/new" → item "/items/new")
- *   2. If no exact match, the longest prefix match wins
- *      (e.g. pathname "/items/abc123/edit" → item "/items")
- *   3. Items with `exact: true` only match on exact pathname equality
- *
- * This prevents "/items" and "/items/new" from both being highlighted.
- */
 function getActiveHref(pathname: string, items: NavItem[]): string | null {
-  // First pass: look for an exact match
   for (const item of items) {
     if (pathname === item.href) return item.href;
   }
-  // Second pass: longest prefix match (skip exact-only items)
+
   let bestMatch: string | null = null;
   for (const item of items) {
     if (item.exact) continue;
@@ -50,6 +47,7 @@ function getActiveHref(pathname: string, items: NavItem[]): string | null {
       }
     }
   }
+
   return bestMatch;
 }
 
@@ -57,50 +55,121 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [toolMenuOpen, setToolMenuOpen] = useState(false);
+  const [toolLinks, setToolLinks] = useState<ToolLink[]>([]);
+  const [toolLinksLoaded, setToolLinksLoaded] = useState(false);
+  const toolMenuRef = useRef<HTMLDivElement>(null);
 
   const activeHref = getActiveHref(pathname, navItems);
 
-  // Smooth navigation with React transition
   const handleNav = useCallback(
-    (href: string, e: React.MouseEvent) => {
+    (href: string, e: ReactMouseEvent) => {
       e.preventDefault();
-      setMobileOpen(false);
-      if (href === pathname) return; // already there
+      setToolMenuOpen(false);
+      if (href === pathname) return;
       startTransition(() => {
         router.push(href);
+        if (refreshTargets.has(href)) {
+          router.refresh();
+        }
       });
     },
-    [pathname, router]
+    [pathname, router, startTransition]
   );
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (toolMenuRef.current && !toolMenuRef.current.contains(event.target as Node)) {
+        setToolMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setToolMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    setToolMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!toolMenuOpen) return;
+
+    let cancelled = false;
+
+    const fetchToolLinks = async () => {
+      try {
+        const res = await fetch("/api/tool-links", { cache: "no-store" });
+        const data = await res.json();
+        if (!cancelled) {
+          setToolLinks(Array.isArray(data.toolLinks) ? data.toolLinks : []);
+          setToolLinksLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error fetching tool links:", error);
+        if (!cancelled) {
+          setToolLinks([]);
+          setToolLinksLoaded(true);
+        }
+      }
+    };
+
+    fetchToolLinks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [toolMenuOpen]);
+
+  const availableToolLinks = toolLinks.filter((tool) => tool.enabled && tool.url.trim());
 
   return (
     <nav className="navbar">
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
-          {/* Logo */}
           <Link
             href="/"
             onClick={(e) => handleNav("/", e)}
             style={{
-              display: "flex", alignItems: "center", gap: 8,
-              fontWeight: 700, fontSize: 16, color: "var(--text-primary)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontWeight: 700,
+              fontSize: 16,
+              color: "var(--text-primary)",
               textDecoration: "none",
             }}
           >
-            <span style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 32, height: 32, borderRadius: 8,
-              background: "linear-gradient(135deg, var(--accent-blue), var(--accent-purple))",
-              color: "white", fontSize: 14,
-            }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "linear-gradient(135deg, var(--accent-blue), var(--accent-purple))",
+                color: "white",
+                fontSize: 14,
+              }}
+            >
               <Icon name="clipboard-list" size={18} />
             </span>
             Work Hub
           </Link>
 
-          {/* Desktop Nav */}
           <div style={{ display: "flex", alignItems: "center", gap: 2 }} className="hidden md:flex">
             {navItems.map((item) => {
               const isActive = activeHref === item.href;
@@ -120,12 +189,8 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Theme + Mobile toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {/* Navigation loading indicator */}
-            {isPending && (
-              <div className="nav-loading-dot" />
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isPending && <div className="nav-loading-dot" />}
             <button
               onClick={toggle}
               className="btn btn-ghost btn-sm"
@@ -133,43 +198,109 @@ export default function Navbar() {
             >
               <Icon name={theme === "light" ? "moon" : "sun"} size={16} />
             </button>
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="btn btn-ghost btn-sm md:hidden"
-            >
-              <Icon name={mobileOpen ? "x" : "menu"} size={18} />
-            </button>
-          </div>
-        </div>
 
-        {/* Mobile Nav */}
-        <div
-          className="md:hidden"
-          style={{
-            overflow: "hidden",
-            maxHeight: mobileOpen ? 400 : 0,
-            opacity: mobileOpen ? 1 : 0,
-            transition: "max-height 0.25s ease, opacity 0.2s ease",
-            paddingBottom: mobileOpen ? 12 : 0,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingTop: 8 }}>
-            {navItems.map((item) => {
-              const isActive = activeHref === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={true}
-                  onClick={(e) => handleNav(item.href, e)}
-                  className={`nav-link-mobile ${isActive ? "nav-link-mobile-active" : ""}`}
-                  aria-current={isActive ? "page" : undefined}
+            <div ref={toolMenuRef} style={{ position: "relative" }}>
+              <button
+                onClick={() => setToolMenuOpen((open) => !open)}
+                className="btn btn-ghost btn-sm"
+                title="常用工具"
+                aria-haspopup="menu"
+                aria-expanded={toolMenuOpen}
+              >
+                <Icon name="menu" size={18} />
+                <span style={{ marginLeft: 6 }}>常用工具</span>
+              </button>
+
+              {toolMenuOpen && (
+                <div
+                  role="menu"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    minWidth: 260,
+                    padding: 8,
+                    borderRadius: 12,
+                    border: "1px solid var(--border-primary)",
+                    background: "var(--bg-primary)",
+                    boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
+                    zIndex: 30,
+                  }}
                 >
-                  <Icon name={item.icon} size={18} />
-                  {item.label}
-                </Link>
-              );
-            })}
+                  {!toolLinksLoaded ? (
+                    <div
+                      style={{
+                        padding: "12px 12px",
+                        fontSize: 13,
+                        color: "var(--text-secondary)",
+                        lineHeight: 1.6,
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      加载中...
+                    </div>
+                  ) : availableToolLinks.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "12px 12px",
+                        fontSize: 13,
+                        color: "var(--text-secondary)",
+                        lineHeight: 1.6,
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      暂无常用工具，请到 常用工具设置 中添加。
+                    </div>
+                  ) : (
+                    availableToolLinks.map((tool) => (
+                      <a
+                        key={tool.id}
+                        href={tool.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        role="menuitem"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          color: "var(--text-primary)",
+                          textDecoration: "none",
+                          fontSize: 14,
+                        }}
+                      >
+                        <span>{tool.name}</span>
+                        <Icon name="external-link" size={14} />
+                      </a>
+                    ))
+                  )}
+
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border-primary)" }}>
+                    <Link
+                      href="/settings/tools"
+                      onClick={() => setToolMenuOpen(false)}
+                      role="menuitem"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        color: "var(--text-primary)",
+                        textDecoration: "none",
+                        fontSize: 14,
+                      }}
+                    >
+                      <span>管理常用工具</span>
+                      <Icon name="settings" size={14} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

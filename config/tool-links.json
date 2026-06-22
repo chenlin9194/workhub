@@ -1,0 +1,17 @@
+[
+  {
+    "name": "JIRA",
+    "url": "",
+    "enabled": true
+  },
+  {
+    "name": "Gerrit",
+    "url": "",
+    "enabled": true
+  },
+  {
+    "name": "Jenkins",
+    "url": "",
+    "enabled": true
+  }
+]

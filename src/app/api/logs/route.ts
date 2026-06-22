@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString } from "@/lib/utils";
+import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,9 +74,11 @@ export async function POST(request: NextRequest) {
         project,
         module: mod,
         tags,
-        itemId,
+        itemId: itemId || null,
       },
     });
+
+    revalidateWorkHubPaths({ logId: log.id, itemId: itemId || undefined });
 
     return NextResponse.json(log, { status: 201 });
   } catch (error) {

@@ -38,6 +38,7 @@ export default function NewItemPage() {
 
       if (res.ok) {
         const item = await res.json();
+        router.refresh();
         router.push(`/items/${item.id}`);
       } else {
         const error = await res.json();

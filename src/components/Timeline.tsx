@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WORK_LOG_TYPE_LABELS } from "@/lib/constants";
+import AutoLinkText from "./AutoLinkText";
 
 interface TimelineProps {
   logs: {
@@ -77,25 +78,25 @@ export default function Timeline({ logs }: TimelineProps) {
           {/* Logs for this date */}
           <div style={{ marginLeft: 36 }}>
             {grouped[date].map((log) => (
-              <Link
-                key={log.id}
-                href={`/logs/${log.id}`}
-                style={{ textDecoration: "none", display: "block", marginBottom: 8 }}
-              >
-                <div className="card card-hover" style={{ padding: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <div key={log.id} className="card card-hover" style={{ padding: 12, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span className="badge" style={{ fontSize: 10, background: "var(--accent-purple)", color: "white" }}>
                       {WORK_LOG_TYPE_LABELS[log.type] || log.type}
                     </span>
+                    <Link href={`/logs/${log.id}`} style={{ fontSize: 12, color: "var(--accent-blue)", textDecoration: "none" }}>
+                      查看详情
+                    </Link>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 2 }}>
-                    {log.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {log.content}
-                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{log.workDate}</span>
                 </div>
-              </Link>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>
+                  {log.title}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  <AutoLinkText text={log.content} />
+                </div>
+              </div>
             ))}
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
 export async function GET(
   request: NextRequest,
@@ -30,6 +31,11 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const currentLog = await prisma.workLog.findUnique({ where: { id } });
+
+    if (!currentLog) {
+      return NextResponse.json({ error: "宸ヤ綔鏃ュ織涓嶅瓨鍦?" }, { status: 404 });
+    }
 
     // Build update data - only include fields that are provided
     const data: Record<string, unknown> = {};
@@ -49,6 +55,14 @@ export async function PUT(
       data,
     });
 
+    revalidateWorkHubPaths({ logId: id, itemId: currentLog.itemId ?? undefined });
+    if ("itemId" in body) {
+      const nextItemId = body.itemId || undefined;
+      if (nextItemId && nextItemId !== currentLog.itemId) {
+        revalidateWorkHubPaths({ itemId: nextItemId });
+      }
+    }
+
     return NextResponse.json(log);
   } catch (error) {
     console.error("Error updating work log:", error);
@@ -62,7 +76,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const currentLog = await prisma.workLog.findUnique({ where: { id } });
     await prisma.workLog.delete({ where: { id } });
+
+    revalidateWorkHubPaths({ logId: id, itemId: currentLog?.itemId ?? undefined });
 
     return NextResponse.json({ success: true });
   } catch (error) {

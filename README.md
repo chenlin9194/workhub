@@ -243,3 +243,23 @@ npm run lint         # ESLint 代码检查
 npm run db:push      # 推送数据库 schema
 npm run db:studio    # 打开 Prisma Studio
 ```
+
+## 常用工具管理
+
+常用工具菜单由页面维护，入口在 `/settings/tools`。
+
+首次使用时，请先到 `/settings/tools` 手动添加需要的工具，例如 JIRA、Gerrit、Jenkins。
+
+操作方式：
+
+1. 打开 `/settings/tools`
+2. 新增一条工具链接，填写 `name`、`url`、`enabled`、`sortOrder`
+3. 在列表中可继续编辑、删除、启用、停用和调整排序
+4. 右上角“常用工具”菜单会自动读取已启用且链接非空的工具
+
+说明：
+
+- 新增或调整常用工具不需要改代码，只需要在页面里维护
+- 这只做本地跳转，不做登录、OAuth、API 集成或状态同步
+- 不保存账号密码或 token
+- `config/tool-links.json` 只是历史文件，不再参与运行

@@ -2,15 +2,13 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
-import { formatTodayStr, getTodayStr } from "@/lib/utils";
+import { formatTodayStr, getTodayRange, getTodayStr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const today = getTodayStr();
-  const todayStart = new Date(today);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
+  const { start: todayStart, end: todayEnd } = getTodayRange();
 
   const [
     openCount,
@@ -180,7 +178,7 @@ export default async function Dashboard() {
         {recentItems.length === 0 ? (
           <div className="card empty-state">
             <div className="empty-icon">📋</div>
-            暂无事项，点击「新增事项」开始
+            暂无事项，点击「新建跟踪事项」开始，事项用于跟踪需要闭环的风险、问题、待办或跨团队依赖
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>

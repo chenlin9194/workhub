@@ -7,6 +7,7 @@ import Timeline from "@/components/Timeline";
 import { WORK_ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/constants";
 import { isOverdue, generateWorkItemMarkdown } from "@/lib/utils";
 import Icon from "@/components/Icon";
+import AutoLinkText from "@/components/AutoLinkText";
 
 interface WorkItem {
   id: string;
@@ -72,7 +73,8 @@ export default function ItemDetailPage() {
       });
 
       if (res.ok) {
-        fetchItem();
+        await fetchItem();
+        router.refresh();
       } else {
         alert("更新失败");
       }
@@ -88,6 +90,7 @@ export default function ItemDetailPage() {
     try {
       const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
       if (res.ok) {
+        router.refresh();
         router.push("/items");
       } else {
         alert("删除失败");
@@ -161,7 +164,7 @@ export default function ItemDetailPage() {
 
         {item.description && (
           <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.6 }}>
-            {item.description}
+            <AutoLinkText text={item.description} />
           </p>
         )}
 
@@ -203,7 +206,9 @@ export default function ItemDetailPage() {
         {item.nextAction && (
           <div style={{ marginTop: 16, padding: 12, background: "var(--bg-tertiary)", borderRadius: 8 }}>
             <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>下一步行动</span>
-            <div style={{ fontSize: 14, color: "var(--text-primary)", marginTop: 4 }}>{item.nextAction}</div>
+            <div style={{ fontSize: 14, color: "var(--text-primary)", marginTop: 4 }}>
+              <AutoLinkText text={item.nextAction} />
+            </div>
           </div>
         )}
 

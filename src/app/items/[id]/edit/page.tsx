@@ -72,6 +72,7 @@ export default function EditItemPage() {
       });
 
       if (res.ok) {
+        router.refresh();
         router.push(`/items/${params.id}`);
       } else {
         const error = await res.json();

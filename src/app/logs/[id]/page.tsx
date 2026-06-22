@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WORK_LOG_TYPE_LABELS, SOURCE_LABELS } from "@/lib/constants";
 import { generateWorkLogMarkdown } from "@/lib/utils";
+import AutoLinkText from "@/components/AutoLinkText";
 
 interface WorkLog {
   id: string;
@@ -56,6 +57,7 @@ export default function LogDetailPage() {
     try {
       const res = await fetch(`/api/logs/${log.id}`, { method: "DELETE" });
       if (res.ok) {
+        router.refresh();
         router.push("/logs");
       } else {
         alert("删除失败");
@@ -102,7 +104,7 @@ export default function LogDetailPage() {
         </div>
 
         <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.8, whiteSpace: "pre-wrap", marginBottom: 16 }}>
-          {log.content}
+          <AutoLinkText text={log.content} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, fontSize: 13 }}>

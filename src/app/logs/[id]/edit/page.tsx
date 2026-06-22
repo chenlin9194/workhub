@@ -80,6 +80,7 @@ export default function EditLogPage() {
       });
 
       if (res.ok) {
+        router.refresh();
         router.push(`/logs/${params.id}`);
       } else {
         const error = await res.json();

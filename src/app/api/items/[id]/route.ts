@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
 export async function GET(
   request: NextRequest,
@@ -72,6 +73,8 @@ export async function PUT(
       data,
     });
 
+    revalidateWorkHubPaths({ itemId: id });
+
     return NextResponse.json(item);
   } catch (error) {
     console.error("Error updating work item:", error);
@@ -94,6 +97,8 @@ export async function DELETE(
 
     // Then delete the work item
     await prisma.workItem.delete({ where: { id } });
+
+    revalidateWorkHubPaths({ itemId: id });
 
     return NextResponse.json({ success: true });
   } catch (error) {
