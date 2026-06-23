@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     if (overdue === "true") {
       const today = getLocalDateString();
       where.dueDate = { lt: today };
-      where.status = { not: "closed" };
+      where.AND = [{ status: { not: "closed" } }];
     }
 
     const [items, total] = await Promise.all([
@@ -113,10 +113,10 @@ export async function POST(request: NextRequest) {
         sourceSystem: toNullableString(sourceSystem),
         sourceId: toNullableString(sourceId),
         sourceUrl: toNullableString(sourceUrl),
-        health: health || "unknown",
+        health: health == null || health === "" ? "unknown" : health,
         currentSummary: toNullableString(currentSummary),
         nextCheckpoint: toNullableString(nextCheckpoint),
-        reportLevel: reportLevel || "none",
+        reportLevel: reportLevel == null || reportLevel === "" ? "none" : reportLevel,
       },
     });
 

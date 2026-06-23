@@ -59,7 +59,6 @@ export default function WorkLogCard({ log, showLink = true }: WorkLogCardProps) 
         {log.project && <span>{log.project}</span>}
         {log.module && <span>{log.module}</span>}
         {log.itemId && <span className="linked-item-pill"><Icon name="target" size={11} />关联事项</span>}
-        {log.sourceUrl && <span>来源链接</span>}
       </div>
     </div>
   );
