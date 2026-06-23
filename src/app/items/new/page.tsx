@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { WORK_ITEM_TYPES, PRIORITIES, STATUSES, MODULES } from "@/lib/constants";
+import {
+  WORK_ITEM_TYPES,
+  PRIORITIES,
+  STATUSES,
+  MODULES,
+  HEALTH_OPTIONS,
+  REPORT_LEVEL_OPTIONS,
+  SOURCE_SYSTEM_OPTIONS,
+} from "@/lib/constants";
 
 export default function NewItemPage() {
   const router = useRouter();
@@ -19,6 +27,14 @@ export default function NewItemPage() {
     dueDate: "",
     nextAction: "",
     tags: "",
+    trackingReason: "",
+    sourceSystem: "",
+    sourceId: "",
+    sourceUrl: "",
+    health: "unknown",
+    currentSummary: "",
+    nextCheckpoint: "",
+    reportLevel: "none",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,6 +223,122 @@ export default function NewItemPage() {
                 rows={3}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
               />
+            </div>
+
+            <div className="card" style={{ padding: 16, background: "var(--bg-secondary)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      健康度
+                    </label>
+                    <select
+                      value={form.health}
+                      onChange={(e) => setForm({ ...form, health: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    >
+                      {HEALTH_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      汇报层级
+                    </label>
+                    <select
+                      value={form.reportLevel}
+                      onChange={(e) => setForm({ ...form, reportLevel: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    >
+                      {REPORT_LEVEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      来源系统
+                    </label>
+                    <select
+                      value={form.sourceSystem}
+                      onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    >
+                      <option value="">请选择来源系统</option>
+                      {SOURCE_SYSTEM_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      来源编号
+                    </label>
+                    <input
+                      type="text"
+                      value={form.sourceId}
+                      onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
+                      placeholder="来源系统中的编号"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      来源链接
+                    </label>
+                    <input
+                      type="url"
+                      value={form.sourceUrl}
+                      onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                      placeholder="https://..."
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    当前摘要
+                  </label>
+                  <textarea
+                    value={form.currentSummary}
+                    onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
+                    rows={3}
+                    placeholder="当前状态、结论或摘要"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      跟踪原因
+                    </label>
+                    <textarea
+                      value={form.trackingReason}
+                      onChange={(e) => setForm({ ...form, trackingReason: e.target.value })}
+                      rows={3}
+                      placeholder="为什么需要跟踪这件事"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                      下个检查点
+                    </label>
+                    <input
+                      type="date"
+                      value={form.nextCheckpoint}
+                      onChange={(e) => setForm({ ...form, nextCheckpoint: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Tags */}

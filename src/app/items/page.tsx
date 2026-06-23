@@ -4,7 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import WorkItemCard from "@/components/WorkItemCard";
 import Icon from "@/components/Icon";
-import { WORK_ITEM_TYPES, PRIORITIES, STATUSES, MODULES } from "@/lib/constants";
+import {
+  WORK_ITEM_TYPES,
+  PRIORITIES,
+  STATUSES,
+  MODULES,
+  HEALTH_OPTIONS,
+  REPORT_LEVEL_OPTIONS,
+  SOURCE_SYSTEM_OPTIONS,
+} from "@/lib/constants";
 
 interface WorkItem {
   id: string;
@@ -18,6 +26,14 @@ interface WorkItem {
   owner?: string | null;
   dueDate?: string | null;
   nextAction?: string | null;
+  trackingReason?: string | null;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
+  sourceUrl?: string | null;
+  health: string;
+  currentSummary?: string | null;
+  nextCheckpoint?: string | null;
+  reportLevel: string;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
@@ -35,6 +51,9 @@ export default function ItemsPage() {
     priority: "",
     status: "",
     owner: "",
+    health: "",
+    reportLevel: "",
+    sourceSystem: "",
     keyword: "",
     overdue: false,
   });
@@ -49,6 +68,9 @@ export default function ItemsPage() {
       if (filters.priority) params.set("priority", filters.priority);
       if (filters.status) params.set("status", filters.status);
       if (filters.owner) params.set("owner", filters.owner);
+      if (filters.health) params.set("health", filters.health);
+      if (filters.reportLevel) params.set("reportLevel", filters.reportLevel);
+      if (filters.sourceSystem) params.set("sourceSystem", filters.sourceSystem);
       if (filters.keyword) params.set("keyword", filters.keyword);
       if (filters.overdue) params.set("overdue", "true");
       params.set("page", page.toString());
@@ -82,6 +104,9 @@ export default function ItemsPage() {
       priority: "",
       status: "",
       owner: "",
+      health: "",
+      reportLevel: "",
+      sourceSystem: "",
       keyword: "",
       overdue: false,
     });
@@ -158,6 +183,36 @@ export default function ItemsPage() {
             <option value="">全部状态</option>
             {STATUSES.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          <select
+            value={filters.health}
+            onChange={(e) => handleFilterChange("health", e.target.value)}
+            style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}
+          >
+            <option value="">全部健康度</option>
+            {HEALTH_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <select
+            value={filters.reportLevel}
+            onChange={(e) => handleFilterChange("reportLevel", e.target.value)}
+            style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}
+          >
+            <option value="">全部汇报层级</option>
+            {REPORT_LEVEL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <select
+            value={filters.sourceSystem}
+            onChange={(e) => handleFilterChange("sourceSystem", e.target.value)}
+            style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}
+          >
+            <option value="">全部来源系统</option>
+            {SOURCE_SYSTEM_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
           <select

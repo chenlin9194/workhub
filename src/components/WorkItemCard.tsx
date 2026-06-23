@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { WORK_ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/constants";
+import {
+  WORK_ITEM_TYPE_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  HEALTH_LABELS,
+  REPORT_LEVEL_LABELS,
+  SOURCE_SYSTEM_LABELS,
+} from "@/lib/constants";
 import { isOverdue } from "@/lib/utils";
 import Icon from "./Icon";
 
@@ -18,6 +25,14 @@ interface WorkItemCardProps {
     owner?: string | null;
     dueDate?: string | null;
     nextAction?: string | null;
+    trackingReason?: string | null;
+    sourceSystem?: string | null;
+    sourceId?: string | null;
+    sourceUrl?: string | null;
+    health?: string | null;
+    currentSummary?: string | null;
+    nextCheckpoint?: string | null;
+    reportLevel?: string | null;
     createdAt: Date;
     updatedAt: Date;
     closedAt?: Date | null;
@@ -25,6 +40,8 @@ interface WorkItemCardProps {
 }
 
 export default function WorkItemCard({ item }: WorkItemCardProps) {
+  const health = item.health || "unknown";
+  const reportLevel = item.reportLevel || "none";
   const overdue = isOverdue(item.dueDate, item.status);
   const blocked = item.status === "blocked";
   const closed = item.status === "closed";
@@ -49,6 +66,13 @@ export default function WorkItemCard({ item }: WorkItemCardProps) {
         {item.description && <p className="work-card-description">{item.description}</p>}
       </div>
 
+      {item.currentSummary && (
+        <div className="next-action-box">
+          <span><Icon name="file-text" size={13} />当前摘要</span>
+          <strong>{item.currentSummary}</strong>
+        </div>
+      )}
+
       {item.nextAction && (
         <div className="next-action-box">
           <span><Icon name="chevron-right" size={13} />NEXT ACTION</span>
@@ -58,6 +82,17 @@ export default function WorkItemCard({ item }: WorkItemCardProps) {
 
       <div className="work-card-meta">
         <span>{WORK_ITEM_TYPE_LABELS[item.type] || item.type}</span>
+        <span>{HEALTH_LABELS[health] || health}</span>
+        {item.nextCheckpoint && <span><Icon name="calendar" size={11} />{item.nextCheckpoint}</span>}
+        <span>{REPORT_LEVEL_LABELS[reportLevel] || reportLevel}</span>
+        {(item.sourceSystem || item.sourceId) && (
+          <span>
+            {item.sourceSystem ? (SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem) : "来源"}
+            {item.sourceId ? ` / ${item.sourceId}` : ""}
+          </span>
+        )}
+        {item.trackingReason && <span>跟踪：{item.trackingReason}</span>}
+        {item.sourceUrl && <span>有来源链接</span>}
         {item.project && <span>{item.project}</span>}
         {item.module && <span>{item.module}</span>}
         {item.owner && <span><Icon name="user" size={11} />{item.owner}</span>}

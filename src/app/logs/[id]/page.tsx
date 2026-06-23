@@ -19,6 +19,8 @@ interface WorkLog {
   tags?: string | null;
   itemId?: string | null;
   item?: { id: string; title: string } | null;
+  reportable: boolean;
+  sourceUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -107,9 +109,34 @@ export default function LogDetailPage() {
           <AutoLinkText text={log.content} />
         </div>
 
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <span className="badge" style={{ background: log.reportable ? "var(--accent-green)" : "var(--bg-tertiary)", color: log.reportable ? "white" : "var(--text-primary)" }}>
+            {log.reportable ? "可汇报" : "不可汇报"}
+          </span>
+          {log.sourceUrl && (
+            <a href={log.sourceUrl} target="_blank" rel="noreferrer" className="badge" style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", textDecoration: "none" }}>
+              来源链接
+            </a>
+          )}
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, fontSize: 13 }}>
+          <div>
+            <span style={{ color: "var(--text-tertiary)" }}>汇报状态</span>
+            <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.reportable ? "可汇报" : "不可汇报"}</div>
+          </div>
           {log.project && (<div><span style={{ color: "var(--text-tertiary)" }}>项目</span><div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.project}</div></div>)}
           {log.module && (<div><span style={{ color: "var(--text-tertiary)" }}>模块</span><div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.module}</div></div>)}
+          {log.sourceUrl && (
+            <div>
+              <span style={{ color: "var(--text-tertiary)" }}>来源链接</span>
+              <div>
+                <a href={log.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>
+                  {log.sourceUrl}
+                </a>
+              </div>
+            </div>
+          )}
           {log.item && (
             <div>
               <span style={{ color: "var(--text-tertiary)" }}>关联事项</span>

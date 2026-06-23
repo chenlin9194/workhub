@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
+function toNullableString(value: unknown): string | null {
+  return value === "" || value === undefined || value === null ? null : String(value);
+}
+
+function toBoolean(value: unknown) {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -45,10 +53,12 @@ export async function PUT(
     if ("content" in body) data.content = body.content;
     if ("type" in body) data.type = body.type;
     if ("source" in body) data.source = body.source;
-    if ("project" in body) data.project = body.project === "" ? null : body.project;
-    if ("module" in body) data.module = body.module === "" ? null : body.module;
-    if ("tags" in body) data.tags = body.tags === "" ? null : body.tags;
-    if ("itemId" in body) data.itemId = body.itemId === "" ? null : body.itemId;
+    if ("project" in body) data.project = toNullableString(body.project);
+    if ("module" in body) data.module = toNullableString(body.module);
+    if ("tags" in body) data.tags = toNullableString(body.tags);
+    if ("itemId" in body) data.itemId = toNullableString(body.itemId);
+    if ("reportable" in body) data.reportable = toBoolean(body.reportable);
+    if ("sourceUrl" in body) data.sourceUrl = toNullableString(body.sourceUrl);
 
     const log = await prisma.workLog.update({
       where: { id },

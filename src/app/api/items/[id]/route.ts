@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
+function toNullableString(value: unknown): string | null {
+  return value === "" || value === undefined || value === null ? null : String(value);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -47,16 +51,24 @@ export async function PUT(
     const data: Record<string, unknown> = {};
 
     if ("title" in body) data.title = body.title;
-    if ("description" in body) data.description = body.description === "" ? null : body.description;
-    if ("project" in body) data.project = body.project === "" ? null : body.project;
-    if ("module" in body) data.module = body.module === "" ? null : body.module;
+    if ("description" in body) data.description = toNullableString(body.description);
+    if ("project" in body) data.project = toNullableString(body.project);
+    if ("module" in body) data.module = toNullableString(body.module);
     if ("type" in body) data.type = body.type;
     if ("priority" in body) data.priority = body.priority;
     if ("status" in body) data.status = body.status;
-    if ("owner" in body) data.owner = body.owner === "" ? null : body.owner;
-    if ("dueDate" in body) data.dueDate = body.dueDate === "" ? null : body.dueDate;
-    if ("nextAction" in body) data.nextAction = body.nextAction === "" ? null : body.nextAction;
-    if ("tags" in body) data.tags = body.tags === "" ? null : body.tags;
+    if ("owner" in body) data.owner = toNullableString(body.owner);
+    if ("dueDate" in body) data.dueDate = toNullableString(body.dueDate);
+    if ("nextAction" in body) data.nextAction = toNullableString(body.nextAction);
+    if ("tags" in body) data.tags = toNullableString(body.tags);
+    if ("trackingReason" in body) data.trackingReason = toNullableString(body.trackingReason);
+    if ("sourceSystem" in body) data.sourceSystem = toNullableString(body.sourceSystem);
+    if ("sourceId" in body) data.sourceId = toNullableString(body.sourceId);
+    if ("sourceUrl" in body) data.sourceUrl = toNullableString(body.sourceUrl);
+    if ("health" in body) data.health = body.health == null || body.health === "" ? "unknown" : body.health;
+    if ("currentSummary" in body) data.currentSummary = toNullableString(body.currentSummary);
+    if ("nextCheckpoint" in body) data.nextCheckpoint = toNullableString(body.nextCheckpoint);
+    if ("reportLevel" in body) data.reportLevel = body.reportLevel == null || body.reportLevel === "" ? "none" : body.reportLevel;
 
     // Handle closedAt logic
     if ("status" in body) {

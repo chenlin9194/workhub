@@ -16,6 +16,8 @@ interface WorkLog {
   project?: string | null;
   module?: string | null;
   itemId?: string | null;
+  reportable: boolean;
+  sourceUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +35,7 @@ export default function LogsPage() {
     type: "",
     source: "",
     hasItem: "",
+    reportable: "",
     keyword: "",
   });
 
@@ -47,6 +50,7 @@ export default function LogsPage() {
       if (filters.type) params.set("type", filters.type);
       if (filters.source) params.set("source", filters.source);
       if (filters.hasItem) params.set("hasItem", filters.hasItem);
+      if (filters.reportable) params.set("reportable", filters.reportable);
       if (filters.keyword) params.set("keyword", filters.keyword);
       params.set("page", page.toString());
       params.set("pageSize", "20");
@@ -80,6 +84,7 @@ export default function LogsPage() {
       type: "",
       source: "",
       hasItem: "",
+      reportable: "",
       keyword: "",
     });
     setPage(1);
@@ -124,6 +129,11 @@ export default function LogsPage() {
           <select value={filters.source} onChange={(e) => handleFilterChange("source", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}>
             <option value="">全部来源</option>
             {SOURCES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
+          </select>
+          <select value={filters.reportable} onChange={(e) => handleFilterChange("reportable", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}>
+            <option value="">全部汇报状态</option>
+            <option value="true">仅可汇报</option>
+            <option value="false">仅不可汇报</option>
           </select>
           <select value={filters.hasItem} onChange={(e) => handleFilterChange("hasItem", e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 13 }}>
             <option value="">全部关联</option>

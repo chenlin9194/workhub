@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Timeline from "@/components/Timeline";
-import { WORK_ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/constants";
+import {
+  WORK_ITEM_TYPE_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  HEALTH_LABELS,
+  REPORT_LEVEL_LABELS,
+  SOURCE_SYSTEM_LABELS,
+} from "@/lib/constants";
 import { isOverdue, generateWorkItemMarkdown } from "@/lib/utils";
 import Icon from "@/components/Icon";
 import AutoLinkText from "@/components/AutoLinkText";
@@ -22,6 +29,14 @@ interface WorkItem {
   dueDate?: string | null;
   nextAction?: string | null;
   tags?: string | null;
+  trackingReason?: string | null;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
+  sourceUrl?: string | null;
+  health: string;
+  currentSummary?: string | null;
+  nextCheckpoint?: string | null;
+  reportLevel: string;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
@@ -168,7 +183,54 @@ export default function ItemDetailPage() {
           </p>
         )}
 
+        {(item.currentSummary || item.trackingReason) && (
+          <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+            {item.currentSummary && (
+              <div style={{ padding: 12, borderRadius: 8, background: "var(--bg-tertiary)" }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>当前摘要</div>
+                <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                  <AutoLinkText text={item.currentSummary} />
+                </div>
+              </div>
+            )}
+            {item.trackingReason && (
+              <div style={{ padding: 12, borderRadius: 8, background: "var(--bg-tertiary)" }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>跟踪原因</div>
+                <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                  <AutoLinkText text={item.trackingReason} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, fontSize: 13 }}>
+          <div>
+            <span style={{ color: "var(--text-tertiary)" }}>健康度</span>
+            <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{HEALTH_LABELS[item.health] || item.health}</div>
+          </div>
+          <div>
+            <span style={{ color: "var(--text-tertiary)" }}>汇报层级</span>
+            <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{REPORT_LEVEL_LABELS[item.reportLevel] || item.reportLevel}</div>
+          </div>
+          {item.sourceSystem && (
+            <div>
+              <span style={{ color: "var(--text-tertiary)" }}>来源系统</span>
+              <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem}</div>
+            </div>
+          )}
+          {item.sourceId && (
+            <div>
+              <span style={{ color: "var(--text-tertiary)" }}>来源编号</span>
+              <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{item.sourceId}</div>
+            </div>
+          )}
+          {item.nextCheckpoint && (
+            <div>
+              <span style={{ color: "var(--text-tertiary)" }}>下个检查点</span>
+              <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{item.nextCheckpoint}</div>
+            </div>
+          )}
           {item.project && (
             <div>
               <span style={{ color: "var(--text-tertiary)" }}>项目</span>
@@ -191,6 +253,16 @@ export default function ItemDetailPage() {
             <div>
               <span style={{ color: "var(--text-tertiary)" }}>截止日期</span>
               <div style={{ color: overdue ? "var(--accent-red)" : "var(--text-primary)", fontWeight: 500 }}>{item.dueDate}</div>
+            </div>
+          )}
+          {item.sourceUrl && (
+            <div>
+              <span style={{ color: "var(--text-tertiary)" }}>来源链接</span>
+              <div style={{ color: "var(--accent-blue)", fontWeight: 500 }}>
+                <a href={item.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+                  打开来源链接
+                </a>
+              </div>
             </div>
           )}
           <div>

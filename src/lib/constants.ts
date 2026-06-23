@@ -11,6 +11,33 @@ export const WORK_ITEM_TYPES = [
   { value: "other", label: "其他" },
 ] as const;
 
+export const HEALTH_OPTIONS = [
+  { value: "unknown", label: "未知" },
+  { value: "green", label: "正常" },
+  { value: "yellow", label: "关注" },
+  { value: "red", label: "风险" },
+] as const;
+
+export const REPORT_LEVEL_OPTIONS = [
+  { value: "none", label: "不进入汇报" },
+  { value: "daily", label: "日报" },
+  { value: "weekly", label: "周报" },
+  { value: "project", label: "项目汇报" },
+  { value: "management", label: "管理汇报" },
+] as const;
+
+export const SOURCE_SYSTEM_OPTIONS = [
+  { value: "manual", label: "手动" },
+  { value: "meeting", label: "会议" },
+  { value: "mail", label: "邮件" },
+  { value: "feishu", label: "飞书" },
+  { value: "jira", label: "JIRA" },
+  { value: "alm", label: "ALM" },
+  { value: "gerrit", label: "Gerrit" },
+  { value: "jenkins", label: "Jenkins" },
+  { value: "other", label: "其他" },
+] as const;
+
 export const WORK_LOG_TYPES = [
   { value: "note", label: "笔记" },
   { value: "meeting", label: "会议" },
@@ -76,4 +103,16 @@ export const STATUS_LABELS: Record<string, string> = Object.fromEntries(
 
 export const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
   SOURCES.map((s) => [s.value, s.label])
+);
+
+export const HEALTH_LABELS: Record<string, string> = Object.fromEntries(
+  HEALTH_OPTIONS.map((option) => [option.value, option.label])
+);
+
+export const REPORT_LEVEL_LABELS: Record<string, string> = Object.fromEntries(
+  REPORT_LEVEL_OPTIONS.map((option) => [option.value, option.label])
+);
+
+export const SOURCE_SYSTEM_LABELS: Record<string, string> = Object.fromEntries(
+  SOURCE_SYSTEM_OPTIONS.map((option) => [option.value, option.label])
 );

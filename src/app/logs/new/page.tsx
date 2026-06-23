@@ -29,6 +29,8 @@ function NewLogForm() {
     project: "",
     module: "",
     tags: "",
+    reportable: false,
+    sourceUrl: "",
     relationMode: initialItemId ? ("existing" as RelationMode) : ("none" as RelationMode),
     itemId: initialItemId,
     newPriority: "P2",
@@ -131,6 +133,8 @@ function NewLogForm() {
           project: form.project,
           module: form.module,
           tags: form.tags,
+          reportable: form.reportable,
+          sourceUrl: form.sourceUrl,
           itemId: itemIdToLink,
         }),
       });
@@ -423,6 +427,29 @@ function NewLogForm() {
                   value={form.tags}
                   onChange={(e) => setForm({ ...form, tags: e.target.value })}
                   placeholder="标签，用逗号分隔"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+                <input
+                  type="checkbox"
+                  checked={form.reportable}
+                  onChange={(e) => setForm({ ...form, reportable: e.target.checked })}
+                />
+                可汇报
+              </label>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                  来源链接
+                </label>
+                <input
+                  type="url"
+                  value={form.sourceUrl}
+                  onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                  placeholder="https://..."
                   style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
                 />
               </div>
