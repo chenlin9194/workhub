@@ -1,5 +1,9 @@
 export const WORK_ITEM_TYPES = [
-  { value: "task", label: "任务" },
+  { value: "requirement", label: "需求" },
+  { value: "milestone", label: "里程碑" },
+  { value: "commitment", label: "承诺项" },
+  { value: "action", label: "推进动作" },
+  { value: "change", label: "变更" },
   { value: "risk", label: "风险" },
   { value: "issue", label: "问题" },
   { value: "decision", label: "决策" },
@@ -73,7 +77,3 @@ export const STATUS_LABELS: Record<string, string> = Object.fromEntries(
 export const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
   SOURCES.map((s) => [s.value, s.label])
 );
-
-// Legacy aliases for backward compatibility
-export const NOTE_TYPES = WORK_LOG_TYPES;
-export const TYPE_LABELS = WORK_LOG_TYPE_LABELS;

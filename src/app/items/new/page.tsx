@@ -12,7 +12,7 @@ export default function NewItemPage() {
     description: "",
     project: "",
     module: "",
-    type: "task",
+    type: "action",
     priority: "P2",
     status: "open",
     owner: "",

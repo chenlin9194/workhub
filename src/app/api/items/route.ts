@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         description,
         project,
         module: mod,
-        type: type || "task",
+        type: type || "action",
         priority: priority || "P2",
         status: status || "open",
         owner,

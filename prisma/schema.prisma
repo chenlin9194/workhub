@@ -15,13 +15,22 @@ model WorkItem {
   project     String?
   module      String?
 
-  type        String   @default("task")
+  type        String   @default("action")
   priority    String   @default("P2")
   status      String   @default("open")
 
   owner       String?
   dueDate     String?
   nextAction  String?
+
+  trackingReason String?
+  sourceSystem   String?
+  sourceId       String?
+  sourceUrl      String?
+  health         String  @default("unknown")
+  currentSummary String?
+  nextCheckpoint String?
+  reportLevel    String  @default("none")
 
   tags        String?
 
@@ -45,6 +54,9 @@ model WorkLog {
   module    String?
 
   tags      String?
+
+  reportable Boolean @default(false)
+  sourceUrl  String?
 
   itemId    String?
   item      WorkItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
