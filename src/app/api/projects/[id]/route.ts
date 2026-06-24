@@ -66,9 +66,9 @@ export async function PUT(
     if ("health" in body) data.health = body.health;
     if ("owner" in body) data.owner = toNullableString(body.owner);
     if ("pm" in body) data.pm = toNullableString(body.pm);
-    if ("startDate" in body) data.startDate = body.startDate ? new Date(body.startDate) : null;
-    if ("targetDate" in body) data.targetDate = body.targetDate ? new Date(body.targetDate) : null;
-    if ("releaseDate" in body) data.releaseDate = body.releaseDate ? new Date(body.releaseDate) : null;
+    if ("startDate" in body) data.startDate = body.startDate ? new Date(`${body.startDate}T00:00:00`) : null;
+    if ("targetDate" in body) data.targetDate = body.targetDate ? new Date(`${body.targetDate}T00:00:00`) : null;
+    if ("releaseDate" in body) data.releaseDate = body.releaseDate ? new Date(`${body.releaseDate}T00:00:00`) : null;
     if ("currentSummary" in body) data.currentSummary = toNullableString(body.currentSummary);
     if ("nextMilestone" in body) data.nextMilestone = toNullableString(body.nextMilestone);
     if ("nextAction" in body) data.nextAction = toNullableString(body.nextAction);
