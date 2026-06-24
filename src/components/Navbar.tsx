@@ -21,16 +21,14 @@ interface ToolLink {
   sortOrder: number;
 }
 
-const refreshTargets = new Set(["/", "/today", "/items", "/logs", "/stats"]);
+const refreshTargets = new Set(["/", "/projects", "/items", "/logs", "/reports"]);
 
 const navItems: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: "home", exact: true },
-  { href: "/today", label: "今日视图", icon: "calendar", exact: true },
-  { href: "/logs/new", label: "记录日志", icon: "edit", exact: true },
-  { href: "/items", label: "工作事项", icon: "list" },
-  { href: "/logs", label: "工作日志", icon: "file-text" },
-  { href: "/export/today", label: "导出", icon: "download", exact: true },
-  { href: "/stats", label: "统计", icon: "chart", exact: true },
+  { href: "/", label: "工作台", icon: "home", exact: true },
+  { href: "/projects", label: "项目", icon: "folder", exact: true },
+  { href: "/items", label: "事项", icon: "list" },
+  { href: "/logs", label: "日志", icon: "file-text" },
+  { href: "/reports", label: "汇报", icon: "chart", exact: true },
 ];
 
 function getActiveHref(pathname: string, items: NavItem[]): string | null {

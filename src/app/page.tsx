@@ -234,6 +234,10 @@ export default async function Dashboard({ searchParams }: PageProps) {
               <Icon name="download" size={15} />
               导出日报
             </Link>
+            <Link href="/stats" className="btn hero-btn-ghost">
+              <Icon name="chart" size={15} />
+              统计概览
+            </Link>
           </div>
         </div>
         <div className="hero-system-mark" aria-hidden="true">
