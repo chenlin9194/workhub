@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Timeline from "@/components/Timeline";
@@ -13,7 +13,6 @@ import {
   SOURCE_SYSTEM_LABELS,
 } from "@/lib/constants";
 import { isOverdue, generateWorkItemMarkdown } from "@/lib/utils";
-import Icon from "@/components/Icon";
 import AutoLinkText from "@/components/AutoLinkText";
 
 interface WorkItem {
@@ -53,16 +52,13 @@ interface WorkItem {
 export default function ItemDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const id = params.id as string;
   const [item, setItem] = useState<WorkItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchItem();
-  }, [params.id]);
-
-  const fetchItem = async () => {
+  const fetchItem = useCallback(async () => {
     try {
-      const res = await fetch(`/api/items/${params.id}`);
+      const res = await fetch(`/api/items/${id}`);
       if (res.ok) {
         const data = await res.json();
         setItem(data);
@@ -75,7 +71,11 @@ export default function ItemDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchItem();
+  }, [fetchItem]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!item) return;

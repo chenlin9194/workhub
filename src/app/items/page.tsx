@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import WorkItemCard from "@/components/WorkItemCard";
 import Icon from "@/components/Icon";
@@ -58,7 +58,7 @@ export default function ItemsPage() {
     overdue: false,
   });
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -85,11 +85,11 @@ export default function ItemsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filters]);
 
   useEffect(() => {
     fetchItems();
-  }, [page, filters]);
+  }, [fetchItems]);
 
   const handleFilterChange = (key: string, value: string | boolean) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

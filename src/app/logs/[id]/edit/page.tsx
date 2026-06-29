@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { WORK_LOG_TYPES, SOURCES, MODULES } from "@/lib/constants";
 
 export default function EditLogPage() {
   const params = useParams();
   const router = useRouter();
+  const id = params.id as string;
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [items, setItems] = useState<{ id: string; title: string }[]>([]);
@@ -24,14 +25,9 @@ export default function EditLogPage() {
     sourceUrl: "",
   });
 
-  useEffect(() => {
-    fetchLog();
-    fetchItems();
-  }, [params.id]);
-
-  const fetchLog = async () => {
+  const fetchLog = useCallback(async () => {
     try {
-      const res = await fetch(`/api/logs/${params.id}`);
+      const res = await fetch(`/api/logs/${id}`);
       if (res.ok) {
         const log = await res.json();
         setForm({
@@ -56,9 +52,9 @@ export default function EditLogPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [id, router]);
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     try {
       const res = await fetch("/api/items?pageSize=100");
       const data = await res.json();
@@ -66,7 +62,12 @@ export default function EditLogPage() {
     } catch (error) {
       console.error("Error fetching items:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLog();
+    fetchItems();
+  }, [fetchItems, fetchLog]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +78,7 @@ export default function EditLogPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/logs/${params.id}`, {
+      const res = await fetch(`/api/logs/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -85,7 +86,7 @@ export default function EditLogPage() {
 
       if (res.ok) {
         router.refresh();
-        router.push(`/logs/${params.id}`);
+        router.push(`/logs/${id}`);
       } else {
         const error = await res.json();
         alert(error.error || "更新失败");

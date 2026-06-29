@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WORK_LOG_TYPE_LABELS, SOURCE_LABELS } from "@/lib/constants";
@@ -28,16 +28,13 @@ interface WorkLog {
 export default function LogDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const id = params.id as string;
   const [log, setLog] = useState<WorkLog | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLog();
-  }, [params.id]);
-
-  const fetchLog = async () => {
+  const fetchLog = useCallback(async () => {
     try {
-      const res = await fetch(`/api/logs/${params.id}`);
+      const res = await fetch(`/api/logs/${id}`);
       if (res.ok) {
         const data = await res.json();
         setLog(data);
@@ -50,7 +47,11 @@ export default function LogDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchLog();
+  }, [fetchLog]);
 
   const handleDelete = async () => {
     if (!log) return;

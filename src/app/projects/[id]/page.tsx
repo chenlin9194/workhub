@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/Icon";
@@ -13,7 +13,7 @@ import {
   HEALTH_LABELS,
 } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
-import type { Project, WorkItem, WorkLog } from "@/lib/types";
+import type { Project } from "@/lib/types";
 
 const HEALTH_TONE: Record<string, string> = {
   green: "success",
@@ -28,11 +28,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProject();
-  }, [id]);
-
-  const fetchProject = async () => {
+  const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${id}`);
       if (res.ok) {
@@ -44,7 +40,11 @@ export default function ProjectDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProject();
+  }, [fetchProject]);
 
   if (loading) {
     return (

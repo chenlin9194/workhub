@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/Icon";
@@ -39,11 +39,7 @@ export default function EditProjectPage() {
     tags: "",
   });
 
-  useEffect(() => {
-    fetchProject();
-  }, [id]);
-
-  const fetchProject = async () => {
+  const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${id}`);
       if (res.ok) {
@@ -75,7 +71,11 @@ export default function EditProjectPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProject();
+  }, [fetchProject]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

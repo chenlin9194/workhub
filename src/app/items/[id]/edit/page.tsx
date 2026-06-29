@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   WORK_ITEM_TYPES,
@@ -15,6 +15,7 @@ import {
 export default function EditItemPage() {
   const params = useParams();
   const router = useRouter();
+  const id = params.id as string;
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [form, setForm] = useState({
@@ -39,13 +40,9 @@ export default function EditItemPage() {
     reportLevel: "none",
   });
 
-  useEffect(() => {
-    fetchItem();
-  }, [params.id]);
-
-  const fetchItem = async () => {
+  const fetchItem = useCallback(async () => {
     try {
-      const res = await fetch(`/api/items/${params.id}`);
+      const res = await fetch(`/api/items/${id}`);
       if (res.ok) {
         const item = await res.json();
         setForm({
@@ -78,7 +75,11 @@ export default function EditItemPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchItem();
+  }, [fetchItem]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +90,7 @@ export default function EditItemPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/items/${params.id}`, {
+      const res = await fetch(`/api/items/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -97,7 +98,7 @@ export default function EditItemPage() {
 
       if (res.ok) {
         router.refresh();
-        router.push(`/items/${params.id}`);
+        router.push(`/items/${id}`);
       } else {
         const error = await res.json();
         alert(error.error || "更新失败");

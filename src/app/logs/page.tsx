@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import WorkLogCard from "@/components/WorkLogCard";
 import Icon from "@/components/Icon";
@@ -39,7 +39,7 @@ export default function LogsPage() {
     keyword: "",
   });
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -64,11 +64,11 @@ export default function LogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filters]);
 
   useEffect(() => {
     fetchLogs();
-  }, [page, filters]);
+  }, [fetchLogs]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

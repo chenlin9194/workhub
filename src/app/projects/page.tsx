@@ -55,7 +55,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     const timer = setTimeout(() => { fetchProjects(); }, keyword ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [fetchProjects]);
+  }, [fetchProjects, keyword]);
 
   const handleSearch = () => {
     fetchProjects();
