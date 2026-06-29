@@ -8,14 +8,15 @@ import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import {
   PROJECT_LINK_CATEGORIES,
+  PROJECT_MILESTONE_STATUS_LABELS,
   PROJECT_STATUS_LABELS,
   PROJECT_STAGE_LABELS,
   PROJECT_TYPE_LABELS,
   HEALTH_LABELS,
   SOURCE_SYSTEM_LABELS,
 } from "@/lib/constants";
-import { getLocalDateString } from "@/lib/utils";
-import type { Project, ProjectLink } from "@/lib/types";
+import { formatDate, getLocalDateString } from "@/lib/utils";
+import type { Project, ProjectLink, ProjectMilestone } from "@/lib/types";
 
 const HEALTH_TONE: Record<string, string> = {
   green: "success",
@@ -53,6 +54,9 @@ export default function ProjectDetailPage() {
   const [linksLoading, setLinksLoading] = useState(true);
   const [linksError, setLinksError] = useState(false);
   const [linkActionError, setLinkActionError] = useState("");
+  const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(true);
+  const [milestonesError, setMilestonesError] = useState(false);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createSaving, setCreateSaving] = useState(false);
@@ -127,6 +131,28 @@ export default function ProjectDetailPage() {
     }
   }, [id]);
 
+  const fetchMilestones = useCallback(async () => {
+    try {
+      setMilestonesLoading(true);
+      setMilestonesError(false);
+
+      const res = await fetch(`/api/projects/${id}/milestones`);
+      if (res.ok) {
+        const data = await res.json();
+        setMilestones(data);
+      } else {
+        setMilestones([]);
+        setMilestonesError(true);
+      }
+    } catch (error) {
+      console.error("Error fetching project milestones:", error);
+      setMilestones([]);
+      setMilestonesError(true);
+    } finally {
+      setMilestonesLoading(false);
+    }
+  }, [id]);
+
   const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${id}`);
@@ -144,7 +170,8 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProject();
     fetchLinks();
-  }, [fetchLinks, fetchProject]);
+    fetchMilestones();
+  }, [fetchLinks, fetchMilestones, fetchProject]);
 
   const openCreateForm = () => {
     resetEditForm();
@@ -523,6 +550,83 @@ export default function ProjectDetailPage() {
             项目快照
           </a>
         </div>
+      </section>
+
+      <section style={{ marginBottom: 24 }}>
+        <div className="dashboard-section-title">
+          <div>
+            <span className="section-eyebrow">MILESTONES</span>
+            <h2>项目里程碑</h2>
+          </div>
+        </div>
+
+        {milestonesLoading ? (
+          <div className="card empty-state">
+            <p>加载中...</p>
+          </div>
+        ) : milestonesError ? (
+          <div className="card empty-state">
+            <p>项目里程碑加载失败</p>
+          </div>
+        ) : milestones.length === 0 ? (
+          <div className="card empty-state">
+            <p>暂无项目里程碑</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {milestones.map((milestone) => (
+              <div key={milestone.id} className="card" style={{ padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{milestone.title}</strong>
+                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                        {PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, fontSize: 13, color: "var(--text-secondary)" }}>
+                      <span>目标日期：{milestone.targetDate ? formatDate(milestone.targetDate) : "-"}</span>
+                      <span>实际日期：{milestone.actualDate ? formatDate(milestone.actualDate) : "-"}</span>
+                      <span>负责人：{milestone.owner || "-"}</span>
+                    </div>
+
+                    {milestone.description && (
+                      <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {milestone.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {milestone.sourceUrl ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <a
+                      href={milestone.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "var(--accent-blue)", textDecoration: "underline", fontSize: 14 }}
+                    >
+                      打开关联链接
+                    </a>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--text-secondary)",
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {milestone.sourceUrl}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>关联链接：-</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section style={{ marginBottom: 24 }}>
