@@ -31,46 +31,121 @@ export default function ProjectDetailPage() {
   const [links, setLinks] = useState<ProjectLink[]>([]);
   const [linksLoading, setLinksLoading] = useState(true);
   const [linksError, setLinksError] = useState(false);
+  const [showLinkForm, setShowLinkForm] = useState(false);
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkSaveError, setLinkSaveError] = useState("");
+  const [linkForm, setLinkForm] = useState({
+    title: "",
+    url: "",
+    category: "",
+    description: "",
+    isPrimary: false,
+    sortOrder: "0",
+  });
 
   const projectLinkCategoryLabels: Record<string, string> = Object.fromEntries(
     PROJECT_LINK_CATEGORIES.map((category) => [category.value, category.label])
   );
 
-  const fetchProject = useCallback(async () => {
+  const fetchLinks = useCallback(async () => {
     try {
       setLinksLoading(true);
       setLinksError(false);
 
-      const [projectRes, linksRes] = await Promise.all([
-        fetch(`/api/projects/${id}`),
-        fetch(`/api/projects/${id}/links`),
-      ]);
-
-      if (projectRes.ok) {
-        const data = await projectRes.json();
-        setProject(data);
-      }
-
-      if (linksRes.ok) {
-        const data = await linksRes.json();
+      const res = await fetch(`/api/projects/${id}/links`);
+      if (res.ok) {
+        const data = await res.json();
         setLinks(data);
       } else {
         setLinks([]);
         setLinksError(true);
       }
     } catch (error) {
-      console.error("Error fetching project:", error);
+      console.error("Error fetching project links:", error);
       setLinks([]);
       setLinksError(true);
     } finally {
-      setLoading(false);
       setLinksLoading(false);
+    }
+  }, [id]);
+
+  const fetchProject = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProject(data);
+      }
+    } catch (error) {
+      console.error("Error fetching project:", error);
+    } finally {
+      setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
     fetchProject();
-  }, [fetchProject]);
+    fetchLinks();
+  }, [fetchLinks, fetchProject]);
+
+  const resetLinkForm = () => {
+    setLinkForm({
+      title: "",
+      url: "",
+      category: "",
+      description: "",
+      isPrimary: false,
+      sortOrder: "0",
+    });
+    setLinkSaveError("");
+  };
+
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (linkSaving) return;
+
+    const title = linkForm.title.trim();
+    const url = linkForm.url.trim();
+    const category = linkForm.category.trim();
+
+    if (!title || !url || !category) {
+      setLinkSaveError("标题、链接地址和分类不能为空");
+      return;
+    }
+
+    setLinkSaving(true);
+    setLinkSaveError("");
+
+    try {
+      const sortOrderValue = Number(linkForm.sortOrder);
+      const res = await fetch(`/api/projects/${id}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          url,
+          category,
+          description: linkForm.description,
+          isPrimary: linkForm.isPrimary,
+          sortOrder: Number.isFinite(sortOrderValue) ? sortOrderValue : 0,
+        }),
+      });
+
+      if (!res.ok) {
+        setLinkSaveError("保存关键链接失败");
+        return;
+      }
+
+      resetLinkForm();
+      setShowLinkForm(false);
+      await fetchLinks();
+    } catch (error) {
+      console.error("Error creating project link:", error);
+      setLinkSaveError("保存关键链接失败");
+    } finally {
+      setLinkSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -102,7 +177,6 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="page-shell">
-      {/* Header */}
       <section style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
           <div>
@@ -138,7 +212,6 @@ export default function ProjectDetailPage() {
           </Link>
         </div>
 
-        {/* Summary Card */}
         <div className="card" style={{ padding: 20 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
             {project.owner && (
@@ -181,7 +254,7 @@ export default function ProjectDetailPage() {
           )}
 
           {(project.nextMilestone || project.nextAction) && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24 }}>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24, flexWrap: "wrap" }}>
               {project.nextMilestone && (
                 <div>
                   <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下个里程碑</div>
@@ -199,7 +272,6 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      {/* Stats */}
       <section style={{ marginBottom: 24 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 }}>
           <div className="card" style={{ padding: 16, textAlign: "center" }}>
@@ -229,7 +301,6 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      {/* Actions */}
       <section style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", gap: 12 }}>
           <Link href={`/items/new?projectId=${project.id}`} className="btn btn-primary">
@@ -247,14 +318,132 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      {/* Key Links */}
       <section style={{ marginBottom: 24 }}>
         <div className="dashboard-section-title">
           <div>
             <span className="section-eyebrow">LINKS</span>
             <h2>关键链接</h2>
           </div>
+          {!showLinkForm && (
+            <button
+              type="button"
+              onClick={() => {
+                resetLinkForm();
+                setShowLinkForm(true);
+              }}
+              className="btn btn-secondary"
+            >
+              <Icon name="plus" size={14} />
+              新增关键链接
+            </button>
+          )}
         </div>
+
+        {showLinkForm && (
+          <form onSubmit={handleLinkSubmit} className="card" style={{ padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    标题 *
+                  </label>
+                  <input
+                    type="text"
+                    value={linkForm.title}
+                    onChange={(e) => setLinkForm((prev) => ({ ...prev, title: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    分类 *
+                  </label>
+                  <select
+                    value={linkForm.category}
+                    onChange={(e) => setLinkForm((prev) => ({ ...prev, category: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  >
+                    <option value="">请选择分类</option>
+                    {PROJECT_LINK_CATEGORIES.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                  链接地址 *
+                </label>
+                <input
+                  type="url"
+                  value={linkForm.url}
+                  onChange={(e) => setLinkForm((prev) => ({ ...prev, url: e.target.value }))}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                  说明
+                </label>
+                <textarea
+                  value={linkForm.description}
+                  onChange={(e) => setLinkForm((prev) => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: 12, alignItems: "end" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-primary)" }}>
+                  <input
+                    type="checkbox"
+                    checked={linkForm.isPrimary}
+                    onChange={(e) => setLinkForm((prev) => ({ ...prev, isPrimary: e.target.checked }))}
+                  />
+                  设为主链接
+                </label>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    排序
+                  </label>
+                  <input
+                    type="number"
+                    value={linkForm.sortOrder}
+                    onChange={(e) => setLinkForm((prev) => ({ ...prev, sortOrder: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+              </div>
+
+              {linkSaveError && (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--accent-red)" }}>
+                  {linkSaveError}
+                </p>
+              )}
+
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLinkForm();
+                    setShowLinkForm(false);
+                  }}
+                  className="btn btn-secondary"
+                  disabled={linkSaving}
+                >
+                  取消
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={linkSaving}>
+                  {linkSaving ? "保存中..." : "保存"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
 
         {linksLoading ? (
           <div className="card empty-state">
@@ -312,7 +501,6 @@ export default function ProjectDetailPage() {
         )}
       </section>
 
-      {/* Items */}
       <section style={{ marginBottom: 24 }}>
         <div className="dashboard-section-title">
           <div>
@@ -336,7 +524,6 @@ export default function ProjectDetailPage() {
         )}
       </section>
 
-      {/* Logs */}
       <section>
         <div className="dashboard-section-title">
           <div>
