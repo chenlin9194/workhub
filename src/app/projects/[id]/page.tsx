@@ -12,6 +12,7 @@ import {
   PROJECT_STAGE_LABELS,
   PROJECT_TYPE_LABELS,
   HEALTH_LABELS,
+  SOURCE_SYSTEM_LABELS,
 } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import type { Project, ProjectLink } from "@/lib/types";
@@ -430,6 +431,79 @@ export default function ProjectDetailPage() {
           <div className="card" style={{ padding: 16, textAlign: "center" }}>
             <div style={{ fontSize: 24, fontWeight: 700, color: "var(--danger, #f97316)" }}>{overdueCount}</div>
             <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>逾期</div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ marginBottom: 24 }}>
+        <div className="dashboard-section-title">
+          <div>
+            <span className="section-eyebrow">PROJECT INFO</span>
+            <h2>项目资料</h2>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: "grid", gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>项目描述</div>
+              <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {project.description || "暂无项目描述"}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源系统</div>
+                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>
+                  {project.sourceSystem
+                    ? (SOURCE_SYSTEM_LABELS[project.sourceSystem] || project.sourceSystem)
+                    : "-"}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源编号</div>
+                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>
+                  {project.sourceId || "-"}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>标签</div>
+                <div style={{ fontSize: 14, color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {project.tags || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源链接</div>
+              {project.sourceUrl ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <a
+                    href={project.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--accent-blue)", textDecoration: "underline", fontSize: 14 }}
+                  >
+                    打开来源链接
+                  </a>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--text-secondary)",
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {project.sourceUrl}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>-</div>
+              )}
+            </div>
           </div>
         </div>
       </section>
