@@ -7,13 +7,14 @@ import Icon from "@/components/Icon";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import {
+  PROJECT_LINK_CATEGORIES,
   PROJECT_STATUS_LABELS,
   PROJECT_STAGE_LABELS,
   PROJECT_TYPE_LABELS,
   HEALTH_LABELS,
 } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectLink } from "@/lib/types";
 
 const HEALTH_TONE: Record<string, string> = {
   green: "success",
@@ -27,18 +28,43 @@ export default function ProjectDetailPage() {
   const id = params.id as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [links, setLinks] = useState<ProjectLink[]>([]);
+  const [linksLoading, setLinksLoading] = useState(true);
+  const [linksError, setLinksError] = useState(false);
+
+  const projectLinkCategoryLabels: Record<string, string> = Object.fromEntries(
+    PROJECT_LINK_CATEGORIES.map((category) => [category.value, category.label])
+  );
 
   const fetchProject = useCallback(async () => {
     try {
-      const res = await fetch(`/api/projects/${id}`);
-      if (res.ok) {
-        const data = await res.json();
+      setLinksLoading(true);
+      setLinksError(false);
+
+      const [projectRes, linksRes] = await Promise.all([
+        fetch(`/api/projects/${id}`),
+        fetch(`/api/projects/${id}/links`),
+      ]);
+
+      if (projectRes.ok) {
+        const data = await projectRes.json();
         setProject(data);
+      }
+
+      if (linksRes.ok) {
+        const data = await linksRes.json();
+        setLinks(data);
+      } else {
+        setLinks([]);
+        setLinksError(true);
       }
     } catch (error) {
       console.error("Error fetching project:", error);
+      setLinks([]);
+      setLinksError(true);
     } finally {
       setLoading(false);
+      setLinksLoading(false);
     }
   }, [id]);
 
@@ -219,6 +245,71 @@ export default function ProjectDetailPage() {
             项目快照
           </a>
         </div>
+      </section>
+
+      {/* Key Links */}
+      <section style={{ marginBottom: 24 }}>
+        <div className="dashboard-section-title">
+          <div>
+            <span className="section-eyebrow">LINKS</span>
+            <h2>关键链接</h2>
+          </div>
+        </div>
+
+        {linksLoading ? (
+          <div className="card empty-state">
+            <p>加载中...</p>
+          </div>
+        ) : linksError ? (
+          <div className="card empty-state">
+            <p>关键链接加载失败</p>
+          </div>
+        ) : links.length === 0 ? (
+          <div className="card empty-state">
+            <p>暂无关键链接</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {links.map((link) => (
+              <div key={link.id} className="card" style={{ padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{link.title}</strong>
+                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                        {projectLinkCategoryLabels[link.category] || link.category}
+                      </span>
+                      {link.isPrimary && (
+                        <span className="badge badge-success">主链接</span>
+                      )}
+                    </div>
+                    {link.description && (
+                      <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        {link.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "var(--accent-blue)",
+                    textDecoration: "underline",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {link.url}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Items */}
