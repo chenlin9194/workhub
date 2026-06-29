@@ -36,6 +36,19 @@ export const PROJECT_STAGE_LABELS: Record<string, string> = Object.fromEntries(
   PROJECT_STAGES.map((s) => [s.value, s.label])
 );
 
+export const PROJECT_LINK_CATEGORIES = [
+  { value: "jira", label: "JIRA" },
+  { value: "gerrit", label: "Gerrit" },
+  { value: "jenkins", label: "Jenkins" },
+  { value: "feishu", label: "飞书文档" },
+  { value: "spec", label: "需求/规格" },
+  { value: "test-plan", label: "测试计划" },
+  { value: "release-plan", label: "发布计划" },
+  { value: "dev-plan", label: "开发计划" },
+  { value: "dashboard", label: "数据看板" },
+  { value: "other", label: "其他" },
+] as const;
+
 export const WORK_ITEM_TYPES = [
   { value: "requirement", label: "需求" },
   { value: "milestone", label: "里程碑" },

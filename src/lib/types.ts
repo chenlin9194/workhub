@@ -24,6 +24,20 @@ export interface Project {
   _count?: { items: number; logs: number };
   items?: WorkItem[];
   logs?: WorkLog[];
+  links?: ProjectLink[];
+}
+
+export interface ProjectLink {
+  id: string;
+  projectId: string;
+  title: string;
+  url: string;
+  category: string;
+  description?: string | null;
+  isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface WorkItem {
