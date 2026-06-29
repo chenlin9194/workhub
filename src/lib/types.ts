@@ -25,6 +25,7 @@ export interface Project {
   items?: WorkItem[];
   logs?: WorkLog[];
   links?: ProjectLink[];
+  milestones?: ProjectMilestone[];
 }
 
 export interface ProjectLink {
@@ -35,6 +36,21 @@ export interface ProjectLink {
   category: string;
   description?: string | null;
   isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectMilestone {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  targetDate?: string | Date | null;
+  actualDate?: string | Date | null;
+  owner?: string | null;
+  sourceUrl?: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

@@ -49,6 +49,18 @@ export const PROJECT_LINK_CATEGORIES = [
   { value: "other", label: "其他" },
 ] as const;
 
+export const PROJECT_MILESTONE_STATUSES = [
+  { value: "planned", label: "计划中" },
+  { value: "in_progress", label: "进行中" },
+  { value: "done", label: "已完成" },
+  { value: "delayed", label: "已延期" },
+  { value: "cancelled", label: "已取消" },
+] as const;
+
+export const PROJECT_MILESTONE_STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  PROJECT_MILESTONE_STATUSES.map((status) => [status.value, status.label])
+);
+
 export const WORK_ITEM_TYPES = [
   { value: "requirement", label: "需求" },
   { value: "milestone", label: "里程碑" },
