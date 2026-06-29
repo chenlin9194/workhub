@@ -8,6 +8,7 @@ import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import {
   PROJECT_LINK_CATEGORIES,
+  PROJECT_MILESTONE_STATUSES,
   PROJECT_MILESTONE_STATUS_LABELS,
   PROJECT_STATUS_LABELS,
   PROJECT_STAGE_LABELS,
@@ -43,6 +44,28 @@ const EMPTY_LINK_FORM: LinkFormState = {
   sortOrder: "0",
 };
 
+type MilestoneFormState = {
+  title: string;
+  description: string;
+  status: string;
+  targetDate: string;
+  actualDate: string;
+  owner: string;
+  sourceUrl: string;
+  sortOrder: string;
+};
+
+const EMPTY_MILESTONE_FORM: MilestoneFormState = {
+  title: "",
+  description: "",
+  status: "planned",
+  targetDate: "",
+  actualDate: "",
+  owner: "",
+  sourceUrl: "",
+  sortOrder: "0",
+};
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -57,6 +80,10 @@ export default function ProjectDetailPage() {
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
   const [milestonesError, setMilestonesError] = useState(false);
+  const [showMilestoneCreateForm, setShowMilestoneCreateForm] = useState(false);
+  const [milestoneCreateSaving, setMilestoneCreateSaving] = useState(false);
+  const [milestoneCreateError, setMilestoneCreateError] = useState("");
+  const [milestoneCreateForm, setMilestoneCreateForm] = useState<MilestoneFormState>(EMPTY_MILESTONE_FORM);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createSaving, setCreateSaving] = useState(false);
@@ -97,6 +124,34 @@ export default function ProjectDetailPage() {
       isPrimary: form.isPrimary,
       sortOrder: Number.isFinite(sortOrderValue) ? sortOrderValue : 0,
     };
+  }, []);
+
+  const validateMilestoneForm = useCallback((form: MilestoneFormState) => {
+    if (!form.title.trim()) {
+      return "里程碑名称不能为空";
+    }
+
+    return "";
+  }, []);
+
+  const buildMilestonePayload = useCallback((form: MilestoneFormState) => {
+    const sortOrderValue = Number(form.sortOrder);
+
+    return {
+      title: form.title.trim(),
+      description: form.description,
+      status: form.status.trim() || "planned",
+      targetDate: form.targetDate || null,
+      actualDate: form.actualDate || null,
+      owner: form.owner,
+      sourceUrl: form.sourceUrl,
+      sortOrder: Number.isFinite(sortOrderValue) ? sortOrderValue : 0,
+    };
+  }, []);
+
+  const resetMilestoneCreateForm = useCallback(() => {
+    setMilestoneCreateForm(EMPTY_MILESTONE_FORM);
+    setMilestoneCreateError("");
   }, []);
 
   const resetCreateForm = useCallback(() => {
@@ -172,6 +227,51 @@ export default function ProjectDetailPage() {
     fetchLinks();
     fetchMilestones();
   }, [fetchLinks, fetchMilestones, fetchProject]);
+
+  const openMilestoneCreateForm = () => {
+    resetMilestoneCreateForm();
+    setShowMilestoneCreateForm(true);
+  };
+
+  const closeMilestoneCreateForm = () => {
+    resetMilestoneCreateForm();
+    setShowMilestoneCreateForm(false);
+  };
+
+  const handleMilestoneCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (milestoneCreateSaving) return;
+
+    const validationError = validateMilestoneForm(milestoneCreateForm);
+    if (validationError) {
+      setMilestoneCreateError(validationError);
+      return;
+    }
+
+    setMilestoneCreateSaving(true);
+    setMilestoneCreateError("");
+
+    try {
+      const res = await fetch("/api/projects/" + id + "/milestones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildMilestonePayload(milestoneCreateForm)),
+      });
+
+      if (!res.ok) {
+        setMilestoneCreateError("保存项目里程碑失败");
+        return;
+      }
+
+      closeMilestoneCreateForm();
+      await fetchMilestones();
+    } catch (error) {
+      console.error("Error creating project milestone:", error);
+      setMilestoneCreateError("保存项目里程碑失败");
+    } finally {
+      setMilestoneCreateSaving(false);
+    }
+  };
 
   const openCreateForm = () => {
     resetEditForm();
@@ -558,7 +658,138 @@ export default function ProjectDetailPage() {
             <span className="section-eyebrow">MILESTONES</span>
             <h2>项目里程碑</h2>
           </div>
+          {!showMilestoneCreateForm && (
+            <button
+              type="button"
+              onClick={openMilestoneCreateForm}
+              className="btn btn-secondary"
+            >
+              <Icon name="plus" size={14} />
+              新增项目里程碑
+            </button>
+          )}
         </div>
+
+        {showMilestoneCreateForm && (
+          <form onSubmit={handleMilestoneCreateSubmit} className="card" style={{ padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    名称 *
+                  </label>
+                  <input
+                    type="text"
+                    value={milestoneCreateForm.title}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="例如：需求冻结 / 提测 / 发布"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    状态
+                  </label>
+                  <select
+                    value={milestoneCreateForm.status}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, status: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  >
+                    {PROJECT_MILESTONE_STATUSES.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    目标日期
+                  </label>
+                  <input
+                    type="date"
+                    value={milestoneCreateForm.targetDate}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, targetDate: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    实际日期
+                  </label>
+                  <input
+                    type="date"
+                    value={milestoneCreateForm.actualDate}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, actualDate: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    负责人
+                  </label>
+                  <input
+                    type="text"
+                    value={milestoneCreateForm.owner}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, owner: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                    排序
+                  </label>
+                  <input
+                    type="number"
+                    value={milestoneCreateForm.sortOrder}
+                    onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, sortOrder: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                  关联链接
+                </label>
+                <input
+                  type="url"
+                  value={milestoneCreateForm.sourceUrl}
+                  onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, sourceUrl: e.target.value }))}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+                  说明
+                </label>
+                <textarea
+                  value={milestoneCreateForm.description}
+                  onChange={(e) => setMilestoneCreateForm((prev) => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                />
+              </div>
+
+              {milestoneCreateError && (
+                <p style={{ margin: 0, color: "var(--danger)", fontSize: 13 }}>{milestoneCreateError}</p>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button type="button" onClick={closeMilestoneCreateForm} className="btn btn-ghost" disabled={milestoneCreateSaving}>
+                  取消
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={milestoneCreateSaving}>
+                  {milestoneCreateSaving ? "保存中..." : "保存项目里程碑"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
 
         {milestonesLoading ? (
           <div className="card empty-state">
