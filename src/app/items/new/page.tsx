@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   WORK_ITEM_TYPES,
@@ -24,6 +24,8 @@ function NewItemForm() {
   const initialProjectId = searchParams.get("projectId") || "";
 
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [form, setForm] = useState({
     title: "",
@@ -82,11 +84,17 @@ function NewItemForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!form.title.trim()) {
       alert("标题不能为空");
       return;
     }
 
+    submittingRef.current = true;
+    if (submitButtonRef.current) {
+      submitButtonRef.current.disabled = true;
+      submitButtonRef.current.textContent = "保存中...";
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/items", {
@@ -97,16 +105,26 @@ function NewItemForm() {
 
       if (res.ok) {
         const item = await res.json();
-        router.refresh();
-        router.push(`/items/${item.id}`);
-      } else {
-        const error = await res.json();
-        alert(error.error || "创建失败");
+        window.location.assign(`/items/${item.id}`);
+        return;
       }
+
+      const error = await res.json();
+      alert(error.error || "保存失败，请重试");
+      submittingRef.current = false;
+      if (submitButtonRef.current) {
+        submitButtonRef.current.disabled = false;
+        submitButtonRef.current.textContent = "创建事项";
+      }
+      setLoading(false);
     } catch (error) {
       console.error("Error creating item:", error);
-      alert("创建失败");
-    } finally {
+      alert("保存失败，请重试");
+      submittingRef.current = false;
+      if (submitButtonRef.current) {
+        submitButtonRef.current.disabled = false;
+        submitButtonRef.current.textContent = "创建事项";
+      }
       setLoading(false);
     }
   };
@@ -422,8 +440,8 @@ function NewItemForm() {
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">
                 取消
               </button>
-              <button type="submit" disabled={loading} className="btn btn-primary">
-                {loading ? "创建中..." : "创建事项"}
+              <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
+                {loading ? "保存中..." : "创建事项"}
               </button>
             </div>
           </div>

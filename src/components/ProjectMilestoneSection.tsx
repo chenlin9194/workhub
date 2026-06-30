@@ -547,7 +547,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
             return (
               <div key={milestone.id} className="card" style={{ padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{milestone.title}</strong>
                       <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
@@ -568,7 +568,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
                     )}
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
                     <button
                       type="button"
                       onClick={() => openMilestoneEditForm(milestone)}
@@ -592,7 +592,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
                 </div>
 
                 {milestone.sourceUrl ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
                     <a
                       href={milestone.sourceUrl}
                       target="_blank"
@@ -601,10 +601,11 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
                     >
                       打开关联链接
                     </a>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: "var(--text-secondary)",
+                      <div
+                        style={{
+                          minWidth: 0,
+                          fontSize: 13,
+                          color: "var(--text-secondary)",
                         wordBreak: "break-word",
                         overflowWrap: "anywhere",
                       }}

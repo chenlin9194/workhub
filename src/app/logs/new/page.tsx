@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MODULES, PRIORITIES, SOURCES, STATUSES, WORK_ITEM_TYPES, WORK_LOG_TYPES } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
@@ -26,6 +26,8 @@ function NewLogForm() {
   const initialProjectId = searchParams.get("projectId") || "";
 
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [items, setItems] = useState<ExistingItem[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [form, setForm] = useState({
@@ -113,6 +115,7 @@ function NewLogForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!form.title.trim() || !form.content.trim()) {
       alert("标题和内容不能为空");
       return;
@@ -123,8 +126,14 @@ function NewLogForm() {
       return;
     }
 
+    submittingRef.current = true;
+    if (submitButtonRef.current) {
+      submitButtonRef.current.disabled = true;
+      submitButtonRef.current.textContent = "创建中...";
+    }
     setLoading(true);
     let createdItemId: string | null = null;
+    let shouldRestoreSubmit = true;
 
     try {
       let itemIdToLink: string | null = null;
@@ -149,7 +158,13 @@ function NewLogForm() {
 
         if (!itemRes.ok) {
           const error = await itemRes.json();
-          alert(error.error || "创建事项失败");
+          alert(error.error || "保存失败，请重试");
+          submittingRef.current = false;
+          if (submitButtonRef.current) {
+            submitButtonRef.current.disabled = false;
+            submitButtonRef.current.textContent = submitLabel;
+          }
+          setLoading(false);
           return;
         }
 
@@ -181,8 +196,8 @@ function NewLogForm() {
 
       if (logRes.ok) {
         const log = await logRes.json();
-        router.refresh();
-        router.push(`/logs/${log.id}`);
+        shouldRestoreSubmit = false;
+        window.location.assign(`/logs/${log.id}`);
         return;
       }
 
@@ -191,15 +206,28 @@ function NewLogForm() {
       }
 
       const error = await logRes.json();
-      alert(error.error || "创建日志失败");
+      alert(error.error || "保存失败，请重试");
+      submittingRef.current = false;
+      if (submitButtonRef.current) {
+        submitButtonRef.current.disabled = false;
+        submitButtonRef.current.textContent = submitLabel;
+      }
     } catch (error) {
       console.error("Error creating log:", error);
       if (createdItemId) {
         await removeCreatedItem(createdItemId);
       }
-      alert("创建日志失败");
-    } finally {
+      alert("保存失败，请重试");
+      submittingRef.current = false;
+      if (submitButtonRef.current) {
+        submitButtonRef.current.disabled = false;
+        submitButtonRef.current.textContent = submitLabel;
+      }
       setLoading(false);
+    } finally {
+      if (shouldRestoreSubmit) {
+        setLoading(false);
+      }
     }
   };
 
@@ -534,7 +562,7 @@ function NewLogForm() {
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">
                 取消
               </button>
-              <button type="submit" disabled={loading} className="btn btn-primary">
+              <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
                 {loading ? "创建中..." : submitLabel}
               </button>
             </div>

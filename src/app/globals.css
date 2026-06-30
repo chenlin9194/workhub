@@ -370,7 +370,8 @@ textarea.input { min-height: 100px; resize: vertical; }
 .next-action-box span { display: flex; align-items: center; gap: 3px; color: var(--accent-cyan); font-family: "Cascadia Code", monospace; font-size: 8px; font-weight: 800; letter-spacing: 0.1em; }
 .next-action-box strong { overflow: hidden; color: var(--text-primary); font-size: 12px; font-weight: 650; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .work-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
-.work-card-meta > span { display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 6px; color: var(--text-secondary); background: var(--bg-tertiary); font-size: 10px; line-height: 1.35; }
+.work-card-heading, .log-card-topline, .work-card-meta, .log-card-meta { min-width: 0; }
+.work-card-meta > span { display: inline-flex; align-items: center; gap: 3px; min-width: 0; max-width: 100%; padding: 3px 7px; border-radius: 6px; color: var(--text-secondary); background: var(--bg-tertiary); font-size: 10px; line-height: 1.35; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
 .work-card-meta > .meta-overdue { color: #fff; background: var(--accent-red); font-weight: 700; }
 
 .work-log-card { position: relative; min-width: 0; overflow: hidden; padding: 15px; }

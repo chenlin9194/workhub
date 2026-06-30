@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Timeline from "@/components/Timeline";
@@ -55,8 +55,11 @@ export default function ItemDetailPage() {
   const id = params.id as string;
   const [item, setItem] = useState<WorkItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const actionInFlightRef = useRef(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchItem = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetch(`/api/items/${id}`);
       if (res.ok) {
@@ -78,7 +81,7 @@ export default function ItemDetailPage() {
   }, [fetchItem]);
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!item) return;
+    if (!item || actionInFlightRef.current) return;
 
     try {
       const res = await fetch(`/api/items/${item.id}`, {
@@ -98,20 +101,35 @@ export default function ItemDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!item) return;
+  const handleDelete = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!item || actionInFlightRef.current) return;
     if (!confirm("确定删除此事项？关联的日志不会被删除。")) return;
+
+    const button = e.currentTarget;
+    actionInFlightRef.current = true;
+    button.disabled = true;
+    button.textContent = "删除中...";
+    setDeleting(true);
+    let shouldRestoreButton = true;
 
     try {
       const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
       if (res.ok) {
-        router.refresh();
-        router.push("/items");
+        shouldRestoreButton = false;
+        window.location.assign("/items");
+        return;
       } else {
-        alert("删除失败");
+        alert("删除失败，请重试");
       }
     } catch (error) {
       console.error("Error deleting item:", error);
+    } finally {
+      if (shouldRestoreButton) {
+        actionInFlightRef.current = false;
+        button.disabled = false;
+        button.textContent = "删除";
+        setDeleting(false);
+      }
     }
   };
 
@@ -152,8 +170,8 @@ export default function ItemDetailPage() {
           <Link href={`/logs/new?itemId=${item.id}`} className="btn btn-primary" style={{ fontSize: 13 }}>
             添加日志
           </Link>
-          <button onClick={handleDelete} className="btn btn-secondary" style={{ fontSize: 13, color: "var(--accent-red)" }}>
-            删除
+          <button onClick={handleDelete} className="btn btn-secondary" style={{ fontSize: 13, color: "var(--accent-red)" }} disabled={deleting}>
+            {deleting ? "删除中..." : "删除"}
           </button>
         </div>
       </div>
@@ -256,10 +274,10 @@ export default function ItemDetailPage() {
             </div>
           )}
           {item.sourceUrl && (
-            <div>
+            <div style={{ minWidth: 0 }}>
               <span style={{ color: "var(--text-tertiary)" }}>来源链接</span>
-              <div style={{ color: "var(--accent-blue)", fontWeight: 500 }}>
-                <a href={item.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+              <div style={{ color: "var(--accent-blue)", fontWeight: 500, minWidth: 0, wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none", wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   打开来源链接
                 </a>
               </div>

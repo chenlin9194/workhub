@@ -220,7 +220,7 @@ export default function ProjectDetailPage() {
 
         <div className="card" style={{ padding: 20 }}>
           <div style={{ display: "grid", gap: 16 }}>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>项目描述</div>
               <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                 {project.description || "暂无项目描述"}
@@ -228,21 +228,21 @@ export default function ProjectDetailPage() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源系统</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: 14, color: "var(--text-primary)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   {project.sourceSystem ? (SOURCE_SYSTEM_LABELS[project.sourceSystem] || project.sourceSystem) : "-"}
                 </div>
               </div>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源编号</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: 14, color: "var(--text-primary)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   {project.sourceId || "-"}
                 </div>
               </div>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>标签</div>
                 <div style={{ fontSize: 14, color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                   {project.tags || "-"}
@@ -250,7 +250,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>来源链接</div>
               {project.sourceUrl ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -264,6 +264,7 @@ export default function ProjectDetailPage() {
                   </a>
                   <div
                     style={{
+                      minWidth: 0,
                       fontSize: 13,
                       color: "var(--text-secondary)",
                       wordBreak: "break-word",

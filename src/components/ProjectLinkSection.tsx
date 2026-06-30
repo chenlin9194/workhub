@@ -489,7 +489,7 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
             return (
               <div key={link.id} className="card" style={{ padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{link.title}</strong>
                       <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
@@ -506,7 +506,7 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
                     )}
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
                     <button
                       type="button"
                       onClick={() => openEditForm(link)}
@@ -538,6 +538,7 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
                     textDecoration: "underline",
                     fontSize: 13,
                     lineHeight: 1.6,
+                    minWidth: 0,
                     wordBreak: "break-word",
                     overflowWrap: "anywhere",
                   }}

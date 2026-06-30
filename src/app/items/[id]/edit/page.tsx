@@ -83,6 +83,7 @@ export default function EditItemPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!form.title.trim()) {
       alert("标题不能为空");
       return;
@@ -101,11 +102,11 @@ export default function EditItemPage() {
         router.push(`/items/${id}`);
       } else {
         const error = await res.json();
-        alert(error.error || "更新失败");
+        alert(error.error || "保存失败，请重试");
       }
     } catch (error) {
       console.error("Error updating item:", error);
-      alert("更新失败");
+      alert("保存失败，请重试");
     } finally {
       setLoading(false);
     }

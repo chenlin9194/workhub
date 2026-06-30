@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WORK_LOG_TYPE_LABELS, SOURCE_LABELS } from "@/lib/constants";
@@ -31,6 +31,8 @@ export default function LogDetailPage() {
   const id = params.id as string;
   const [log, setLog] = useState<WorkLog | null>(null);
   const [loading, setLoading] = useState(true);
+  const deleteInFlightRef = useRef(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchLog = useCallback(async () => {
     try {
@@ -53,20 +55,35 @@ export default function LogDetailPage() {
     fetchLog();
   }, [fetchLog]);
 
-  const handleDelete = async () => {
-    if (!log) return;
+  const handleDelete = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!log || deleteInFlightRef.current) return;
     if (!confirm("确定删除此日志？")) return;
+
+    const button = e.currentTarget;
+    deleteInFlightRef.current = true;
+    button.disabled = true;
+    button.textContent = "删除中...";
+    setDeleting(true);
+    let shouldRestoreButton = true;
 
     try {
       const res = await fetch(`/api/logs/${log.id}`, { method: "DELETE" });
       if (res.ok) {
-        router.refresh();
-        router.push("/logs");
+        shouldRestoreButton = false;
+        window.location.assign("/logs");
+        return;
       } else {
-        alert("删除失败");
+        alert("删除失败，请重试");
       }
     } catch (error) {
       console.error("Error deleting log:", error);
+    } finally {
+      if (shouldRestoreButton) {
+        deleteInFlightRef.current = false;
+        button.disabled = false;
+        button.textContent = "删除";
+        setDeleting(false);
+      }
     }
   };
 
@@ -95,7 +112,7 @@ export default function LogDetailPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={copyMarkdown} className="btn btn-secondary" style={{ fontSize: 13 }}>复制 Markdown</button>
           <Link href={`/logs/${log.id}/edit`} className="btn btn-secondary" style={{ fontSize: 13 }}>编辑</Link>
-          <button onClick={handleDelete} className="btn btn-secondary" style={{ fontSize: 13, color: "var(--accent-red)" }}>删除</button>
+          <button onClick={handleDelete} className="btn btn-secondary" style={{ fontSize: 13, color: "var(--accent-red)" }} disabled={deleting}>{deleting ? "删除中..." : "删除"}</button>
         </div>
       </div>
 
@@ -115,7 +132,7 @@ export default function LogDetailPage() {
             {log.reportable ? "可汇报" : "不可汇报"}
           </span>
           {log.sourceUrl && (
-            <a href={log.sourceUrl} target="_blank" rel="noreferrer" className="badge" style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", textDecoration: "none" }}>
+            <a href={log.sourceUrl} target="_blank" rel="noopener noreferrer" className="badge" style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", textDecoration: "none", wordBreak: "break-word", overflowWrap: "anywhere", maxWidth: "100%" }}>
               来源链接
             </a>
           )}
@@ -129,10 +146,10 @@ export default function LogDetailPage() {
           {log.project && (<div><span style={{ color: "var(--text-tertiary)" }}>项目</span><div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.project}</div></div>)}
           {log.module && (<div><span style={{ color: "var(--text-tertiary)" }}>模块</span><div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.module}</div></div>)}
           {log.sourceUrl && (
-            <div>
+            <div style={{ minWidth: 0 }}>
               <span style={{ color: "var(--text-tertiary)" }}>来源链接</span>
-              <div>
-                <a href={log.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>
+              <div style={{ minWidth: 0, wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                <a href={log.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent-blue)", textDecoration: "none", wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   {log.sourceUrl}
                 </a>
               </div>

@@ -71,6 +71,7 @@ export default function EditLogPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!form.title.trim() || !form.content.trim()) {
       alert("标题和内容不能为空");
       return;
@@ -89,11 +90,11 @@ export default function EditLogPage() {
         router.push(`/logs/${id}`);
       } else {
         const error = await res.json();
-        alert(error.error || "更新失败");
+        alert(error.error || "保存失败，请重试");
       }
     } catch (error) {
       console.error("Error updating log:", error);
-      alert("更新失败");
+      alert("保存失败，请重试");
     } finally {
       setLoading(false);
     }
