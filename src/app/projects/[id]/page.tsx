@@ -6,24 +6,14 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
+import ProjectHeaderSection from "@/components/ProjectHeaderSection";
+import ProjectOverviewSection from "@/components/ProjectOverviewSection";
+import ProjectSignalSection from "@/components/ProjectSignalSection";
 import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
-import {
-  PROJECT_STATUS_LABELS,
-  PROJECT_STAGE_LABELS,
-  PROJECT_TYPE_LABELS,
-  HEALTH_LABELS,
-  SOURCE_SYSTEM_LABELS,
-} from "@/lib/constants";
+import { SOURCE_SYSTEM_LABELS } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import type { Project } from "@/lib/types";
-
-const HEALTH_TONE: Record<string, string> = {
-  green: "success",
-  yellow: "warning",
-  red: "danger",
-  unknown: "neutral",
-};
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -86,129 +76,36 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="page-shell">
+      <ProjectHeaderSection project={project} />
+      <ProjectOverviewSection project={project} />
+      <ProjectSignalSection
+        itemCount={project._count?.items || 0}
+        logCount={project._count?.logs || 0}
+        p0p1Count={p0p1Count}
+        blockedCount={blockedCount}
+        redYellowCount={redYellowCount}
+        overdueCount={overdueCount}
+      />
+
       <section style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <Link href="/projects" style={{ color: "var(--text-tertiary)", fontSize: 13 }}>
-                <Icon name="arrow-left" size={14} /> 返回列表
-              </Link>
-            </div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
-              {project.name}
-              {project.code && <span style={{ fontSize: 14, color: "var(--text-tertiary)", marginLeft: 12 }}>{project.code}</span>}
-            </h1>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-              <span className={`badge badge-${HEALTH_TONE[project.health] || "neutral"}`}>
-                {HEALTH_LABELS[project.health] || project.health}
-              </span>
-              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
-                {PROJECT_STATUS_LABELS[project.status] || project.status}
-              </span>
-              {project.stage && (
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
-                  {PROJECT_STAGE_LABELS[project.stage] || project.stage}
-                </span>
-              )}
-              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
-                {PROJECT_TYPE_LABELS[project.type] || project.type}
-              </span>
-            </div>
-          </div>
-          <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary">
-            <Icon name="edit" size={15} />
-            编辑项目
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href={`/items/new?projectId=${project.id}`} className="btn btn-primary">
+            <Icon name="plus" size={15} />
+            新建关联事项
           </Link>
-        </div>
-
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-            {project.owner && (
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>负责人</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{project.owner}</div>
-              </div>
-            )}
-            {project.pm && (
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>PM</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{project.pm}</div>
-              </div>
-            )}
-            {project.startDate && (
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>开始日期</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{new Date(project.startDate).toLocaleDateString()}</div>
-              </div>
-            )}
-            {project.targetDate && (
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>目标日期</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{new Date(project.targetDate).toLocaleDateString()}</div>
-              </div>
-            )}
-            {project.releaseDate && (
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>发布日期</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{new Date(project.releaseDate).toLocaleDateString()}</div>
-              </div>
-            )}
-          </div>
-
-          {project.currentSummary && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)" }}>
-              <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>当前摘要</div>
-              <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6 }}>{project.currentSummary}</div>
-            </div>
-          )}
-
-          {(project.nextMilestone || project.nextAction) && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {project.nextMilestone && (
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一个里程碑</div>
-                  <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{project.nextMilestone}</div>
-                </div>
-              )}
-              {project.nextAction && (
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一步行动</div>
-                  <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{project.nextAction}</div>
-                </div>
-              )}
-            </div>
-          )}
+          <Link href={`/logs/new?projectId=${project.id}`} className="btn btn-secondary">
+            <Icon name="edit" size={15} />
+            新建关联日志
+          </Link>
+          <a href={`/api/projects/${project.id}/snapshot`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
+            <Icon name="external-link" size={15} />
+            项目快照
+          </a>
         </div>
       </section>
 
-      <section style={{ marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 }}>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>{project._count?.items || 0}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>关联事项</div>
-          </div>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>{project._count?.logs || 0}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>关联日志</div>
-          </div>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--critical, #ef4444)" }}>{p0p1Count}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>P0/P1</div>
-          </div>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--danger, #f97316)" }}>{blockedCount}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>阻塞</div>
-          </div>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--warning, #eab308)" }}>{redYellowCount}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>红/黄</div>
-          </div>
-          <div className="card" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--danger, #f97316)" }}>{overdueCount}</div>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>逾期</div>
-          </div>
-        </div>
-      </section>
+      <ProjectMilestoneSection projectId={project.id} />
+      <ProjectLinkSection projectId={project.id} />
 
       <section style={{ marginBottom: 24 }}>
         <div className="dashboard-section-title">
@@ -282,27 +179,7 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      <section style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href={`/items/new?projectId=${project.id}`} className="btn btn-primary">
-            <Icon name="plus" size={15} />
-            新建关联事项
-          </Link>
-          <Link href={`/logs/new?projectId=${project.id}`} className="btn btn-secondary">
-            <Icon name="edit" size={15} />
-            新建关联日志
-          </Link>
-          <a href={`/api/projects/${project.id}/snapshot`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-            <Icon name="external-link" size={15} />
-            项目快照
-          </a>
-        </div>
-      </section>
-
-      <ProjectMilestoneSection projectId={project.id} />
-      <ProjectLinkSection projectId={project.id} />
-
-      <section style={{ marginBottom: 24 }}>
+      <section>
         <div className="dashboard-section-title">
           <div>
             <span className="section-eyebrow">ITEMS</span>
