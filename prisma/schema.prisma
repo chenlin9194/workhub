@@ -106,6 +106,7 @@ model Project {
   logs            WorkLog[]
   links           ProjectLink[]
   milestones      ProjectMilestone[]
+  members         ProjectMember[]
 }
 
 model ProjectLink {
@@ -137,6 +138,21 @@ model ProjectMilestone {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ProjectMember {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  role           String?
+  team           String?
+  responsibility String?
+  contact        String?
+  isCore         Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model ToolLink {

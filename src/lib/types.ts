@@ -26,6 +26,7 @@ export interface Project {
   logs?: WorkLog[];
   links?: ProjectLink[];
   milestones?: ProjectMilestone[];
+  members?: ProjectMember[];
 }
 
 export interface ProjectLink {
@@ -52,6 +53,20 @@ export interface ProjectMilestone {
   actualDate?: string | Date | null;
   owner?: string | null;
   sourceUrl?: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectMember {
+  id: string;
+  projectId: string;
+  name: string;
+  role?: string | null;
+  team?: string | null;
+  responsibility?: string | null;
+  contact?: string | null;
+  isCore: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

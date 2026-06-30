@@ -40,6 +40,18 @@ type SnapshotLink = Prisma.ProjectLinkGetPayload<{
     updatedAt: true;
   };
 }>;
+type SnapshotMember = Prisma.ProjectMemberGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    role: true;
+    team: true;
+    responsibility: true;
+    contact: true;
+    isCore: true;
+    sortOrder: true;
+  };
+}>;
 
 function buildSnapshot(items: WorkItemWithLogs[], today: string) {
   const byHealth = Object.fromEntries(
@@ -106,6 +118,13 @@ function buildKeyLinks(links: SnapshotLink[]) {
   };
 }
 
+function buildMemberSummary(members: SnapshotMember[]) {
+  return {
+    memberCount: members.length,
+    coreMemberCount: members.filter((member) => member.isCore).length,
+  };
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -148,6 +167,7 @@ export async function GET(
       const [
         projectMilestones,
         projectLinks,
+        projectMembers,
         queriedItems,
         queriedRecentLogs,
         projectLogCount,
@@ -191,6 +211,25 @@ export async function GET(
             },
             orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
             take: 8,
+          }),
+          prisma.projectMember.findMany({
+            where: { projectId: project.id },
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              team: true,
+              responsibility: true,
+              contact: true,
+              isCore: true,
+              sortOrder: true,
+            },
+            orderBy: [
+              { isCore: "desc" },
+              { sortOrder: "asc" },
+              { createdAt: "asc" },
+            ],
+            take: 20,
           }),
           prisma.workItem.findMany({
             where: { projectId: project.id },
@@ -236,6 +275,7 @@ export async function GET(
       const { delayedMilestones, nextOpenMilestone } =
         buildMilestoneTimeline(projectMilestones);
       const keyLinks = buildKeyLinks(projectLinks);
+      const memberSummary = buildMemberSummary(projectMembers);
 
       return NextResponse.json({
         projectId: project.id,
@@ -254,6 +294,8 @@ export async function GET(
           nextMilestone: project.nextMilestone,
           nextAction: project.nextAction,
         },
+        members: projectMembers,
+        memberSummary,
         signals,
         timeline: {
           milestones: projectMilestones,

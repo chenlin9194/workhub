@@ -11,6 +11,7 @@ import ProjectOverviewSection from "@/components/ProjectOverviewSection";
 import ProjectSignalSection from "@/components/ProjectSignalSection";
 import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
+import ProjectMemberSection from "@/components/ProjectMemberSection";
 import { SOURCE_SYSTEM_LABELS } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import type { Project } from "@/lib/types";
@@ -106,6 +107,7 @@ export default function ProjectDetailPage() {
 
       <ProjectMilestoneSection projectId={project.id} />
       <ProjectLinkSection projectId={project.id} />
+      <ProjectMemberSection projectId={project.id} />
 
       <section style={{ marginBottom: 24 }}>
         <div className="dashboard-section-title">
