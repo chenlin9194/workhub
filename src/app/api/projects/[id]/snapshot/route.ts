@@ -126,6 +126,31 @@ function buildMemberSummary(members: SnapshotMember[]) {
   };
 }
 
+function buildSignals(items: WorkItemWithLogs[], recentLogs: WorkLogWithItem[], topRisks: WorkItemWithLogs[], today: string, logCount: number) {
+  return {
+    itemCount: items.length,
+    logCount,
+    recentLogCount: recentLogs.length,
+    p0p1Count: items.filter(
+      (item) => (item.priority === "P0" || item.priority === "P1") && item.status !== "closed"
+    ).length,
+    blockedCount: items.filter((item) => item.status === "blocked").length,
+    redYellowCount: items.filter((item) => item.health === "red" || item.health === "yellow").length,
+    overdueCount: items.filter(
+      (item) => item.dueDate && item.dueDate < today && item.status !== "closed"
+    ).length,
+    topRiskCount: topRisks.length,
+  };
+}
+
+function emptyTimeline() {
+  return {
+    milestones: [],
+    delayedMilestones: [],
+    nextOpenMilestone: null,
+  };
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -255,24 +280,7 @@ export async function GET(
       recentLogs = queriedRecentLogs;
 
       const { byHealth, topRisks, nextCheckpointItem } = buildSnapshot(items, today);
-      const signals = {
-        itemCount: items.length,
-        logCount: projectLogCount,
-        recentLogCount: recentLogs.length,
-        p0p1Count: items.filter(
-          (item) =>
-            (item.priority === "P0" || item.priority === "P1") &&
-            item.status !== "closed"
-        ).length,
-        blockedCount: items.filter((item) => item.status === "blocked").length,
-        redYellowCount: items.filter(
-          (item) => item.health === "red" || item.health === "yellow"
-        ).length,
-        overdueCount: items.filter(
-          (item) => item.dueDate && item.dueDate < today && item.status !== "closed"
-        ).length,
-        topRiskCount: topRisks.length,
-      };
+      const signals = buildSignals(items, recentLogs, topRisks, today, projectLogCount);
       const { delayedMilestones, nextOpenMilestone } =
         buildMilestoneTimeline(projectMilestones);
       const keyLinks = buildKeyLinks(projectLinks);
@@ -330,11 +338,19 @@ export async function GET(
       }),
     ]);
 
+    const projectLogCount = await prisma.workLog.count({
+      where: {
+        OR: [{ project: id }, { item: { project: id } }],
+      },
+    });
     const { byHealth, topRisks, nextCheckpointItem } = buildSnapshot(items, today);
+    const signals = buildSignals(items, recentLogs, topRisks, today, projectLogCount);
 
     return NextResponse.json({
       projectId: id,
       items,
+      signals,
+      timeline: emptyTimeline(),
       byHealth,
       topRisks,
       recentLogs,
