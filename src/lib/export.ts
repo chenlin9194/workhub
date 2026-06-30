@@ -511,12 +511,13 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
   let md = `# 项目快照 - ${escapeMarkdownInline(projectName)}\n\n`;
 
   md += `## AI 汇报提示\n\n`;
-  md += `请根据以下项目快照生成一页管理汇报。要求：\n`;
-  md += `1. 只基于事实，不要补写未提供的信息。\n`;
-  md += `2. 先讲整体状态，再讲风险、推进点和下一步。\n`;
-  md += `3. 优先关注阻塞、逾期、P0/P1 和下一检查点。\n\n`;
+  md += `- 这是项目汇报事实包，只能根据已给事实整理，不要补写、不要推断、不要生成管理结论。\n`;
+  md += `- 缺失信息请写“待确认”，不要编造背景、原因、进展或风险。\n`;
+  md += `- 汇报生成请优先使用：当前状态 -> 风险 / 阻塞 / 逾期 -> 里程碑 / 下一检查点 -> 需协调事项 -> 最近事实。\n`;
+  md += `- 如果事实存在冲突，请保留冲突，不要自行裁决。\n`;
+  md += `- 可以重写措辞，但不得新增事实。\n\n`;
 
-  md += `## 一、项目概览\n\n`;
+  md += `## 一、项目基本盘\n\n`;
   md += `- 项目: ${escapeMarkdownInline(projectName)}\n`;
   if (projectCode) {
     md += `- Code: ${escapeMarkdownInline(projectCode)}\n`;
@@ -547,34 +548,41 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
   md += `### 下一里程碑\n\n${renderMarkdownBlock(summary?.nextMilestone)}\n\n`;
   md += `### 下一动作\n\n${renderMarkdownBlock(summary?.nextAction)}\n\n`;
 
-  md += `## 二、关键信号\n\n`;
-  md += `- 关联事项: ${signals.itemCount} | 关联日志: ${signals.logCount} | 最近日志: ${signals.recentLogCount}\n`;
-  md += `- P0/P1 未关闭: ${signals.p0p1Count} | 阻塞: ${signals.blockedCount} | 逾期: ${signals.overdueCount} | Top risks: ${signals.topRiskCount}\n`;
+  md += `## 二、当前状态信号\n\n`;
+  md += `- 关联事项: ${signals.itemCount}\n`;
+  md += `- 日志数: ${signals.logCount} | 最近日志: ${signals.recentLogCount}\n`;
+  md += `- P0/P1: ${signals.p0p1Count} | 阻塞: ${signals.blockedCount} | 逾期: ${signals.overdueCount} | Top risks: ${signals.topRiskCount}\n`;
   md += `- 健康分布: ${healthLines.join(" / ")}\n\n`;
+
+  md += `## 三、关键风险 / 阻塞 / 逾期 / 需要协调事项\n\n`;
+  md += `### Top risks\n\n`;
+  md += topRisks.length > 0 ? `${topRisks.map(renderItemLine).join("\n\n")}\n\n` : "- 暂无\n\n";
 
   md += `### 延期里程碑\n\n`;
   md += delayedMilestones.length > 0 ? `${delayedMilestones.map(renderMilestoneLine).join("\n\n")}\n\n` : "- 暂无\n\n";
 
+  md += `## 四、里程碑与下一检查点\n\n`;
   md += `### 下一开放里程碑\n\n`;
   md += nextOpenMilestone ? `${renderMilestoneLine(nextOpenMilestone)}\n\n` : "- 暂无\n\n";
 
   md += `### 下一检查点事项\n\n`;
   md += nextCheckpointItem ? `${renderItemLine(nextCheckpointItem)}\n\n` : "- 暂无\n\n";
 
-  md += `## 三、核心成员与关键链接\n\n`;
+  md += `## 五、成员与关键链接\n\n`;
   md += `- 成员总数: ${memberSummary.memberCount} | 核心成员: ${memberSummary.coreMemberCount}\n\n`;
 
   md += `### 核心成员\n\n`;
-  md += renderMarkdownList(
-    highlightedMembers.map((member) => {
-      const bits = [escapeMarkdownInline(member.name)];
-      if (member.role) bits.push(escapeMarkdownInline(member.role));
-      if (member.team) bits.push(`团队 ${escapeMarkdownInline(member.team)}`);
-      if (member.contact) bits.push(`联系 ${escapeMarkdownInline(member.contact)}`);
-      if (member.responsibility) bits.push(escapeMarkdownInline(member.responsibility));
-      return bits.join(" / ");
-    })
-  ) + "\n\n";
+  md +=
+    renderMarkdownList(
+      highlightedMembers.map((member) => {
+        const bits = [escapeMarkdownInline(member.name)];
+        if (member.role) bits.push(escapeMarkdownInline(member.role));
+        if (member.team) bits.push(`团队 ${escapeMarkdownInline(member.team)}`);
+        if (member.contact) bits.push(`联系 ${escapeMarkdownInline(member.contact)}`);
+        if (member.responsibility) bits.push(escapeMarkdownInline(member.responsibility));
+        return bits.join(" / ");
+      })
+    ) + "\n\n";
 
   md += `### 关键链接\n\n`;
   if (primaryLink) {
@@ -588,13 +596,10 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
     md += "\n";
   }
 
-  md += `## 四、Top risks\n\n`;
-  md += topRisks.length > 0 ? `${topRisks.map(renderItemLine).join("\n\n")}\n\n` : "- 暂无\n\n";
-
-  md += `## 五、最近日志\n\n`;
+  md += `## 六、最近事实记录\n\n`;
   md += recentLogs.length > 0 ? `${recentLogs.map(renderLogLine).join("\n\n")}\n\n` : "- 暂无\n\n";
 
-  md += `## 六、健康与里程碑明细\n\n`;
+  md += `## 七、附录\n\n`;
   md += `- 健康卡片: ${Object.entries(healthBuckets)
     .map(([key, list]) => `${HEALTH_LABELS[key] || key} ${list.length}`)
     .join(" / ")}\n`;
@@ -608,3 +613,4 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
 
   return md.trimEnd();
 }
+
