@@ -73,7 +73,7 @@ export default async function ExportTodayPage() {
       <div className="export-header">
         <div>
           <span className="section-eyebrow">FACT PACKAGE / TODAY</span>
-          <h1>今日工作导出</h1>
+          <h1>今日日报事实包</h1>
           <p>{formatTodayStr()}</p>
         </div>
         <CopyButton text={md} />
@@ -82,8 +82,8 @@ export default async function ExportTodayPage() {
       <div className="card export-notice">
         <div className="export-notice-icon">i</div>
         <div>
-          <strong>Work Hub 只导出事实，不调用 AI</strong>
-          <p>此页面整理今日事实记录，可复制到外部 Claude Code / Codex 中生成日报。</p>
+          <strong>Work Hub 只导出事实包，不调用 AI</strong>
+          <p>汇总今天的日志、事项、风险与决策事实，复制 Markdown 后可交给外部 AI 整理成日报表达。Work Hub 只导出事实包，不调用 AI、不生成管理结论。外部 AI 只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p>
         </div>
         <span className="export-ready-tag"><i />Ready for Claude Code / Codex</span>
       </div>

@@ -15,11 +15,11 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
     return (
       <div className="export-page">
         <div className="export-header">
-          <div><span className="section-eyebrow">FACT PACKAGE / RANGE</span><h1>日期范围导出</h1></div>
+          <div><span className="section-eyebrow">FACT PACKAGE / RANGE</span><h1>区间 / 周报事实包</h1></div>
         </div>
         <div className="card export-notice">
           <div className="export-notice-icon">i</div>
-          <div><strong>请提供导出日期范围</strong><p>在 URL 中加入 start 和 end 参数，日期格式为 YYYY-MM-DD。</p></div>
+          <div><strong>请提供导出日期范围</strong><p>请选择 start 和 end 日期，生成对应时间范围的 Markdown 事实包。日期格式为 YYYY-MM-DD。</p></div>
         </div>
         <div className="card export-preview export-range-help">
           <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-query.txt</span><span>INPUT</span></div>
@@ -58,7 +58,7 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
       <div className="export-header">
         <div>
           <span className="section-eyebrow">FACT PACKAGE / RANGE</span>
-          <h1>工作汇总导出</h1>
+          <h1>区间 / 周报事实包</h1>
           <p>{start} 至 {end}</p>
         </div>
         <CopyButton text={md} />
@@ -66,7 +66,7 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
 
       <div className="card export-notice">
         <div className="export-notice-icon">i</div>
-        <div><strong>Work Hub 只导出事实，不调用 AI</strong><p>范围汇总已整理为 Markdown，可复制到外部工具中继续处理。</p></div>
+        <div><strong>Work Hub 只导出事实包，不调用 AI</strong><p>按时间范围汇总工作日志、关闭事项和更新事项，复制 Markdown 后可交给外部 AI 整理成周报或阶段汇报。Work Hub 只导出事实包，不调用 AI、不生成管理结论。外部 AI 只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p></div>
         <span className="export-ready-tag"><i />Ready for Claude Code / Codex</span>
       </div>
 
