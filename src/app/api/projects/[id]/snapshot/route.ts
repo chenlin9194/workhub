@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getLocalDateString } from "@/lib/utils";
+import { getLocalDateString, isValidYmdDateString } from "@/lib/utils";
 
 const HEALTH_GROUPS = ["red", "yellow", "green", "unknown"] as const;
 const ACTIVE_MILESTONE_STATUSES = new Set(["planned", "in_progress", "delayed"]);
@@ -71,6 +71,7 @@ function buildSnapshot(items: WorkItemWithLogs[], today: string) {
         (item) =>
           item.status !== "closed" &&
           item.nextCheckpoint !== null &&
+          isValidYmdDateString(item.nextCheckpoint) &&
           item.nextCheckpoint >= today
       )
       .sort((a, b) =>

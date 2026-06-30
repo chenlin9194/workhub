@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
-import { getLocalDateString, toNullableString } from "@/lib/utils";
+import {
+  getLocalDateString,
+  normalizeOptionalYmdDateString,
+  toNullableString,
+} from "@/lib/utils";
 
 const TRACKED_FIELDS = [
   "status",
@@ -109,8 +113,15 @@ export async function PUT(
     if ("sourceUrl" in body) data.sourceUrl = toNullableString(body.sourceUrl);
     if ("health" in body) data.health = body.health == null || body.health === "" ? "unknown" : body.health;
     if ("currentSummary" in body) data.currentSummary = toNullableString(body.currentSummary);
-    if ("nextCheckpoint" in body) data.nextCheckpoint = toNullableString(body.nextCheckpoint);
     if ("reportLevel" in body) data.reportLevel = body.reportLevel == null || body.reportLevel === "" ? "none" : body.reportLevel;
+
+    if ("nextCheckpoint" in body) {
+      const nextCheckpointResult = normalizeOptionalYmdDateString(body.nextCheckpoint);
+      if (nextCheckpointResult.error) {
+        return NextResponse.json({ error: nextCheckpointResult.error }, { status: 400 });
+      }
+      data.nextCheckpoint = nextCheckpointResult.value;
+    }
 
     // Handle closedAt logic
     if ("status" in body) {

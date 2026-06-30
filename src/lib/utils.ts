@@ -20,6 +20,49 @@ export function toNullableString(value: unknown): string | null {
   return value === "" || value === undefined || value === null ? null : String(value);
 }
 
+const YMD_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidYmdDateString(value: unknown): value is string {
+  if (typeof value !== "string" || !YMD_DATE_PATTERN.test(value)) {
+    return false;
+  }
+
+  const [yearPart, monthPart, dayPart] = value.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+export function normalizeOptionalYmdDateString(value: unknown): {
+  value: string | null;
+  error?: string;
+} {
+  if (value === undefined || value === null) {
+    return { value: null };
+  }
+
+  if (typeof value !== "string") {
+    return { value: null, error: "nextCheckpoint must be a valid YYYY-MM-DD date" };
+  }
+
+  if (value === "") {
+    return { value: null };
+  }
+
+  if (!isValidYmdDateString(value)) {
+    return { value: null, error: "nextCheckpoint must be a valid YYYY-MM-DD date" };
+  }
+
+  return { value };
+}
+
 export function getTodayRange() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());

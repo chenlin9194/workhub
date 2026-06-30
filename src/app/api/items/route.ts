@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getLocalDateString, toNullableString } from "@/lib/utils";
+import {
+  getLocalDateString,
+  normalizeOptionalYmdDateString,
+  toNullableString,
+} from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 
 export async function GET(request: NextRequest) {
@@ -103,6 +107,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "标题不能为空" }, { status: 400 });
     }
 
+    const nextCheckpointResult = normalizeOptionalYmdDateString(nextCheckpoint);
+    if (nextCheckpointResult.error) {
+      return NextResponse.json({ error: nextCheckpointResult.error }, { status: 400 });
+    }
+
     // Resolve project name from projectId if provided
     let projectName = toNullableString(project);
     if (projectId) {
@@ -136,7 +145,7 @@ export async function POST(request: NextRequest) {
         sourceUrl: toNullableString(sourceUrl),
         health: health == null || health === "" ? "unknown" : health,
         currentSummary: toNullableString(currentSummary),
-        nextCheckpoint: toNullableString(nextCheckpoint),
+        nextCheckpoint: nextCheckpointResult.value,
         reportLevel: reportLevel == null || reportLevel === "" ? "none" : reportLevel,
       },
     });
