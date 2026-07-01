@@ -458,7 +458,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
         </div>
       ) : milestones.length === 0 ? (
         <div className="card empty-state">
-          <p>暂无项目里程碑</p>
+          <p>建议补充下一里程碑</p>
         </div>
       ) : filteredMilestones.length === 0 ? (
         <div className="card empty-state">

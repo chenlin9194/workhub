@@ -99,7 +99,7 @@ export function generateTodayMarkdown(data: TodayExportData): string {
   md += `- 缺失信息请标记为“待确认”。\n`;
   md += `- 可以调整措辞和结构，但所有结论必须能回溯到下方日志、事项、风险或决策。\n`;
   md += `- 风险、阻塞、逾期、P0/P1、今日决策需要优先保留。\n`;
-  md += `- 外部 AI 不得新增事实、背景、原因或未记录的进展。\n\n`;
+  md += `- 外部工具不得新增事实、背景、原因或未记录的进展。\n\n`;
 
   // Overview
   md += `## 概览\n\n`;
@@ -242,7 +242,7 @@ export function generateRangeMarkdown(data: RangeExportData): string {
   md += `- 缺失信息请标记为“待确认”。\n`;
   md += `- 可以调整措辞和结构，但所有结论必须能回溯到下方日志、关闭事项或更新事项。\n`;
   md += `- 风险、阻塞、逾期、P0/P1、决策如在事实中出现，需要优先保留。\n`;
-  md += `- 外部 AI 不得新增事实、背景、原因或未记录的进展。\n\n`;
+  md += `- 外部工具不得新增事实、背景、原因或未记录的进展。\n\n`;
 
   // Summary
   md += `## 概览\n\n`;
@@ -551,10 +551,10 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
 
   let md = `# 项目快照 - ${escapeMarkdownInline(projectName)}\n\n`;
 
-  md += `## AI 汇报提示\n\n`;
-  md += `- 这是项目汇报事实包，只能根据已给事实整理，不要补写、不要推断、不要生成管理结论。\n`;
+  md += `## 项目快照事实包使用说明\n\n`;
+  md += `- 这是项目快照事实包，只能根据已给事实整理，不要补写、不要推断、不要自动生成结论。\n`;
   md += `- 缺失信息请写“待确认”，不要编造背景、原因、进展或风险。\n`;
-  md += `- 汇报生成请优先使用：当前状态 -> 风险 / 阻塞 / 逾期 -> 里程碑 / 下一检查点 -> 需协调事项 -> 最近事实。\n`;
+  md += `- 建议使用顺序：当前状态 -> 风险 / 阻塞 / 逾期 -> 里程碑 / 下一检查点 -> 需协调事项 -> 最近事实。\n`;
   md += `- 如果事实存在冲突，请保留冲突，不要自行裁决。\n`;
   md += `- 可以重写措辞，但不得新增事实。\n\n`;
 
@@ -656,4 +656,3 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
 
   return md.trimEnd();
 }
-

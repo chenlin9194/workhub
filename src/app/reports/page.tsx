@@ -8,7 +8,7 @@ const reportEntrances = [
     href: "/export/today",
     icon: "calendar",
     title: "今日日报事实包",
-    subtitle: "导出今天的日志、事项、风险、决策事实，适合直接复制给外部 AI 继续整理。",
+    subtitle: "导出今天的日志、事项、风险、决策事实，适合直接复制给外部工具继续整理。",
     tone: "btn-primary",
   },
   {
@@ -44,9 +44,9 @@ const quickLinks = [
 ] as const;
 
 const workflowSteps = [
-  "先选入口：日报、区间、项目快照或统计概览。",
-  "把生成的 Markdown 当作事实包，直接复制给外部 AI 或其它工具。",
-  "让外部 AI 负责整理表达，不要让它补写事实或自动下结论。",
+  "先选入口：日报、区间、项目快照事实包或统计概览。",
+  "把生成的 Markdown 当作事实包，直接复制给外部工具继续整理。",
+  "让外部工具负责整理表达，不要让它补写事实或自动下结论。",
   "如果缺少关键信息，先回到 WorkHub 人工确认，再继续汇报。",
 ];
 
@@ -61,7 +61,7 @@ export default function ReportsPage() {
           </div>
           <h1>汇报入口</h1>
           <p className="page-hero-subtitle">
-            这里不是汇报结论生成器，而是 WorkHub 的事实包入口。先把事实整理出来，再交给外部 AI 组织成日报、周报或管理层汇报。
+            这里不是汇报结论生成器，而是 WorkHub 的事实包入口。先把事实整理出来，再交给外部工具组织成日报、周报或管理层汇报。
           </p>
           <div className="page-hero-actions">
             <Link href="/export/today" className="btn btn-primary">
@@ -70,7 +70,7 @@ export default function ReportsPage() {
             </Link>
             <Link href="/projects" className="btn btn-secondary">
               <Icon name="folder" size={15} />
-              项目快照
+              项目快照事实包
             </Link>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function ReportsPage() {
             WorkHub 只提供事实包入口，不在这里生成管理结论。
           </p>
           <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.7 }}>
-            复制后的 Markdown 可以交给外部 AI 继续整理成汇报，但外部 AI 不能补写事实。缺失信息先人工确认，再继续输出。
+            复制后的 Markdown 可以交给外部工具继续整理成汇报，但外部工具不能补写事实。缺失信息先人工确认，再继续输出。
           </p>
         </div>
       </section>

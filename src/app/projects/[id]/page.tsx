@@ -99,8 +99,8 @@ export default function ProjectDetailPage() {
             新建关联日志
           </Link>
           <Link href={`/projects/${project.id}/snapshot`} className="btn btn-ghost">
-            <Icon name="external-link" size={15} />
-            项目快照
+            <Icon name="file-text" size={15} />
+            项目快照事实包
           </Link>
         </div>
       </section>

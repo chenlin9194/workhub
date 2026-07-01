@@ -53,10 +53,16 @@ export default function ProjectHeaderSection({ project }: ProjectHeaderSectionPr
           </div>
         </div>
 
-        <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary">
-          <Icon name="edit" size={15} />
-          编辑项目
-        </Link>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <Link href={`/projects/${project.id}/snapshot`} className="btn btn-ghost">
+            <Icon name="file-text" size={15} />
+            项目快照事实包
+          </Link>
+          <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary">
+            <Icon name="edit" size={15} />
+            编辑项目
+          </Link>
+        </div>
       </div>
     </section>
   );

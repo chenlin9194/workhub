@@ -387,7 +387,7 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
         </div>
       ) : members.length === 0 ? (
         <div className="card empty-state">
-          <p>暂无项目成员</p>
+          <p>建议补充核心成员</p>
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>

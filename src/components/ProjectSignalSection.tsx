@@ -35,9 +35,13 @@ export default function ProjectSignalSection({
         </div>
       </div>
 
+      <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.6 }}>
+        优先看 P0/P1、阻塞、红黄、逾期；事项和日志只作为辅助判断。
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 }}>
-        <SignalCard value={itemCount} label="关联事项" />
-        <SignalCard value={logCount} label="关联日志" />
+        <SignalCard value={itemCount} label="事项总数" />
+        <SignalCard value={logCount} label="日志总数" />
         <SignalCard value={p0p1Count} label="P0 / P1" valueColor="var(--critical, #ef4444)" />
         <SignalCard value={blockedCount} label="阻塞" valueColor="var(--danger, #f97316)" />
         <SignalCard value={redYellowCount} label="红黄" valueColor="var(--warning, #eab308)" />

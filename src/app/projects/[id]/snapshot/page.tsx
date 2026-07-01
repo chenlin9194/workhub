@@ -373,10 +373,10 @@ export default function ProjectSnapshotPage() {
             {projectName}
             {projectCode && <span style={{ marginLeft: 12, fontSize: 14, color: "var(--text-tertiary)" }}>{projectCode}</span>}
           </h1>
-          <p>项目快照页面 / 可直接复制 Markdown 给外部 AI 生成汇报</p>
+          <p>项目快照事实包 / 可复制给外部工具继续整理成汇报材料</p>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <CopyButton text={markdown} />
+          <CopyButton text={markdown} label="复制项目快照事实包" />
           <Link href={`/projects/${projectId}`} className="btn btn-secondary">
             <Icon name="arrow-left" size={14} />
             返回项目详情
@@ -391,12 +391,12 @@ export default function ProjectSnapshotPage() {
       <div className="card export-notice">
         <div className="export-notice-icon">i</div>
         <div style={{ minWidth: 0 }}>
-          <strong>这是事实包，不是 AI 生成结果</strong>
-          <p>页面展示的是项目快照结构化数据和 Markdown 预览，可直接复制到外部 Claude Code / Codex 里继续生成汇报。</p>
+          <strong>这是项目快照事实包，不是结论</strong>
+          <p>页面展示的是项目快照结构化数据和 Markdown 预览，可直接复制给外部工具继续整理成汇报材料。</p>
         </div>
         <span className="export-ready-tag">
           <i />
-          Ready for external AI
+          可复制事实材料
         </span>
       </div>
 

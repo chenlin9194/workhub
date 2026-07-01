@@ -378,7 +378,7 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
         </div>
       ) : links.length === 0 ? (
         <div className="card empty-state">
-          <p>暂无关键链接</p>
+          <p>建议补充主链接</p>
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>

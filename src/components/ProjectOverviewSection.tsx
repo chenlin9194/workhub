@@ -15,6 +15,10 @@ function formatDate(value?: string | Date | null) {
 }
 
 export default function ProjectOverviewSection({ project }: ProjectOverviewSectionProps) {
+  const currentSummary = project.currentSummary || "建议补充当前摘要";
+  const nextMilestone = project.nextMilestone || "建议补充下一里程碑";
+  const nextAction = project.nextAction || "建议补充下一动作";
+
   return (
     <section style={{ marginBottom: 24 }}>
       <div className="dashboard-section-title">
@@ -58,35 +62,26 @@ export default function ProjectOverviewSection({ project }: ProjectOverviewSecti
           )}
         </div>
 
-        {project.currentSummary && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)" }}>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>当前摘要</div>
-            <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {project.currentSummary}
+            <div style={{ fontSize: 14, color: project.currentSummary ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {currentSummary}
             </div>
           </div>
-        )}
-
-        {(project.nextMilestone || project.nextAction) && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24, flexWrap: "wrap" }}>
-            {project.nextMilestone && (
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一里程碑</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {project.nextMilestone}
-                </div>
-              </div>
-            )}
-            {project.nextAction && (
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一步行动</div>
-                <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {project.nextAction}
-                </div>
-              </div>
-            )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一里程碑</div>
+            <div style={{ fontSize: 14, color: project.nextMilestone ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {nextMilestone}
+            </div>
           </div>
-        )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一步行动</div>
+            <div style={{ fontSize: 14, color: project.nextAction ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {nextAction}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
