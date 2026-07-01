@@ -11,6 +11,8 @@ type RelationMode = "none" | "existing" | "new";
 interface ExistingItem {
   id: string;
   title: string;
+  projectId?: string | null;
+  project?: string | null;
 }
 
 interface ProjectOption {
@@ -58,13 +60,17 @@ function NewLogForm() {
   }, []);
 
   useEffect(() => {
-    if (initialProjectId && projects.length > 0) {
-      const proj = projects.find((p) => p.id === initialProjectId);
-      if (proj) {
-        setForm((prev) => ({ ...prev, project: proj.name }));
-      }
+    if (!form.projectId) {
+      return;
     }
-  }, [initialProjectId, projects]);
+
+    const proj = projects.find((p) => p.id === form.projectId);
+    if (!proj) {
+      return;
+    }
+
+    setForm((prev) => (prev.project === proj.name ? prev : { ...prev, project: proj.name }));
+  }, [form.projectId, projects]);
 
   useEffect(() => {
     if (initialItemId) {
@@ -75,6 +81,41 @@ function NewLogForm() {
       }));
     }
   }, [initialItemId]);
+
+  useEffect(() => {
+    if (!initialItemId || initialProjectId) {
+      return;
+    }
+
+    const linkedItem = items.find((item) => item.id === initialItemId);
+    if (!linkedItem) {
+      return;
+    }
+
+    const nextProjectId = linkedItem.projectId || "";
+    const nextProjectName =
+      (linkedItem.projectId ? projects.find((project) => project.id === linkedItem.projectId)?.name : "") ||
+      linkedItem.project ||
+      "";
+
+    if (!nextProjectId && !nextProjectName) {
+      return;
+    }
+
+    setForm((prev) => {
+      const nextState = { ...prev };
+
+      if (nextProjectId && prev.projectId !== nextProjectId) {
+        nextState.projectId = nextProjectId;
+      }
+
+      if (nextProjectName && prev.project !== nextProjectName) {
+        nextState.project = nextProjectName;
+      }
+
+      return nextState;
+    });
+  }, [initialItemId, initialProjectId, items, projects]);
 
   const fetchItems = async () => {
     try {
@@ -103,6 +144,28 @@ function NewLogForm() {
     } else {
       setForm({ ...form, projectId: "" });
     }
+  };
+
+  const handleItemChange = (itemId: string) => {
+    const selectedItem = items.find((item) => item.id === itemId);
+
+    setForm((prev) => {
+      const nextState = { ...prev, itemId };
+
+      if (!initialProjectId && selectedItem) {
+        if (selectedItem.projectId) {
+          nextState.projectId = selectedItem.projectId;
+          nextState.project =
+            projects.find((project) => project.id === selectedItem.projectId)?.name ||
+            selectedItem.project ||
+            "";
+        } else if (selectedItem.project) {
+          nextState.project = selectedItem.project;
+        }
+      }
+
+      return nextState;
+    });
   };
 
   const removeCreatedItem = async (itemId: string) => {
@@ -145,6 +208,7 @@ function NewLogForm() {
           body: JSON.stringify({
             title: form.title.trim(),
             project: form.project,
+            projectId: form.projectId || undefined,
             module: form.module,
             type: form.newType,
             tags: form.tags,
@@ -275,7 +339,13 @@ function NewLogForm() {
                     type="button"
                     className={`relation-mode-card${form.relationMode === mode.value ? " is-selected" : ""}`}
                     aria-pressed={form.relationMode === mode.value}
-                    onClick={() => setForm((prev) => ({ ...prev, relationMode: mode.value, itemId: mode.value === "existing" ? prev.itemId : "" }))}
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        relationMode: mode.value,
+                        itemId: mode.value === "existing" ? prev.itemId : "",
+                      }))
+                    }
                   >
                     <span className="relation-mode-icon"><Icon name={mode.icon} size={18} /></span>
                     <span><strong>{mode.title}</strong><small>{mode.description}</small></span>
@@ -292,7 +362,7 @@ function NewLogForm() {
                 </label>
                 <select
                   value={form.itemId}
-                  onChange={(e) => setForm({ ...form, itemId: e.target.value })}
+                  onChange={(e) => handleItemChange(e.target.value)}
                   style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
                   disabled={items.length === 0}
                 >

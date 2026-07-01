@@ -20,6 +20,7 @@ interface WorkItem {
   title: string;
   description?: string | null;
   project?: string | null;
+  projectId?: string | null;
   module?: string | null;
   type: string;
   priority: string;
@@ -149,6 +150,13 @@ export default function ItemDetailPage() {
   }
 
   const overdue = isOverdue(item.dueDate, item.status);
+  const addLogHref = (() => {
+    const params = new URLSearchParams({ itemId: item.id });
+    if (item.projectId) {
+      params.set("projectId", item.projectId);
+    }
+    return `/logs/new?${params.toString()}`;
+  })();
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -167,7 +175,7 @@ export default function ItemDetailPage() {
           <Link href={`/items/${item.id}/edit`} className="btn btn-secondary" style={{ fontSize: 13 }}>
             编辑
           </Link>
-          <Link href={`/logs/new?itemId=${item.id}`} className="btn btn-primary" style={{ fontSize: 13 }}>
+          <Link href={addLogHref} className="btn btn-primary" style={{ fontSize: 13 }}>
             添加日志
           </Link>
           <button onClick={handleDelete} className="btn btn-secondary" style={{ fontSize: 13, color: "var(--accent-red)" }} disabled={deleting}>
