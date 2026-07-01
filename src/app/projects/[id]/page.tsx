@@ -12,6 +12,7 @@ import ProjectSignalSection from "@/components/ProjectSignalSection";
 import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
 import ProjectMemberSection from "@/components/ProjectMemberSection";
+import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
 import { SOURCE_SYSTEM_LABELS } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import type { Project, WorkItem, WorkLog } from "@/lib/types";
@@ -134,7 +135,7 @@ export default function ProjectDetailPage() {
     return toTime(b.updatedAt) - toTime(a.updatedAt);
   });
   const keyLogCount = logs.filter((log) => KEY_LOG_TYPES.has(log.type)).length;
-  const riskBlockerLogCount = logs.filter((log) => log.type === "risk" || log.type === "blocker").length;
+  const riskLogCount = logs.filter((log) => log.type === "risk").length;
   const reportableLogCount = logs.filter((log) => log.reportable).length;
   const sortedLogs = [...logs].sort((a, b) => {
     const rankDiff = getLogEvidenceRank(a) - getLogEvidenceRank(b);
@@ -151,6 +152,7 @@ export default function ProjectDetailPage() {
       <ProjectHeaderSection project={project} />
       <ProjectOverviewSection project={project} />
       <ProjectSignalSection
+        projectId={project.id}
         itemCount={project._count?.items || 0}
         logCount={project._count?.logs || 0}
         p0p1Count={p0p1Count}
@@ -254,7 +256,7 @@ export default function ProjectDetailPage() {
             <span className="section-eyebrow">ITEMS</span>
             <h2>关联事项</h2>
           </div>
-          <Link href={`/items?projectId=${project.id}`} className="section-link">
+          <Link href={signalToItemsHref("projectItems", project.id)} className="section-link">
             查看全部 <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -288,9 +290,24 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)" }}>阻塞 {blockedCount}</span>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-orange-light)", color: "var(--accent-orange)" }}>P0/P1 {p0p1Count}</span>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)" }}>逾期 {overdueCount}</span>
+                <Link
+                  href={signalToItemsHref("blocked", project.id)}
+                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)", textDecoration: "none" }}
+                >
+                  阻塞 {blockedCount}
+                </Link>
+                <Link
+                  href={signalToItemsHref("p0p1", project.id)}
+                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-orange-light)", color: "var(--accent-orange)", textDecoration: "none" }}
+                >
+                  P0/P1 {p0p1Count}
+                </Link>
+                <Link
+                  href={signalToItemsHref("overdue", project.id)}
+                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)", textDecoration: "none" }}
+                >
+                  逾期 {overdueCount}
+                </Link>
                 <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>红黄 {redYellowCount}</span>
               </div>
             </div>
@@ -309,7 +326,7 @@ export default function ProjectDetailPage() {
             <span className="section-eyebrow">LOGS</span>
             <h2>最近日志</h2>
           </div>
-          <Link href={`/logs?projectId=${project.id}`} className="section-link">
+          <Link href={signalToLogsHref("projectLogs", project.id)} className="section-link">
             查看全部 <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -340,8 +357,15 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)" }}>风险/阻塞 {riskBlockerLogCount}</span>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-green-light)", color: "var(--accent-green)" }}>可汇报 {reportableLogCount}</span>
+                <Link href={signalToLogsHref("risk", project.id)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)", textDecoration: "none" }}>
+                  风险 {riskLogCount}
+                </Link>
+                <Link
+                  href={signalToLogsHref("reportable", project.id)}
+                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-green-light)", color: "var(--accent-green)", textDecoration: "none" }}
+                >
+                  可汇报 {reportableLogCount}
+                </Link>
                 <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>最近 {logs.length}</span>
               </div>
             </div>

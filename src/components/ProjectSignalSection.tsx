@@ -1,6 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
+
 type ProjectSignalSectionProps = {
+  projectId: string;
   itemCount: number;
   logCount: number;
   p0p1Count: number;
@@ -39,26 +43,54 @@ function SignalCard({
   label,
   hint,
   tone = "neutral",
+  href,
 }: {
   value: number;
   label: string;
   hint?: string;
   tone?: SignalTone;
+  href?: string;
 }) {
   const toneStyle = SIGNAL_TONE_STYLE[tone];
 
-  return (
-    <div className="card" style={{ padding: 16, border: toneStyle.border, background: toneStyle.background }}>
+  const content = (
+    <>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
         <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{label}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: value > 0 ? toneStyle.color : "var(--text-primary)" }}>{value}</div>
       </div>
       {hint && <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{hint}</div>}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        className="card"
+        href={href}
+        style={{
+          display: "block",
+          padding: 16,
+          border: toneStyle.border,
+          background: toneStyle.background,
+          textDecoration: "none",
+          color: "inherit",
+        }}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="card" style={{ padding: 16, border: toneStyle.border, background: toneStyle.background }}>
+      {content}
     </div>
   );
 }
 
 export default function ProjectSignalSection({
+  projectId,
   itemCount,
   logCount,
   p0p1Count,
@@ -116,12 +148,65 @@ export default function ProjectSignalSection({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 }}>
-        <SignalCard value={p0p1Count} label="P0 / P1" hint="高优先级未关闭" tone={p0p1Count > 0 ? "danger" : "success"} />
-        <SignalCard value={blockedCount} label="阻塞" hint="推进受阻事项" tone={blockedCount > 0 ? "danger" : "success"} />
-        <SignalCard value={overdueCount} label="逾期" hint="超过截止日期" tone={overdueCount > 0 ? "danger" : "success"} />
+        <SignalCard
+          value={p0p1Count}
+          label="P0 / P1"
+          hint="高优先级未关闭"
+          tone={p0p1Count > 0 ? "danger" : "success"}
+          href={signalToItemsHref("p0p1", projectId)}
+        />
+        <SignalCard
+          value={blockedCount}
+          label="阻塞"
+          hint="推进受阻事项"
+          tone={blockedCount > 0 ? "danger" : "success"}
+          href={signalToItemsHref("blocked", projectId)}
+        />
+        <SignalCard
+          value={overdueCount}
+          label="逾期"
+          hint="超过截止日期"
+          tone={overdueCount > 0 ? "danger" : "success"}
+          href={signalToItemsHref("overdue", projectId)}
+        />
         <SignalCard value={redYellowCount} label="红黄" hint="风险或关注状态" tone={redYellowCount > 0 ? "warning" : "success"} />
         <SignalCard value={itemCount} label="事项总数" hint="状态判断来源" />
         <SignalCard value={logCount} label="日志总数" hint="事实支撑记录" />
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+        <Link
+          href={signalToLogsHref("risk", projectId)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: "var(--accent-red-light)",
+            color: "var(--accent-red)",
+            textDecoration: "none",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          Risk Logs
+        </Link>
+        <Link
+          href={signalToLogsHref("blocker", projectId)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: "var(--bg-secondary)",
+            color: "var(--text-secondary)",
+            textDecoration: "none",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          Blocked Logs
+        </Link>
       </div>
     </section>
   );

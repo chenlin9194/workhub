@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import { isOverdue, generateWorkItemMarkdown } from "@/lib/utils";
 import AutoLinkText from "@/components/AutoLinkText";
+import { itemToAddLogHref, itemToLogsHref } from "@/lib/signalMap";
 
 interface WorkItem {
   id: string;
@@ -150,13 +151,7 @@ export default function ItemDetailPage() {
   }
 
   const overdue = isOverdue(item.dueDate, item.status);
-  const addLogHref = (() => {
-    const params = new URLSearchParams({ itemId: item.id });
-    if (item.projectId) {
-      params.set("projectId", item.projectId);
-    }
-    return `/logs/new?${params.toString()}`;
-  })();
+    const addLogHref = itemToAddLogHref(item.id, item.projectId ?? undefined);
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -354,7 +349,7 @@ export default function ItemDetailPage() {
           <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
             关联日志时间线
           </h2>
-          <Link href={`/logs?itemId=${item.id}`} style={{ fontSize: 12, color: "var(--accent-blue)", textDecoration: "none", whiteSpace: "nowrap" }}>
+          <Link href={itemToLogsHref(item.id)} style={{ fontSize: 12, color: "var(--accent-blue)", textDecoration: "none", whiteSpace: "nowrap" }}>
             查看全部
           </Link>
         </div>

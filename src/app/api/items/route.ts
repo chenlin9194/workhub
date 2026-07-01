@@ -36,7 +36,10 @@ export async function GET(request: NextRequest) {
     }
     if (moduleParam) where.module = moduleParam;
     if (type) where.type = type;
-    if (priority) where.priority = priority;
+    if (priority) {
+      const priorityValues = priority.split(",").map((value) => value.trim()).filter(Boolean);
+      where.priority = priorityValues.length > 1 ? { in: priorityValues } : priorityValues[0] ?? priority;
+    }
     if (owner) where.owner = owner;
     if (health) where.health = health;
     if (reportLevel) where.reportLevel = reportLevel;

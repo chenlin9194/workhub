@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import WorkLogCard from "@/components/WorkLogCard";
 import Icon from "@/components/Icon";
 import { WORK_LOG_TYPES, SOURCES } from "@/lib/constants";
+import { buildLogsQueryString } from "@/lib/filterLinks";
 
 type LogFilters = {
   startDate: string;
@@ -67,28 +68,6 @@ function readLogFilters(searchParams: URLSearchParams): LogFilters {
   };
 }
 
-function buildLogParams(filters: LogFilters, page: number, includePagination: boolean) {
-  const params = new URLSearchParams();
-
-  if (filters.startDate) params.set("startDate", filters.startDate);
-  if (filters.endDate) params.set("endDate", filters.endDate);
-  if (filters.projectId) params.set("projectId", filters.projectId);
-  else if (filters.project) params.set("project", filters.project);
-  if (filters.itemId) params.set("itemId", filters.itemId);
-  if (filters.module) params.set("module", filters.module);
-  if (filters.type) params.set("type", filters.type);
-  if (filters.source) params.set("source", filters.source);
-  if (filters.hasItem) params.set("hasItem", filters.hasItem);
-  if (filters.reportable) params.set("reportable", filters.reportable);
-  if (filters.keyword) params.set("keyword", filters.keyword);
-  if (includePagination) {
-    params.set("page", page.toString());
-    params.set("pageSize", "20");
-  }
-
-  return params;
-}
-
 export default function LogsPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -102,7 +81,7 @@ export default function LogsPage() {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const params = buildLogParams(filters, page, true);
+      const params = buildLogsQueryString(filters, { page, pageSize: 20 });
       const res = await fetch(`/api/logs?${params}`);
       const data = await res.json();
       setLogs(data.logs);
@@ -134,7 +113,7 @@ export default function LogsPage() {
     if (!urlFiltersInitialized) return;
 
     const syncUrl = () => {
-      const nextQuery = buildLogParams(filters, page, false).toString();
+      const nextQuery = buildLogsQueryString(filters);
       const currentQuery = window.location.search.startsWith("?") ? window.location.search.slice(1) : "";
       if (currentQuery === nextQuery) return;
 

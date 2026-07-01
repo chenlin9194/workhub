@@ -13,6 +13,8 @@ import {
   HEALTH_LABELS,
 } from "@/lib/constants";
 import type { Project } from "@/lib/types";
+import { buildProjectsQueryString } from "@/lib/filterLinks";
+import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
 
 const HEALTH_TONE: Record<string, string> = {
   green: "success",
@@ -40,13 +42,7 @@ export default function ProjectsPage() {
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (keyword) params.set("keyword", keyword);
-      if (status) params.set("status", status);
-      if (health) params.set("health", health);
-      if (stage) params.set("stage", stage);
-      params.set("pageSize", "50");
-
+      const params = buildProjectsQueryString({ keyword, status, health, stage }, { pageSize: 50 });
       const res = await fetch(`/api/projects?${params.toString()}`);
       const data = await res.json();
       setProjects(data.projects || []);
@@ -172,10 +168,10 @@ export default function ProjectsPage() {
             {projects.map((project) => {
               const signals = project.portfolioSignals;
               const riskSignals = [
-                { key: "p0p1", label: "P0/P1", value: signals?.p0p1Count ?? 0, tone: "critical" },
-                { key: "blocked", label: "阻塞", value: signals?.blockedCount ?? 0, tone: "danger", href: `/items?projectId=${project.id}&status=blocked` },
-                { key: "redYellow", label: "红黄", value: signals?.redYellowCount ?? 0, tone: "warning", href: `/items?projectId=${project.id}` },
-                { key: "overdue", label: "逾期", value: signals?.overdueCount ?? 0, tone: "danger", href: `/items?projectId=${project.id}&overdue=true` },
+                { key: "p0p1", label: "P0/P1", value: signals?.p0p1Count ?? 0, tone: "critical", href: signalToItemsHref("p0p1", project.id) },
+                { key: "blocked", label: "阻塞", value: signals?.blockedCount ?? 0, tone: "danger", href: signalToItemsHref("blocked", project.id) },
+                { key: "redYellow", label: "红黄", value: signals?.redYellowCount ?? 0, tone: "warning", href: signalToItemsHref("redYellow", project.id) },
+                { key: "overdue", label: "逾期", value: signals?.overdueCount ?? 0, tone: "danger", href: signalToItemsHref("overdue", project.id) },
               ].filter((signal) => signal.value > 0);
               const reportableLogCount = signals?.recentReportableLogCount ?? 0;
               const nextNodeTitle = signals?.nextOpenMilestone?.title || project.nextMilestone;
@@ -253,7 +249,7 @@ export default function ProjectsPage() {
                         );
                       })}
                       {reportableLogCount > 0 && (
-                        <Link href={`/logs?projectId=${project.id}&reportable=true`} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)", textDecoration: "none" }}>
+                        <Link href={signalToLogsHref("reportable", project.id)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)", textDecoration: "none" }}>
                           可汇报日志 {reportableLogCount}
                         </Link>
                       )}

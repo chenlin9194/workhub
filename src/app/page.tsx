@@ -5,6 +5,7 @@ import WorkLogCard from "@/components/WorkLogCard";
 import { prisma } from "@/lib/prisma";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
 import { PROJECT_STATUS_LABELS } from "@/lib/constants";
+import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
 
 export const dynamic = "force-dynamic";
 
@@ -61,17 +62,17 @@ function normalizeFocusKey(value?: string): FocusKey | null {
 function getFocusListHref(focus: FocusKey, today: string) {
   switch (focus) {
     case "open":
-      return "/items?status=open";
+      return signalToItemsHref("open");
     case "following":
-      return "/items?status=following";
+      return signalToItemsHref("following");
     case "blocked":
-      return "/items?status=blocked";
+      return signalToItemsHref("blocked");
     case "p0":
-      return "/items?priority=P0";
+      return signalToItemsHref("p0");
     case "p1":
-      return "/items?priority=P1";
+      return signalToItemsHref("p1");
     case "todayLogs":
-      return `/logs?startDate=${today}&endDate=${today}`;
+      return signalToLogsHref("todayLogs", undefined, today);
     case "todayClosed":
       return "/?focus=todayClosed";
     default:

@@ -4,6 +4,7 @@ import Icon from "@/components/Icon";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
+import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,14 @@ export default async function TodayPage() {
   ];
 
   const sections = [
-    { title: "今日新增日志", subtitle: "TODAY SIGNALS", items: todayLogs, type: "log", count: todayLogs.length, tone: "blue", icon: "file-text", href: `/logs?startDate=${today}&endDate=${today}` },
+    { title: "今日新增日志", subtitle: "TODAY SIGNALS", items: todayLogs, type: "log", count: todayLogs.length, tone: "blue", icon: "file-text", href: signalToLogsHref("todayLogs", undefined, today) },
     { title: "今日关闭事项", subtitle: "DELIVERED", items: todayClosedItems, type: "item", count: todayClosedItems.length, tone: "success", icon: "check-circle" },
     { title: "今日更新事项", subtitle: "IN MOTION", items: todayUpdatedItems, type: "item", count: todayUpdatedItems.length, tone: "cyan", icon: "refresh" },
     { title: "P0/P1 未关闭事项", subtitle: "HIGH PRIORITY", items: p0p1Items, type: "item", count: p0p1Items.length, tone: "warning", icon: "zap" },
     { title: "今日到期事项", subtitle: "DUE TODAY", items: todayDueItems, type: "item", count: todayDueItems.length, tone: "purple", icon: "calendar" },
-    { title: "逾期未关闭事项", subtitle: "OVERDUE", items: overdueItems, type: "item", count: overdueItems.length, tone: "danger", icon: "clock", href: "/items?overdue=true" },
+    { title: "逾期未关闭事项", subtitle: "OVERDUE", items: overdueItems, type: "item", count: overdueItems.length, tone: "danger", icon: "clock", href: signalToItemsHref("overdue") },
     { title: "今日风险/阻塞日志", subtitle: "RISK SIGNALS", items: riskBlockerLogs, type: "log", count: riskBlockerLogs.length, tone: "danger", icon: "alert-triangle" },
-    { title: "今日决策日志", subtitle: "DECISIONS", items: decisionLogs, type: "log", count: decisionLogs.length, tone: "success", icon: "lightbulb", href: `/logs?startDate=${today}&endDate=${today}&type=decision` },
+    { title: "今日决策日志", subtitle: "DECISIONS", items: decisionLogs, type: "log", count: decisionLogs.length, tone: "success", icon: "lightbulb", href: signalToLogsHref("decision", undefined, today) },
   ];
 
   return (

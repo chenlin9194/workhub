@@ -14,6 +14,7 @@ import {
   REPORT_LEVEL_OPTIONS,
   SOURCE_SYSTEM_OPTIONS,
 } from "@/lib/constants";
+import { buildItemsQueryString } from "@/lib/filterLinks";
 
 type ItemFilters = {
   projectId: string;
@@ -87,29 +88,6 @@ function readItemFilters(searchParams: URLSearchParams): ItemFilters {
   };
 }
 
-function buildItemParams(filters: ItemFilters, page: number, includePagination: boolean) {
-  const params = new URLSearchParams();
-
-  if (filters.projectId) params.set("projectId", filters.projectId);
-  else if (filters.project) params.set("project", filters.project);
-  if (filters.module) params.set("module", filters.module);
-  if (filters.type) params.set("type", filters.type);
-  if (filters.priority) params.set("priority", filters.priority);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.owner) params.set("owner", filters.owner);
-  if (filters.health) params.set("health", filters.health);
-  if (filters.reportLevel) params.set("reportLevel", filters.reportLevel);
-  if (filters.sourceSystem) params.set("sourceSystem", filters.sourceSystem);
-  if (filters.keyword) params.set("keyword", filters.keyword);
-  if (filters.overdue) params.set("overdue", "true");
-  if (includePagination) {
-    params.set("page", page.toString());
-    params.set("pageSize", "20");
-  }
-
-  return params;
-}
-
 export default function ItemsPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -123,7 +101,7 @@ export default function ItemsPage() {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const params = buildItemParams(filters, page, true);
+      const params = buildItemsQueryString(filters, { page, pageSize: 20 });
       const res = await fetch(`/api/items?${params}`);
       const data = await res.json();
       setItems(data.items);
@@ -155,7 +133,7 @@ export default function ItemsPage() {
     if (!urlFiltersInitialized) return;
 
     const syncUrl = () => {
-      const nextQuery = buildItemParams(filters, page, false).toString();
+      const nextQuery = buildItemsQueryString(filters);
       const currentQuery = window.location.search.startsWith("?") ? window.location.search.slice(1) : "";
       if (currentQuery === nextQuery) return;
 
