@@ -552,7 +552,7 @@ export function generateProjectSnapshotMarkdown(snapshot: ProjectSnapshotData): 
   let md = `# 项目快照 - ${escapeMarkdownInline(projectName)}\n\n`;
 
   md += `## 项目快照事实包使用说明\n\n`;
-  md += `- 这是项目快照事实包，只能根据已给事实整理，不要补写、不要推断、不要自动生成结论。\n`;
+  md += `- 这是项目快照事实包，只能根据已给事实整理，不要补写、不要推断、不要自行生成结论。\n`;
   md += `- 缺失信息请写“待确认”，不要编造背景、原因、进展或风险。\n`;
   md += `- 建议使用顺序：当前状态 -> 风险 / 阻塞 / 逾期 -> 里程碑 / 下一检查点 -> 需协调事项 -> 最近事实。\n`;
   md += `- 如果事实存在冲突，请保留冲突，不要自行裁决。\n`;

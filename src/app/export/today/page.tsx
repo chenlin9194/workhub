@@ -82,10 +82,10 @@ export default async function ExportTodayPage() {
       <div className="card export-notice">
         <div className="export-notice-icon">i</div>
         <div>
-          <strong>Work Hub 只导出事实包，不调用 AI</strong>
-          <p>汇总今天的日志、事项、风险与决策事实，复制 Markdown 后可交给外部 AI 整理成日报表达。Work Hub 只导出事实包，不调用 AI、不生成管理结论。外部 AI 只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p>
+          <strong>Work Hub 只导出事实包</strong>
+          <p>汇总今天的日志、事项、风险与决策事实，复制 Markdown 后可交给外部工具整理成日报表达。Work Hub 只导出事实包，不生成管理结论。外部工具只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p>
         </div>
-        <span className="export-ready-tag"><i />Ready for Claude Code / Codex</span>
+        <span className="export-ready-tag"><i />可复制事实材料</span>
       </div>
 
       <div className="card export-preview">

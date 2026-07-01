@@ -23,9 +23,7 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
         </div>
         <div className="card export-preview export-range-help">
           <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-query.txt</span><span>INPUT</span></div>
-          <code>
-            /export/range?start=2025-01-01&end=2025-01-07
-          </code>
+          <code>/export/range?start=2025-01-01&end=2025-01-07</code>
         </div>
       </div>
     );
@@ -66,8 +64,8 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
 
       <div className="card export-notice">
         <div className="export-notice-icon">i</div>
-        <div><strong>Work Hub 只导出事实包，不调用 AI</strong><p>按时间范围汇总工作日志、关闭事项和更新事项，复制 Markdown 后可交给外部 AI 整理成周报或阶段汇报。Work Hub 只导出事实包，不调用 AI、不生成管理结论。外部 AI 只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p></div>
-        <span className="export-ready-tag"><i />Ready for Claude Code / Codex</span>
+        <div><strong>Work Hub 只导出事实包</strong><p>按时间范围汇总工作日志、关闭事项和更新事项，复制 Markdown 后可交给外部工具整理成周报或阶段汇报。Work Hub 只导出事实包，不生成管理结论。外部工具只能基于 Markdown 整理表达，不得补写事实；缺失信息请标记为“待确认”。</p></div>
+        <span className="export-ready-tag"><i />可复制事实材料</span>
       </div>
 
       <div className="card export-preview">
