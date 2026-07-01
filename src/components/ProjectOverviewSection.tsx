@@ -15,9 +15,13 @@ function formatDate(value?: string | Date | null) {
 }
 
 export default function ProjectOverviewSection({ project }: ProjectOverviewSectionProps) {
-  const currentSummary = project.currentSummary || "建议补充当前摘要";
-  const nextMilestone = project.nextMilestone || "建议补充下一里程碑";
-  const nextAction = project.nextAction || "建议补充下一动作";
+  const currentSummary = project.currentSummary ?? "";
+  const nextMilestone = project.nextMilestone ?? "";
+  const nextAction = project.nextAction ?? "";
+  const hasCurrentSummary = Boolean(currentSummary.trim());
+  const hasNextMilestone = Boolean(nextMilestone.trim());
+  const hasNextAction = Boolean(nextAction.trim());
+  const overviewFieldsEmpty = !hasCurrentSummary && !hasNextMilestone && !hasNextAction;
 
   return (
     <section style={{ marginBottom: 24 }}>
@@ -62,25 +66,33 @@ export default function ProjectOverviewSection({ project }: ProjectOverviewSecti
           )}
         </div>
 
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)", display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>当前摘要</div>
-            <div style={{ fontSize: 14, color: project.currentSummary ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {currentSummary}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-primary)" }}>
+          {overviewFieldsEmpty ? (
+            <div style={{ fontSize: 14, color: "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              可补充当前摘要、下一里程碑和下一动作，方便后续生成项目快照事实包。
             </div>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一里程碑</div>
-            <div style={{ fontSize: 14, color: project.nextMilestone ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {nextMilestone}
+          ) : (
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>当前摘要</div>
+                <div style={{ fontSize: 14, color: hasCurrentSummary ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {hasCurrentSummary ? currentSummary : "可补充当前摘要，便于快速了解项目现状。"}
+                </div>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一里程碑</div>
+                <div style={{ fontSize: 14, color: hasNextMilestone ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {hasNextMilestone ? nextMilestone : "可补充下一里程碑，便于判断项目节奏。"}
+                </div>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一步行动</div>
+                <div style={{ fontSize: 14, color: hasNextAction ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {hasNextAction ? nextAction : "可补充下一步行动，便于明确近期推进。"}
+                </div>
+              </div>
             </div>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一步行动</div>
-            <div style={{ fontSize: 14, color: project.nextAction ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {nextAction}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </section>
