@@ -59,7 +59,7 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
           <h1>区间 / 周报事实包</h1>
           <p>{start} 至 {end}</p>
         </div>
-        <CopyButton text={md} />
+        <CopyButton text={md} label="复制区间 / 周报事实包" />
       </div>
 
       <div className="card export-notice">

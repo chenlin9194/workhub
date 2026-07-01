@@ -76,7 +76,7 @@ export default async function ExportTodayPage() {
           <h1>今日日报事实包</h1>
           <p>{formatTodayStr()}</p>
         </div>
-        <CopyButton text={md} />
+        <CopyButton text={md} label="复制今日日报事实包" />
       </div>
 
       <div className="card export-notice">

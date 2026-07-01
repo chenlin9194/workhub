@@ -210,7 +210,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
       key: "03",
       title: "Export",
       icon: "download",
-      text: "导出事实上下文，交给外部 Claude/Codex 生成日报周报。",
+      text: "导出事实上下文，交给外部工具继续整理成日报 / 周报材料。",
     },
   ];
 

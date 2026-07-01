@@ -19,7 +19,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from "@/lib/constants";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getLocalDateString } from "@/lib/utils";
 import type {
   ProjectSnapshotData,
   ProjectSnapshotHealthKey,
@@ -194,7 +194,7 @@ function buildSignalSummary(
   delayedMilestoneCount: number
 ): SignalSummary {
   const items = snapshot.items ?? [];
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const blockedItems = items.filter((item) => item.status === "blocked");
   const p0OpenItems = items.filter((item) => isOpenItem(item) && item.priority === "P0");
   const p1OpenItems = items.filter((item) => isOpenItem(item) && item.priority === "P1");
