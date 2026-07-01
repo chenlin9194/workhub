@@ -342,6 +342,9 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
       </div>
     </div>
   );
+  const coreMembers = members.filter((member) => member.isCore);
+  const normalMembers = members.filter((member) => !member.isCore);
+  const displayedMembers = [...coreMembers, ...normalMembers];
 
   return (
     <section style={{ marginBottom: 24 }}>
@@ -377,6 +380,38 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
         </div>
       )}
 
+      {!membersLoading && !membersError && members.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: 14,
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            border: coreMembers.length === 0
+              ? "1px solid color-mix(in srgb, var(--accent-orange) 28%, var(--border-primary))"
+              : "1px solid var(--border-primary)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)", marginBottom: 4 }}>
+              {coreMembers.length > 0 ? `核心成员 ${coreMembers.length} 人` : "尚未标记核心成员"}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              成员总数 {members.length}，优先确认核心角色和职责是否清晰。
+            </div>
+          </div>
+          {coreMembers.length === 0 && (
+            <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-orange-light)", color: "var(--accent-orange)", border: "1px solid color-mix(in srgb, var(--accent-orange) 24%, transparent)" }}>
+              建议补充核心成员
+            </span>
+          )}
+        </div>
+      )}
+
       {membersLoading ? (
         <div className="card empty-state">
           <p>加载中...</p>
@@ -391,7 +426,7 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {members.map((member) => {
+          {displayedMembers.map((member) => {
             const isEditing = editingMemberId === member.id;
             const isDeleting = deletingMemberId === member.id;
 
@@ -404,22 +439,33 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
             }
 
             return (
-              <div key={member.id} className="card" style={{ padding: 16 }}>
+              <div
+                key={member.id}
+                className="card"
+                style={{
+                  padding: 16,
+                  border: member.isCore
+                    ? "1px solid color-mix(in srgb, var(--accent-green) 28%, var(--border-primary))"
+                    : "1px solid var(--border-primary)",
+                  background: member.isCore
+                    ? "color-mix(in srgb, var(--accent-green-light) 28%, var(--bg-elevated))"
+                    : "var(--bg-elevated)",
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{member.name}</strong>
+                      {member.isCore && (
+                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-green-light)", color: "var(--accent-green)", border: "1px solid color-mix(in srgb, var(--accent-green) 24%, transparent)" }}>
+                          核心成员
+                        </span>
+                      )}
                       {member.role && (
                         <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
                           {member.role}
                         </span>
                       )}
-                      {member.isCore && <span className="badge badge-success">核心成员</span>}
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, fontSize: 13, color: "var(--text-secondary)" }}>
-                      <span>团队：{member.team || "-"}</span>
-                      <span>联系方式：{member.contact || "-"}</span>
                     </div>
 
                     {member.responsibility && (
@@ -427,6 +473,11 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
                         {member.responsibility}
                       </p>
                     )}
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, fontSize: 12, color: "var(--text-tertiary)" }}>
+                      <span>团队：{member.team || "-"}</span>
+                      <span>联系方式：{member.contact || "-"}</span>
+                    </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>

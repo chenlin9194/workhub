@@ -241,6 +241,9 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
       setDeletingLinkId(null);
     }
   };
+  const primaryLinks = links.filter((link) => link.isPrimary);
+  const normalLinks = links.filter((link) => !link.isPrimary);
+  const displayedLinks = [...primaryLinks, ...normalLinks];
 
   return (
     <section style={{ marginBottom: 24 }}>
@@ -368,6 +371,38 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
         </div>
       )}
 
+      {!linksLoading && !linksError && links.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: 14,
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            border: primaryLinks.length === 0
+              ? "1px solid color-mix(in srgb, var(--accent-orange) 28%, var(--border-primary))"
+              : "1px solid var(--border-primary)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)", marginBottom: 4 }}>
+              {primaryLinks.length > 0 ? `主链接 ${primaryLinks.length} 个` : "尚未设置主链接"}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              链接总数 {links.length}，优先保留最常用的外部资料入口。
+            </div>
+          </div>
+          {primaryLinks.length === 0 && (
+            <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-orange-light)", color: "var(--accent-orange)", border: "1px solid color-mix(in srgb, var(--accent-orange) 24%, transparent)" }}>
+              建议设置主链接
+            </span>
+          )}
+        </div>
+      )}
+
       {linksLoading ? (
         <div className="card empty-state">
           <p>加载中...</p>
@@ -382,7 +417,7 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {links.map((link) => {
+          {displayedLinks.map((link) => {
             const isEditing = editingLinkId === link.id;
             const isDeleting = deletingLinkId === link.id;
 
@@ -487,17 +522,31 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
             }
 
             return (
-              <div key={link.id} className="card" style={{ padding: 16 }}>
+              <div
+                key={link.id}
+                className="card"
+                style={{
+                  padding: 16,
+                  border: link.isPrimary
+                    ? "1px solid color-mix(in srgb, var(--accent-blue) 30%, var(--border-primary))"
+                    : "1px solid var(--border-primary)",
+                  background: link.isPrimary
+                    ? "color-mix(in srgb, var(--accent-blue-light) 34%, var(--bg-elevated))"
+                    : "var(--bg-elevated)",
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{link.title}</strong>
+                      {link.isPrimary && (
+                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-blue-light)", color: "var(--accent-blue)", border: "1px solid color-mix(in srgb, var(--accent-blue) 24%, transparent)" }}>
+                          主链接
+                        </span>
+                      )}
                       <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
                         {projectLinkCategoryLabels[link.category] || link.category}
                       </span>
-                      {link.isPrimary && (
-                        <span className="badge badge-success">主链接</span>
-                      )}
                     </div>
                     {link.description && (
                       <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>

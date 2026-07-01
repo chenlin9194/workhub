@@ -102,8 +102,8 @@ export default function ProjectDetailPage() {
       </section>
 
       <ProjectMilestoneSection projectId={project.id} />
-      <ProjectLinkSection projectId={project.id} />
       <ProjectMemberSection projectId={project.id} />
+      <ProjectLinkSection projectId={project.id} />
 
       <section style={{ marginBottom: 24 }}>
         <div className="dashboard-section-title">

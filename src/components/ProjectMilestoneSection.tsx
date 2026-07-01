@@ -8,7 +8,7 @@ import {
   PROJECT_PLAN_TYPES,
   PROJECT_PLAN_TYPE_LABELS,
 } from "@/lib/constants";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getLocalDateString } from "@/lib/utils";
 import type { ProjectMilestone } from "@/lib/types";
 
 type MilestoneFormState = {
@@ -35,9 +35,34 @@ const EMPTY_MILESTONE_FORM: MilestoneFormState = {
   sortOrder: "0",
 };
 
+const CLOSED_MILESTONE_STATUSES = new Set(["done", "cancelled"]);
+
 function toDateInputValue(value?: string | Date | null) {
   if (!value) return "";
   return formatDate(value, "iso");
+}
+
+function getMilestoneDateKey(value?: string | Date | null) {
+  if (!value) return "";
+  return formatDate(value, "iso");
+}
+
+function isMilestoneClosed(milestone: ProjectMilestone) {
+  return CLOSED_MILESTONE_STATUSES.has(milestone.status);
+}
+
+function isMilestoneRisk(milestone: ProjectMilestone, today: string) {
+  if (milestone.status === "delayed") return true;
+  if (isMilestoneClosed(milestone)) return false;
+
+  const targetDate = getMilestoneDateKey(milestone.targetDate);
+  return Boolean(targetDate && targetDate < today);
+}
+
+function getMilestonePriority(milestone: ProjectMilestone, today: string) {
+  if (isMilestoneRisk(milestone, today)) return 0;
+  if (!isMilestoneClosed(milestone)) return 1;
+  return 2;
 }
 
 type ProjectMilestoneSectionProps = {
@@ -262,6 +287,29 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
     selectedPlanType === "all"
       ? milestones
       : milestones.filter((milestone) => (milestone.planType || "milestone") === selectedPlanType);
+  const today = getLocalDateString();
+  const displayedMilestones = filteredMilestones
+    .map((milestone, index) => ({ milestone, index }))
+    .sort((a, b) => {
+      const priorityDiff = getMilestonePriority(a.milestone, today) - getMilestonePriority(b.milestone, today);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      const aTargetDate = getMilestoneDateKey(a.milestone.targetDate);
+      const bTargetDate = getMilestoneDateKey(b.milestone.targetDate);
+      if (aTargetDate && bTargetDate && aTargetDate !== bTargetDate) return aTargetDate.localeCompare(bTargetDate);
+      if (aTargetDate && !bTargetDate) return -1;
+      if (!aTargetDate && bTargetDate) return 1;
+
+      const sortOrderDiff = a.milestone.sortOrder - b.milestone.sortOrder;
+      if (sortOrderDiff !== 0) return sortOrderDiff;
+
+      return a.index - b.index;
+    })
+    .map(({ milestone }) => milestone);
+  const riskMilestoneCount = filteredMilestones.filter((milestone) => isMilestoneRisk(milestone, today)).length;
+  const openMilestoneCount = filteredMilestones.filter((milestone) => !isMilestoneClosed(milestone)).length;
+  const closedMilestoneCount = filteredMilestones.length - openMilestoneCount;
+  const nextKeyMilestone = displayedMilestones.find((milestone) => !isMilestoneClosed(milestone)) ?? null;
 
   return (
     <section style={{ marginBottom: 24 }}>
@@ -304,6 +352,51 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
           </button>
         ))}
       </div>
+
+      {milestones.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: 14,
+            marginBottom: 12,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
+            gap: 12,
+            border: riskMilestoneCount > 0
+              ? "1px solid color-mix(in srgb, var(--accent-red) 28%, var(--border-primary))"
+              : "1px solid var(--border-primary)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>下一关键节点</div>
+            <div style={{ fontSize: 14, fontWeight: 650, color: nextKeyMilestone ? "var(--text-primary)" : "var(--text-tertiary)", lineHeight: 1.5, wordBreak: "break-word" }}>
+              {nextKeyMilestone ? nextKeyMilestone.title : "暂无未关闭节点"}
+            </div>
+            {nextKeyMilestone?.targetDate && (
+              <div style={{ marginTop: 4, fontSize: 12, color: "var(--text-secondary)" }}>
+                目标 {formatDate(nextKeyMilestone.targetDate)}
+                {nextKeyMilestone.owner ? ` · ${nextKeyMilestone.owner}` : ""}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: riskMilestoneCount > 0 ? "var(--accent-red-light)" : "var(--accent-green-light)",
+                color: riskMilestoneCount > 0 ? "var(--accent-red)" : "var(--accent-green)",
+                border: riskMilestoneCount > 0 ? "1px solid color-mix(in srgb, var(--accent-red) 24%, transparent)" : "1px solid color-mix(in srgb, var(--accent-green) 24%, transparent)",
+              }}
+            >
+              延期/风险 {riskMilestoneCount}
+            </span>
+            <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>未关闭 {openMilestoneCount}</span>
+            <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>已结束 {closedMilestoneCount}</span>
+          </div>
+        </div>
+      )}
 
       {showMilestoneCreateForm && (
         <form onSubmit={handleMilestoneCreateSubmit} className="card" style={{ padding: 16, marginBottom: 12 }}>
@@ -458,7 +551,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
         </div>
       ) : milestones.length === 0 ? (
         <div className="card empty-state">
-          <p>可补充下一里程碑，便于判断项目节奏。</p>
+          <p>可补充下一关键节点、目标日期和负责人，便于判断项目节奏。</p>
         </div>
       ) : filteredMilestones.length === 0 ? (
         <div className="card empty-state">
@@ -466,9 +559,11 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {filteredMilestones.map((milestone) => {
+          {displayedMilestones.map((milestone) => {
             const isEditingMilestone = editingMilestoneId === milestone.id;
             const isDeletingMilestone = deletingMilestoneId === milestone.id;
+            const isClosedMilestone = isMilestoneClosed(milestone);
+            const isRiskMilestone = isMilestoneRisk(milestone, today);
 
             if (isEditingMilestone) {
               return (
@@ -616,11 +711,33 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
             }
 
             return (
-              <div key={milestone.id} className="card" style={{ padding: 16 }}>
+              <div
+                key={milestone.id}
+                className="card"
+                style={{
+                  padding: 16,
+                  border: isRiskMilestone
+                    ? "1px solid color-mix(in srgb, var(--accent-red) 30%, var(--border-primary))"
+                    : isClosedMilestone
+                      ? "1px solid var(--border-primary)"
+                      : "1px solid color-mix(in srgb, var(--accent-blue) 18%, var(--border-primary))",
+                  background: isRiskMilestone
+                    ? "color-mix(in srgb, var(--accent-red-light) 34%, var(--bg-elevated))"
+                    : isClosedMilestone
+                      ? "color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-elevated))"
+                      : "var(--bg-elevated)",
+                  opacity: isClosedMilestone ? 0.78 : 1,
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <strong style={{ fontSize: 15, color: "var(--text-primary)" }}>{milestone.title}</strong>
+                      {isRiskMilestone && (
+                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--accent-red-light)", color: "var(--accent-red)", border: "1px solid color-mix(in srgb, var(--accent-red) 24%, transparent)" }}>
+                          需要关注
+                        </span>
+                      )}
                       <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
                         {PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
                       </span>
