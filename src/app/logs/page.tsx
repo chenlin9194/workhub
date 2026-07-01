@@ -70,10 +70,15 @@ export default function LogsPage() {
   }, [page, filters]);
 
   useEffect(() => {
-    const projectId = new URLSearchParams(window.location.search).get("projectId") || "";
-    if (projectId) {
-      setFilters((prev) => ({ ...prev, projectId }));
-    }
+    const params = new URLSearchParams(window.location.search);
+    setFilters((prev) => ({
+      ...prev,
+      projectId: params.get("projectId") || "",
+      startDate: params.get("startDate") || "",
+      endDate: params.get("endDate") || "",
+      type: params.get("type") || "",
+      reportable: params.get("reportable") || "",
+    }));
     setUrlFiltersInitialized(true);
   }, []);
 

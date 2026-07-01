@@ -91,10 +91,15 @@ export default function ItemsPage() {
   }, [page, filters]);
 
   useEffect(() => {
-    const projectId = new URLSearchParams(window.location.search).get("projectId") || "";
-    if (projectId) {
-      setFilters((prev) => ({ ...prev, projectId }));
-    }
+    const params = new URLSearchParams(window.location.search);
+    setFilters((prev) => ({
+      ...prev,
+      projectId: params.get("projectId") || "",
+      status: params.get("status") || "",
+      priority: params.get("priority") || "",
+      health: params.get("health") || "",
+      overdue: params.get("overdue") === "true",
+    }));
     setUrlFiltersInitialized(true);
   }, []);
 

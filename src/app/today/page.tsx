@@ -40,14 +40,14 @@ export default async function TodayPage() {
   ];
 
   const sections = [
-    { title: "今日新增日志", subtitle: "TODAY SIGNALS", items: todayLogs, type: "log", count: todayLogs.length, tone: "blue", icon: "file-text" },
+    { title: "今日新增日志", subtitle: "TODAY SIGNALS", items: todayLogs, type: "log", count: todayLogs.length, tone: "blue", icon: "file-text", href: `/logs?startDate=${today}&endDate=${today}` },
     { title: "今日关闭事项", subtitle: "DELIVERED", items: todayClosedItems, type: "item", count: todayClosedItems.length, tone: "success", icon: "check-circle" },
     { title: "今日更新事项", subtitle: "IN MOTION", items: todayUpdatedItems, type: "item", count: todayUpdatedItems.length, tone: "cyan", icon: "refresh" },
     { title: "P0/P1 未关闭事项", subtitle: "HIGH PRIORITY", items: p0p1Items, type: "item", count: p0p1Items.length, tone: "warning", icon: "zap" },
     { title: "今日到期事项", subtitle: "DUE TODAY", items: todayDueItems, type: "item", count: todayDueItems.length, tone: "purple", icon: "calendar" },
-    { title: "逾期未关闭事项", subtitle: "OVERDUE", items: overdueItems, type: "item", count: overdueItems.length, tone: "danger", icon: "clock" },
+    { title: "逾期未关闭事项", subtitle: "OVERDUE", items: overdueItems, type: "item", count: overdueItems.length, tone: "danger", icon: "clock", href: "/items?overdue=true" },
     { title: "今日风险/阻塞日志", subtitle: "RISK SIGNALS", items: riskBlockerLogs, type: "log", count: riskBlockerLogs.length, tone: "danger", icon: "alert-triangle" },
-    { title: "今日决策日志", subtitle: "DECISIONS", items: decisionLogs, type: "log", count: decisionLogs.length, tone: "success", icon: "lightbulb" },
+    { title: "今日决策日志", subtitle: "DECISIONS", items: decisionLogs, type: "log", count: decisionLogs.length, tone: "success", icon: "lightbulb", href: `/logs?startDate=${today}&endDate=${today}&type=decision` },
   ];
 
   return (
@@ -82,7 +82,13 @@ export default async function TodayPage() {
             <div className="today-section-header">
               <span className="today-section-icon"><Icon name={section.icon} size={16} /></span>
               <div><strong>{section.title}</strong><small>{section.subtitle}</small></div>
-              <span className="section-count">{section.count} 条</span>
+              {section.href ? (
+                <Link href={section.href} className="section-link">
+                  查看全部 <Icon name="chevron-right" size={14} />
+                </Link>
+              ) : (
+                <span className="section-count">{section.count} 条</span>
+              )}
             </div>
             {section.items.length === 0 ? (
               <div className="today-compact-empty"><span />当前无相关数据</div>

@@ -173,9 +173,9 @@ export default function ProjectsPage() {
               const signals = project.portfolioSignals;
               const riskSignals = [
                 { key: "p0p1", label: "P0/P1", value: signals?.p0p1Count ?? 0, tone: "critical" },
-                { key: "blocked", label: "阻塞", value: signals?.blockedCount ?? 0, tone: "danger" },
-                { key: "redYellow", label: "红黄", value: signals?.redYellowCount ?? 0, tone: "warning" },
-                { key: "overdue", label: "逾期", value: signals?.overdueCount ?? 0, tone: "danger" },
+                { key: "blocked", label: "阻塞", value: signals?.blockedCount ?? 0, tone: "danger", href: `/items?projectId=${project.id}&status=blocked` },
+                { key: "redYellow", label: "红黄", value: signals?.redYellowCount ?? 0, tone: "warning", href: `/items?projectId=${project.id}` },
+                { key: "overdue", label: "逾期", value: signals?.overdueCount ?? 0, tone: "danger", href: `/items?projectId=${project.id}&overdue=true` },
               ].filter((signal) => signal.value > 0);
               const reportableLogCount = signals?.recentReportableLogCount ?? 0;
               const nextNodeTitle = signals?.nextOpenMilestone?.title || project.nextMilestone;
@@ -191,16 +191,17 @@ export default function ProjectsPage() {
                 hasPrimaryLink;
 
               return (
-                <Link
+                <div
                   key={project.id}
-                  href={`/projects/${project.id}`}
                   className="card project-card"
-                  style={{ padding: 20, textDecoration: "none", color: "inherit" }}
+                  style={{ padding: 20, color: "inherit" }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
-                        {project.name}
+                      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+                        <Link href={`/projects/${project.id}`} style={{ color: "var(--text-primary)", textDecoration: "none" }}>
+                          {project.name}
+                        </Link>
                         {project.code && (
                           <span style={{ fontSize: 12, color: "var(--text-tertiary)", marginLeft: 8 }}>
                             {project.code}
@@ -240,19 +241,21 @@ export default function ProjectsPage() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                       {riskSignals.map((signal) => {
                         const style = RISK_SIGNAL_STYLES[signal.tone] || RISK_SIGNAL_STYLES.neutral;
-                        return (
-                          <span
-                            key={signal.key}
-                            style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, color: style.color, background: style.background, fontWeight: 600 }}
-                          >
+                        const chipStyle = { fontSize: 12, padding: "2px 8px", borderRadius: 999, color: style.color, background: style.background, fontWeight: 600, textDecoration: "none" };
+                        return signal.href ? (
+                          <Link key={signal.key} href={signal.href} style={chipStyle}>
+                            {signal.label} {signal.value}
+                          </Link>
+                        ) : (
+                          <span key={signal.key} style={chipStyle}>
                             {signal.label} {signal.value}
                           </span>
                         );
                       })}
                       {reportableLogCount > 0 && (
-                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                        <Link href={`/logs?projectId=${project.id}&reportable=true`} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)", textDecoration: "none" }}>
                           可汇报日志 {reportableLogCount}
-                        </span>
+                        </Link>
                       )}
                       {hasPrimaryLink && (
                         <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
@@ -289,7 +292,7 @@ export default function ProjectsPage() {
                     <span><Icon name="clipboard-list" size={12} /> {project._count?.items || 0} 事项</span>
                     <span><Icon name="file-text" size={12} /> {project._count?.logs || 0} 日志</span>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

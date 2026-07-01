@@ -58,6 +58,27 @@ function normalizeFocusKey(value?: string): FocusKey | null {
   return null;
 }
 
+function getFocusListHref(focus: FocusKey, today: string) {
+  switch (focus) {
+    case "open":
+      return "/items?status=open";
+    case "following":
+      return "/items?status=following";
+    case "blocked":
+      return "/items?status=blocked";
+    case "p0":
+      return "/items?priority=P0";
+    case "p1":
+      return "/items?priority=P1";
+    case "todayLogs":
+      return `/logs?startDate=${today}&endDate=${today}`;
+    case "todayClosed":
+      return "/?focus=todayClosed";
+    default:
+      return "/items";
+  }
+}
+
 async function loadFocusView(focus: FocusKey, today: string, todayStart: Date, todayEnd: Date): Promise<FocusView> {
   switch (focus) {
     case "open": {
@@ -295,7 +316,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
             return (
               <Link
                 key={stat.label}
-                href={`/?focus=${stat.focus}`}
+                href={getFocusListHref(stat.focus, today)}
                 className={`stat-card stat-card-${stat.tone}${isActive ? " stat-card-active" : ""}`}
                 aria-current={isActive ? "page" : undefined}
               >
