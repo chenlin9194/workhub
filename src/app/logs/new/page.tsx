@@ -355,7 +355,7 @@ function NewLogForm() {
       </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card log-entry-card">
+        <div className="card log-entry-card form-card">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div className="log-date-row">
               <div className="log-date-field">
@@ -423,7 +423,7 @@ function NewLogForm() {
             )}
 
             {form.relationMode === "new" && (
-              <div className="card" style={{ padding: 16, background: "var(--bg-secondary)" }}>
+              <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div>
                     <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>新事项信息</h2>
@@ -659,7 +659,7 @@ function NewLogForm() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+              <label className="field-checkbox">
                 <input
                   type="checkbox"
                   checked={form.reportable}
@@ -681,7 +681,7 @@ function NewLogForm() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+            <div className="field-actions form-footer">
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">
                 取消
               </button>

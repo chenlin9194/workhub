@@ -278,7 +278,7 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
   }
 
   return (
-    <section style={{ marginBottom: 24 }}>
+    <section className="form-card" style={{ marginBottom: 24 }}>
       <div className="dashboard-section-title">
         <div>
           <span className="section-eyebrow">ACTION ITEMS</span>
@@ -290,7 +290,7 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
         </span>
       </div>
 
-      <div className="card" style={{ padding: 16, marginBottom: 12 }}>
+      <div className="card form-section" style={{ padding: 16, marginBottom: 12 }}>
         <div style={{ display: "grid", gap: 12 }}>
           <div>
             <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>新建行动项</div>
@@ -361,8 +361,12 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
           <p>加载行动项中...</p>
         </div>
       ) : error ? (
-        <div className="card empty-state">
-          <p>{error}</p>
+        <div className="card empty-state" style={{ gap: 12 }}>
+          <p style={{ marginBottom: 0 }}>行动项暂时加载失败，稍后可以重试。</p>
+          <div className="field-help">{error}</div>
+          <button type="button" className="btn btn-secondary" onClick={() => void loadItems()}>
+            重试
+          </button>
         </div>
       ) : items.length === 0 ? (
         <div className="card empty-state">
@@ -378,7 +382,7 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
             return (
               <div
                 key={item.id}
-                className="card"
+                className="card form-section"
                 style={{
                   padding: 16,
                   border: "1px solid var(--border-primary)",

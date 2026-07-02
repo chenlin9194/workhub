@@ -9,8 +9,12 @@ interface CopyButtonProps {
 
 export default function CopyButton({ text, label = "复制 Markdown" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const handleCopy = async () => {
+    if (busy) return;
+
+    setBusy(true);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -18,16 +22,14 @@ export default function CopyButton({ text, label = "复制 Markdown" }: CopyButt
     } catch (error) {
       console.error("Failed to copy:", error);
       alert("复制失败");
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <button
-      onClick={handleCopy}
-      className="btn btn-secondary"
-      style={{ fontSize: 13 }}
-    >
-      {copied ? "已复制 ✓" : label}
+    <button onClick={handleCopy} className="btn btn-secondary" style={{ fontSize: 13 }} disabled={busy}>
+      {busy ? "复制中..." : copied ? "已复制 ✓" : label}
     </button>
   );
 }

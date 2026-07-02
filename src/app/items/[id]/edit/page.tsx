@@ -171,7 +171,7 @@ export default function EditItemPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>编辑工作事项</h1>
 
       <form onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card form-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>标题 *</label>
@@ -405,7 +405,7 @@ export default function EditItemPage() {
               />
             </div>
 
-            <div className="card" style={{ padding: 16, background: "var(--bg-secondary)" }}>
+            <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
                   <div>
@@ -591,7 +591,7 @@ export default function EditItemPage() {
               />
             </div>
 
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+            <div className="field-actions form-footer">
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">
                 取消
               </button>

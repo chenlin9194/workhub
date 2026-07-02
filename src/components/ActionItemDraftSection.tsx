@@ -44,7 +44,7 @@ export default function ActionItemDraftSection({
   };
 
   return (
-    <section style={{ marginBottom: 24 }}>
+    <section className="form-card" style={{ marginBottom: 24 }}>
       <div className="dashboard-section-title">
         <div>
           <span className="section-eyebrow">ACTION ITEMS</span>
@@ -53,7 +53,7 @@ export default function ActionItemDraftSection({
       </div>
 
       <div className="card" style={{ padding: 16 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-primary)" }}>
+        <label className="field-checkbox">
           <input
             type="checkbox"
             checked={enabled}
@@ -68,16 +68,15 @@ export default function ActionItemDraftSection({
           启用 Action Items
         </label>
 
-        <p style={{ marginTop: 8, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>{description}</p>
+        <p className="field-help">{description}</p>
 
         {enabled && (
           <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
             {drafts.map((draft, index) => (
               <div
                 key={index}
-                className="card"
+                className="card form-section"
                 style={{
-                  padding: 14,
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-primary)",
                 }}
@@ -172,9 +171,9 @@ export default function ActionItemDraftSection({
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>保存父记录后批量创建。</span>
-                    <button type="button" onClick={() => removeDraft(index)} className="btn btn-secondary" style={{ fontSize: 12 }}>
+                  <div className="field-actions">
+                    <span className="field-note">保存父记录后批量创建。</span>
+                    <button type="button" onClick={() => removeDraft(index)} className="btn btn-secondary btn-sm">
                       删除本条
                     </button>
                   </div>
@@ -182,11 +181,11 @@ export default function ActionItemDraftSection({
               </div>
             ))}
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <button type="button" onClick={addDraft} className="btn btn-secondary" style={{ fontSize: 13 }}>
+            <div className="field-actions">
+              <button type="button" onClick={addDraft} className="btn btn-secondary">
                 添加一条
               </button>
-              <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>空标题不会提交。</span>
+              <span className="field-note">空标题不会提交。</span>
             </div>
           </div>
         )}

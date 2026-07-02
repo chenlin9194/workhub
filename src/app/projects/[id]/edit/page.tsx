@@ -147,7 +147,7 @@ export default function EditProjectPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>编辑项目</h1>
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card form-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Name & Code */}
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
@@ -333,7 +333,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+            <div className="field-actions form-footer">
               <Link href={`/projects/${id}`} className="btn btn-secondary">
                 取消
               </Link>

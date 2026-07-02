@@ -109,7 +109,7 @@ export default function EditLogPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>编辑工作日志</h1>
 
       <form onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card form-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
@@ -169,7 +169,7 @@ export default function EditLogPage() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+              <label className="field-checkbox">
                 <input
                   type="checkbox"
                   checked={form.reportable}
@@ -183,7 +183,7 @@ export default function EditLogPage() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+            <div className="field-actions form-footer">
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">取消</button>
               <button type="submit" disabled={loading} className="btn btn-primary">{loading ? "保存中..." : "保存"}</button>
             </div>

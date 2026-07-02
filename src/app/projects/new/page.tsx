@@ -95,7 +95,7 @@ export default function NewProjectPage() {
       </p>
 
       <form onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card form-card" style={{ padding: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Name & Code */}
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
@@ -247,7 +247,7 @@ export default function NewProjectPage() {
             </div>
 
             {/* Source */}
-            <div className="card" style={{ padding: 16, background: "var(--bg-secondary)" }}>
+            <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
                   <div>
@@ -297,7 +297,7 @@ export default function NewProjectPage() {
             </div>
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+            <div className="field-actions form-footer">
               <button type="button" onClick={() => router.back()} className="btn btn-secondary">
                 取消
               </button>
