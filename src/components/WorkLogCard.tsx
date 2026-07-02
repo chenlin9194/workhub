@@ -41,22 +41,13 @@ export default function WorkLogCard({ log, showLink = true, evidenceLabel }: Wor
   const reportable = Boolean(log.reportable);
   const typeClass = `log-type-${log.type}`;
   const content = (
-    <div className={`card card-hover work-log-card ${typeClass}`}>
-      <div className="log-card-topline">
+    <div className={`card card-hover entity-card work-log-card ${typeClass}`}>
+      <div className="log-card-topline entity-card-header">
         <span className="log-type-icon"><Icon name={typeIcons[log.type] || "file-text"} size={16} /></span>
-        <div className="log-card-heading">
-          <div className="log-card-badges">
+        <div className="log-card-heading entity-card-body">
+          <div className="log-card-badges entity-card-badges">
             {evidenceLabel && (
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: "var(--accent-blue-light)",
-                  color: "var(--accent-blue)",
-                  border: "1px solid color-mix(in srgb, var(--accent-blue) 24%, transparent)",
-                }}
-              >
+              <span className="entity-pill entity-pill--blue">
                 {evidenceLabel}
               </span>
             )}
@@ -66,14 +57,14 @@ export default function WorkLogCard({ log, showLink = true, evidenceLabel }: Wor
             {reportable && <span className="badge badge-reportable">可汇报</span>}
             {log.sourceUrl && <span className="badge badge-source">有来源链接</span>}
           </div>
-          <h3>{log.title}</h3>
-          <p>{log.content}</p>
+          <h3 className="entity-card-title">{log.title}</h3>
+          <p className="entity-card-summary">{log.content}</p>
         </div>
       </div>
-      <div className="work-card-meta log-card-meta">
+      <div className="entity-card-meta log-card-meta">
         {log.project && <span>{log.project}</span>}
         {log.module && <span>{log.module}</span>}
-        {log.itemId && <span className="linked-item-pill"><Icon name="target" size={11} />关联事项</span>}
+        {log.itemId && <span className="entity-pill entity-pill--cyan"><Icon name="target" size={11} />关联事项</span>}
       </div>
     </div>
   );

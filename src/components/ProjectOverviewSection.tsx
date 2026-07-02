@@ -33,7 +33,7 @@ export default function ProjectOverviewSection({ project }: ProjectOverviewSecti
         </div>
       </div>
 
-      <div className="card" style={{ padding: 20 }}>
+      <div className="card entity-card entity-card--compact" style={{ padding: 20 }}>
         {overviewFieldsEmpty ? (
           <div style={{ fontSize: 14, color: "var(--text-tertiary)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
             可补充当前摘要、下一里程碑和下一步动作，方便打开项目时快速判断现状。

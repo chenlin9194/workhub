@@ -56,17 +56,17 @@ function SignalCard({
   const content = (
     <>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{label}</div>
+        <div className="entity-card-note">{label}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: value > 0 ? toneStyle.color : "var(--text-primary)" }}>{value}</div>
       </div>
-      {hint && <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{hint}</div>}
+      {hint && <div className="entity-card-summary" style={{ marginTop: 6 }}>{hint}</div>}
     </>
   );
 
   if (href) {
     return (
       <Link
-        className="card"
+        className="card entity-card entity-card--compact"
         href={href}
         style={{
           display: "block",
@@ -83,7 +83,7 @@ function SignalCard({
   }
 
   return (
-    <div className="card" style={{ padding: 16, border: toneStyle.border, background: toneStyle.background }}>
+    <div className="card entity-card entity-card--compact" style={{ padding: 16, border: toneStyle.border, background: toneStyle.background }}>
       {content}
     </div>
   );
@@ -118,7 +118,7 @@ export default function ProjectSignalSection({
       </div>
 
       <div
-        className="card"
+        className="card entity-card entity-card--compact"
         style={{
           padding: 16,
           marginBottom: 12,

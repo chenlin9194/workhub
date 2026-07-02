@@ -225,31 +225,21 @@ export default function ProjectsPage() {
               return (
                 <div
                   key={project.id}
-                  className="card project-card"
-                  style={{ padding: 20, color: "inherit" }}
+                  className="card card-hover project-card"
+                  style={{ color: "inherit" }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+                  <div className="project-card-header">
+                    <div className="project-card-title-row">
+                      <h3 className="project-card-title">
                         <Link
                           href={`/projects/${project.id}`}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            color: "var(--accent-blue)",
-                            textDecoration: "none",
-                            padding: "2px 8px",
-                            marginLeft: -8,
-                            borderRadius: 6,
-                            background: "color-mix(in srgb, var(--accent-blue-light) 45%, transparent)",
-                          }}
+                          className="project-card-title-link"
                         >
                           {project.name}
                           <Icon name="chevron-right" size={13} />
                         </Link>
                         {project.code && (
-                          <span style={{ fontSize: 12, color: "var(--text-tertiary)", marginLeft: 8 }}>
+                          <span className="project-card-code">
                             {project.code}
                           </span>
                         )}
@@ -263,28 +253,28 @@ export default function ProjectsPage() {
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                  <div className="project-card-signals">
+                    <span className="entity-pill entity-pill--muted">
                       {PROJECT_STATUS_LABELS[project.status] || project.status}
                     </span>
                     {project.stage && (
-                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                      <span className="entity-pill entity-pill--muted">
                         {PROJECT_STAGE_LABELS[project.stage] || project.stage}
                       </span>
                     )}
-                    <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                    <span className="entity-pill entity-pill--muted">
                       {PROJECT_TYPE_LABELS[project.type] || project.type}
                     </span>
                   </div>
 
                   {project.currentSummary && (
-                    <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                    <p className="project-card-summary">
                       {project.currentSummary}
                     </p>
                   )}
 
                   {hasVisibleSignal && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+                    <div className="project-card-signals">
                       {riskSignals.map((signal) => {
                         const style = RISK_SIGNAL_STYLES[signal.tone] || RISK_SIGNAL_STYLES.neutral;
                         const chipStyle = {
@@ -310,17 +300,17 @@ export default function ProjectsPage() {
                         );
                       })}
                       {reportableLogCount > 0 && (
-                        <Link href={signalToLogsHref("reportable", project.id)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)", textDecoration: "none" }}>
+                        <Link href={signalToLogsHref("reportable", project.id)} className="entity-pill entity-pill--muted" style={{ textDecoration: "none" }}>
                           可汇报日志 {reportableLogCount}
                         </Link>
                       )}
                       {hasPrimaryLink && (
-                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                        <span className="entity-pill entity-pill--muted">
                           <Icon name="external-link" size={11} /> 主链接
                         </span>
                       )}
                       {hasMemberSignal && (
-                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                        <span className="entity-pill entity-pill--muted">
                           核心 {coreMemberCount} / 成员 {memberCount}
                         </span>
                       )}
@@ -328,29 +318,29 @@ export default function ProjectsPage() {
                   )}
 
                   {!hasVisibleSignal && (
-                    <div style={{ marginBottom: 10, fontSize: 12, color: "var(--text-tertiary)" }}>
+                    <div className="entity-card-note">
                       暂无明显风险信号
                     </div>
                   )}
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--text-tertiary)" }}>
+                  <div className="project-card-meta">
                     {project.owner && <span>负责人: {project.owner}</span>}
                     {project.pm && <span>PM: {project.pm}</span>}
                     {project.targetDate && <span>目标: {new Date(project.targetDate).toLocaleDateString()}</span>}
                   </div>
 
                   {nextNodeTitle && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div className="entity-card-note" style={{ marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       <Icon name="flag" size={12} /> 下个节点：{nextNodeTitle}
                     </div>
                   )}
 
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-primary)", fontSize: 12, color: "var(--text-tertiary)" }}>
+                  <div className="project-card-footer">
                     <span><Icon name="clipboard-list" size={12} /> {project._count?.items || 0} 事项</span>
                     <span><Icon name="file-text" size={12} /> {project._count?.logs || 0} 日志</span>
                     <Link
                       href={`/projects/${project.id}`}
-                      style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent-blue)", textDecoration: "none", fontWeight: 600 }}
+                      className="section-link"
                     >
                       进入详情 <Icon name="chevron-right" size={12} />
                     </Link>

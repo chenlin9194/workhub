@@ -411,22 +411,22 @@ export default async function Dashboard({ searchParams }: PageProps) {
               <Link
                 key={proj.id}
                 href={`/projects/${proj.id}`}
-                className="card"
-                style={{ padding: 16, textDecoration: "none", color: "inherit" }}
+                className="card card-hover project-card"
+                style={{ textDecoration: "none", color: "inherit" }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
+                <div className="project-card-header">
+                  <h3 className="project-card-title">
                     {proj.name}
-                    {proj.code && <span style={{ fontSize: 12, color: "var(--text-tertiary)", marginLeft: 6 }}>{proj.code}</span>}
+                    {proj.code && <span className="project-card-code">{proj.code}</span>}
                   </h3>
-                  <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 4, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                  <span className="entity-pill entity-pill--muted">
                     {PROJECT_STATUS_LABELS[proj.status] || proj.status}
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-tertiary)" }}>
+                <div className="project-card-meta">
                   <span><Icon name="clipboard-list" size={12} /> {proj._count.items} 事项</span>
                   {proj.items.length > 0 && (
-                    <span style={{ color: "var(--danger, #f97316)" }}>
+                    <span className="entity-pill entity-pill--warning">
                       <Icon name="alert-triangle" size={12} /> {proj.items.length} 风险
                     </span>
                   )}

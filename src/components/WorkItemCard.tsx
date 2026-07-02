@@ -50,21 +50,12 @@ export default function WorkItemCard({ item, evidenceLabel }: WorkItemCardProps)
   return (
     <Link
       href={`/items/${item.id}`}
-      className={`card card-hover work-item-card priority-${item.priority.toLowerCase()}${blocked ? " is-blocked" : ""}${closed ? " is-closed" : ""}${overdue ? " is-overdue" : ""}`}
+      className={`card card-hover entity-card work-item-card priority-${item.priority.toLowerCase()}${blocked ? " is-blocked" : ""}${closed ? " is-closed" : ""}${overdue ? " is-overdue" : ""}`}
     >
-      <div className="work-card-heading">
-        <div className="work-card-badges">
+      <div className="entity-card-body work-card-heading">
+        <div className="entity-card-badges work-card-badges">
           {evidenceLabel && (
-            <span
-              style={{
-                fontSize: 11,
-                padding: "2px 7px",
-                borderRadius: 999,
-                background: "var(--accent-orange-light)",
-                color: "var(--accent-orange)",
-                border: "1px solid color-mix(in srgb, var(--accent-orange) 24%, transparent)",
-              }}
-            >
+            <span className="entity-pill entity-pill--warning">
               {evidenceLabel}
             </span>
           )}
@@ -77,8 +68,8 @@ export default function WorkItemCard({ item, evidenceLabel }: WorkItemCardProps)
           </span>
           {overdue && <span className="badge badge-overdue"><Icon name="clock" size={11} />逾期</span>}
         </div>
-        <h3>{item.title}</h3>
-        {item.description && <p className="work-card-description">{item.description}</p>}
+        <h3 className="entity-card-title">{item.title}</h3>
+        {item.description && <p className="entity-card-summary work-card-description">{item.description}</p>}
       </div>
 
       {item.currentSummary && (
@@ -95,7 +86,7 @@ export default function WorkItemCard({ item, evidenceLabel }: WorkItemCardProps)
         </div>
       )}
 
-      <div className="work-card-meta">
+      <div className="entity-card-meta work-card-meta">
         <span>{WORK_ITEM_TYPE_LABELS[item.type] || item.type}</span>
         <span>{HEALTH_LABELS[health] || health}</span>
         {item.nextCheckpoint && <span><Icon name="calendar" size={11} />{item.nextCheckpoint}</span>}
