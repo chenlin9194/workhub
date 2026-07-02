@@ -1,27 +1,22 @@
 @echo off
 echo ========================================
-echo   Local Work Hub
+echo   Local Work Hub - Development Mode
 echo ========================================
 echo.
-echo Starting production server...
+echo Starting development server...
 echo Access: http://localhost:3000
 echo.
-echo Note: If code was changed recently, run "build.bat" first.
-echo For development mode, run "start-dev.bat".
+echo This mode is for code changes and debugging.
+echo For daily use, run "start.bat".
 echo Press Ctrl+C to stop
 echo ========================================
 
 cd /d "%~dp0"
 
-if not exist ".next" (
-  echo.
-  echo Production build not found.
-  echo Please run: build.bat
-  echo.
-  goto :end
-)
+call npm.cmd run db:push
+if errorlevel 1 goto :error
 
-call npm.cmd run start
+call npm.cmd run dev
 if errorlevel 1 goto :error
 
 goto :end
