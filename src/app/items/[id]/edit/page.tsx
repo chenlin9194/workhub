@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   WORK_ITEM_TYPES,
@@ -163,441 +164,324 @@ export default function EditItemPage() {
   };
 
   if (fetching) {
-    return <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载中...</div>;
+    return (
+      <div className="page-shell command-form-page">
+        <div className="card form-card command-form-card" style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>
+          加载中...
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>编辑工作事项</h1>
+    <div className="page-shell command-form-page">
+      <header className="command-form-header">
+        <Link href={`/items/${id}`} className="detail-back-link">
+          ← 返回事项详情
+        </Link>
+        <div>
+          <span className="section-eyebrow">COMMAND FORM / ITEM</span>
+          <h1>编辑事项</h1>
+          <p>调整事项的状态、责任、来源和交付信号，保持和详情页一致的扫读方式。</p>
+        </div>
+      </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card form-card" style={{ padding: 24 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>标题 *</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>描述</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={4}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                  resize: "vertical",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>项目选择</label>
-                <select
-                  value={form.projectId}
-                  onChange={(e) => handleProjectChange(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
-                >
-                  <option value="">无关联项目</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                      {project.code ? ` (${project.code})` : ""}
-                    </option>
-                  ))}
-                </select>
+        <div className="card form-card command-form-card">
+          <div style={{ display: "grid", gap: 16 }}>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>基础信息</h2>
+                <p>标题、描述和基础归属。</p>
               </div>
+
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>项目名称</label>
+                <label style={fieldLabel}>标题 *</label>
                 <input
                   type="text"
-                  value={form.project}
-                  onChange={(e) => setForm((prev) => ({ ...prev, project: e.target.value }))}
-                  placeholder="可手填或由项目选择同步"
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  style={fieldInput}
                 />
               </div>
-            </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>模块</label>
-              <select
-                value={form.module}
-                onChange={(e) => setForm({ ...form, module: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
-              >
-                <option value="">选择模块</option>
-                {MODULES.map((module) => (
-                  <option key={module} value={module}>
-                    {module}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>类型</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
-                >
-                  {WORK_ITEM_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>优先级</label>
-                <select
-                  value={form.priority}
-                  onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
-                >
-                  {PRIORITIES.map((priority) => (
-                    <option key={priority.value} value={priority.value}>
-                      {priority.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>状态</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
-                >
-                  {STATUSES.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>负责人</label>
-                <input
-                  type="text"
-                  value={form.owner}
-                  onChange={(e) => setForm({ ...form, owner: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
+                <label style={fieldLabel}>描述</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={4}
+                  style={{ ...fieldInput, resize: "vertical" as const }}
                 />
               </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>截止日期</label>
-                <input
-                  type="date"
-                  value={form.dueDate}
-                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-primary)",
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    fontSize: 14,
-                  }}
-                />
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>关联与分类</h2>
+                <p>项目、模块和标签。</p>
               </div>
-            </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>下一步行动</label>
-              <textarea
-                value={form.nextAction}
-                onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                  resize: "vertical",
-                }}
-              />
-            </div>
-
-            <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>健康度</label>
-                    <select
-                      value={form.health}
-                      onChange={(e) => setForm({ ...form, health: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    >
-                      {HEALTH_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>汇报层级</label>
-                    <select
-                      value={form.reportLevel}
-                      onChange={(e) => setForm({ ...form, reportLevel: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    >
-                      {REPORT_LEVEL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>来源系统</label>
-                    <select
-                      value={form.sourceSystem}
-                      onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    >
-                      <option value="">请选择来源系统</option>
-                      {SOURCE_SYSTEM_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>来源编号</label>
-                    <input
-                      type="text"
-                      value={form.sourceId}
-                      onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>来源链接</label>
-                    <input
-                      type="url"
-                      value={form.sourceUrl}
-                      onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    />
-                  </div>
-                </div>
-
+              <div className="field-grid-2">
                 <div>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>当前摘要</label>
+                  <label style={fieldLabel}>项目选择</label>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => handleProjectChange(e.target.value)}
+                    style={fieldInput}
+                  >
+                    <option value="">无关联项目</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                        {project.code ? ` (${project.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>项目名称</label>
+                  <input
+                    type="text"
+                    value={form.project}
+                    onChange={(e) => setForm((prev) => ({ ...prev, project: e.target.value }))}
+                    placeholder="可手填或由项目选择同步"
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>模块</label>
+                  <select
+                    value={form.module}
+                    onChange={(e) => setForm({ ...form, module: e.target.value })}
+                    style={fieldInput}
+                  >
+                    <option value="">选择模块</option>
+                    {MODULES.map((module) => (
+                      <option key={module} value={module}>
+                        {module}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>标签</label>
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="标签，用逗号分隔"
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>状态与责任</h2>
+                <p>类型、优先级、状态、负责人和截止日期。</p>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={fieldLabel}>类型</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {WORK_ITEM_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>优先级</label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {PRIORITIES.map((priority) => (
+                      <option key={priority.value} value={priority.value}>
+                        {priority.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>状态</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {STATUSES.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>负责人</label>
+                  <input
+                    type="text"
+                    value={form.owner}
+                    onChange={(e) => setForm({ ...form, owner: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+                <div>
+                  <label style={fieldLabel}>截止日期</label>
+                  <input
+                    type="date"
+                    value={form.dueDate}
+                    onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>交付信号</h2>
+                <p>下一步动作、健康度、汇报层级和来源信息。</p>
+              </div>
+
+              <div>
+                <label style={fieldLabel}>下一步行动</label>
+                <textarea
+                  value={form.nextAction}
+                  onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
+                  rows={3}
+                  style={{ ...fieldInput, resize: "vertical" as const }}
+                />
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={fieldLabel}>健康度</label>
+                  <select
+                    value={form.health}
+                    onChange={(e) => setForm({ ...form, health: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {HEALTH_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>汇报层级</label>
+                  <select
+                    value={form.reportLevel}
+                    onChange={(e) => setForm({ ...form, reportLevel: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {REPORT_LEVEL_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>来源系统</label>
+                  <select
+                    value={form.sourceSystem}
+                    onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
+                    style={fieldInput}
+                  >
+                    <option value="">选择来源系统</option>
+                    {SOURCE_SYSTEM_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>来源编号</label>
+                  <input
+                    type="text"
+                    value={form.sourceId}
+                    onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+                <div>
+                  <label style={fieldLabel}>来源链接</label>
+                  <input
+                    type="url"
+                    value={form.sourceUrl}
+                    onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>当前摘要</label>
                   <textarea
                     value={form.currentSummary}
                     onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
                     rows={3}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: 6,
-                      border: "1px solid var(--border-primary)",
-                      background: "var(--bg-secondary)",
-                      color: "var(--text-primary)",
-                      fontSize: 14,
-                      resize: "vertical",
-                    }}
+                    style={{ ...fieldInput, resize: "vertical" as const }}
                   />
                 </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>跟踪原因</label>
-                    <textarea
-                      value={form.trackingReason}
-                      onChange={(e) => setForm({ ...form, trackingReason: e.target.value })}
-                      rows={3}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                        resize: "vertical",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>下次检查点</label>
-                    <input
-                      type="date"
-                      value={form.nextCheckpoint}
-                      onChange={(e) => setForm({ ...form, nextCheckpoint: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
-                    />
-                  </div>
+                <div>
+                  <label style={fieldLabel}>跟踪原因</label>
+                  <textarea
+                    value={form.trackingReason}
+                    onChange={(e) => setForm({ ...form, trackingReason: e.target.value })}
+                    rows={3}
+                    style={{ ...fieldInput, resize: "vertical" as const }}
+                  />
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>标签</label>
-              <input
-                type="text"
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
-              />
-            </div>
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>下一检查点</label>
+                  <input
+                    type="date"
+                    value={form.nextCheckpoint}
+                    onChange={(e) => setForm({ ...form, nextCheckpoint: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+                <div />
+              </div>
+            </section>
 
-            <div className="field-actions form-footer">
-              <button type="button" onClick={() => router.back()} className="btn btn-secondary">
-                取消
-              </button>
-              <button type="submit" disabled={loading} className="btn btn-primary">
-                {loading ? "保存中..." : "保存"}
-              </button>
+            <div className="command-form-actions">
+              <span className="field-note">保存后会同步到事项详情页。</span>
+              <div className="command-form-actions-main">
+                <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+                  取消
+                </button>
+                <button type="submit" disabled={loading} className="btn btn-primary">
+                  {loading ? "保存中..." : "保存事项"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -605,3 +489,21 @@ export default function EditItemPage() {
     </div>
   );
 }
+
+const fieldInput = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 6,
+  border: "1px solid var(--border-primary)",
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
+  fontSize: 14,
+};
+
+const fieldLabel = {
+  display: "block" as const,
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--text-primary)",
+  marginBottom: 6,
+};

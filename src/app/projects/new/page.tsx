@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   PROJECT_TYPES,
@@ -84,226 +85,272 @@ export default function NewProjectPage() {
     }
   };
 
-  const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 };
-  const labelStyle = { display: "block" as const, fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 };
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 6,
+    border: "1px solid var(--border-primary)",
+    background: "var(--bg-secondary)",
+    color: "var(--text-primary)",
+    fontSize: 14,
+  };
+
+  const labelStyle = {
+    display: "block" as const,
+    fontSize: 13,
+    fontWeight: 500,
+    color: "var(--text-primary)",
+    marginBottom: 6,
+  };
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>新建项目</h1>
-      <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.6 }}>
-        创建项目用于聚合相关事项和日志，按项目维度追踪健康度和进展。
-      </p>
+    <div className="page-shell command-form-page">
+      <header className="command-form-header">
+        <Link href="/projects" className="detail-back-link">
+          ← 返回项目列表
+        </Link>
+        <div>
+          <span className="section-eyebrow">COMMAND FORM / PROJECT</span>
+          <h1>新建项目</h1>
+          <p>录入项目的基本信息、态势摘要、时间节点和来源标签，保持与 cockpit 一致的扫读方式。</p>
+        </div>
+      </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card form-card" style={{ padding: 24 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Name & Code */}
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>项目名称 *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="输入项目名称"
-                  required
-                  style={inputStyle}
-                />
+        <div className="card form-card command-form-card">
+          <div style={{ display: "grid", gap: 16 }}>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>基础信息</h2>
+                <p>项目名称、编码与描述。</p>
               </div>
-              <div>
-                <label style={labelStyle}>项目编码</label>
-                <input
-                  type="text"
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="如 OS14"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label style={labelStyle}>描述</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="项目描述"
-                rows={3}
-                style={{ ...inputStyle, resize: "vertical" as const }}
-              />
-            </div>
-
-            {/* Type, Status, Stage */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>类型</label>
-                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle}>
-                  {PROJECT_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>状态</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={inputStyle}>
-                  {PROJECT_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>阶段</label>
-                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} style={inputStyle}>
-                  <option value="">选择阶段</option>
-                  {PROJECT_STAGES.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Health, Owner, PM */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>健康度</label>
-                <select value={form.health} onChange={(e) => setForm({ ...form, health: e.target.value })} style={inputStyle}>
-                  {HEALTH_OPTIONS.map((h) => (
-                    <option key={h.value} value={h.value}>{h.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>负责人</label>
-                <input
-                  type="text"
-                  value={form.owner}
-                  onChange={(e) => setForm({ ...form, owner: e.target.value })}
-                  placeholder="负责人"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>PM</label>
-                <input
-                  type="text"
-                  value={form.pm}
-                  onChange={(e) => setForm({ ...form, pm: e.target.value })}
-                  placeholder="项目经理"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>开始日期</label>
-                <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>目标日期</label>
-                <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>发布日期</label>
-                <input type="date" value={form.releaseDate} onChange={(e) => setForm({ ...form, releaseDate: e.target.value })} style={inputStyle} />
-              </div>
-            </div>
-
-            {/* Summary & Milestone */}
-            <div>
-              <label style={labelStyle}>当前摘要</label>
-              <textarea
-                value={form.currentSummary}
-                onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
-                placeholder="当前状态、结论或摘要"
-                rows={3}
-                style={{ ...inputStyle, resize: "vertical" as const }}
-              />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>下个里程碑</label>
-                <input
-                  type="text"
-                  value={form.nextMilestone}
-                  onChange={(e) => setForm({ ...form, nextMilestone: e.target.value })}
-                  placeholder="下个里程碑"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>下一步行动</label>
-                <input
-                  type="text"
-                  value={form.nextAction}
-                  onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
-                  placeholder="下一步行动"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            {/* Source */}
-            <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-                  <div>
-                    <label style={labelStyle}>来源系统</label>
-                    <input
-                      type="text"
-                      value={form.sourceSystem}
-                      onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
-                      placeholder="如 JIRA、飞书"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>来源编号</label>
-                    <input
-                      type="text"
-                      value={form.sourceId}
-                      onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
-                      placeholder="来源系统编号"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>来源链接</label>
-                    <input
-                      type="url"
-                      value={form.sourceUrl}
-                      onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
-                      placeholder="https://..."
-                      style={inputStyle}
-                    />
-                  </div>
+              <div className="field-grid-2">
+                <div>
+                  <label style={labelStyle}>项目名称 *</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="输入项目名称"
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>项目编码</label>
+                  <input
+                    type="text"
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value })}
+                    placeholder="例如 OS14"
+                    style={inputStyle}
+                  />
                 </div>
               </div>
-            </div>
 
-            {/* Tags */}
-            <div>
-              <label style={labelStyle}>标签</label>
-              <input
-                type="text"
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                placeholder="标签（用逗号分隔）"
-                style={inputStyle}
-              />
-            </div>
+              <div>
+                <label style={labelStyle}>描述</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="项目描述"
+                  rows={3}
+                  style={{ ...inputStyle, resize: "vertical" as const }}
+                />
+              </div>
+            </section>
 
-            {/* Buttons */}
-            <div className="field-actions form-footer">
-              <button type="button" onClick={() => router.back()} className="btn btn-secondary">
-                取消
-              </button>
-              <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
-                {loading ? "创建中..." : "创建项目"}
-              </button>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>状态与责任</h2>
+                <p>类型、状态、阶段、健康度与 owner / PM。</p>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={labelStyle}>类型</label>
+                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+                    {PROJECT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>状态</label>
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                    {PROJECT_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>阶段</label>
+                  <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} style={inputStyle}>
+                    <option value="">选择阶段</option>
+                    {PROJECT_STAGES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={labelStyle}>健康度</label>
+                  <select value={form.health} onChange={(e) => setForm({ ...form, health: e.target.value })} style={inputStyle}>
+                    {HEALTH_OPTIONS.map((h) => (
+                      <option key={h.value} value={h.value}>{h.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>负责人</label>
+                  <input
+                    type="text"
+                    value={form.owner}
+                    onChange={(e) => setForm({ ...form, owner: e.target.value })}
+                    placeholder="可选"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>PM</label>
+                  <input
+                    type="text"
+                    value={form.pm}
+                    onChange={(e) => setForm({ ...form, pm: e.target.value })}
+                    placeholder="项目经理"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>时间节点</h2>
+                <p>开始、目标与发布时间。</p>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={labelStyle}>开始日期</label>
+                  <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>目标日期</label>
+                  <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>发布日期</label>
+                  <input type="date" value={form.releaseDate} onChange={(e) => setForm({ ...form, releaseDate: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>交付摘要</h2>
+                <p>当前摘要、下一里程碑和下一步动作。</p>
+              </div>
+
+              <div>
+                <label style={labelStyle}>当前摘要</label>
+                <textarea
+                  value={form.currentSummary}
+                  onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
+                  placeholder="当前状态、结论或摘要"
+                  rows={3}
+                  style={{ ...inputStyle, resize: "vertical" as const }}
+                />
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={labelStyle}>下一个里程碑</label>
+                  <input
+                    type="text"
+                    value={form.nextMilestone}
+                    onChange={(e) => setForm({ ...form, nextMilestone: e.target.value })}
+                    placeholder="下一个里程碑"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>下一步行动</label>
+                  <input
+                    type="text"
+                    value={form.nextAction}
+                    onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
+                    placeholder="下一步行动"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>来源与标签</h2>
+                <p>外部来源、追踪编号和检索标签。</p>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={labelStyle}>来源系统</label>
+                  <input
+                    type="text"
+                    value={form.sourceSystem}
+                    onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
+                    placeholder="例如 JIRA / 飞书"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>来源编号</label>
+                  <input
+                    type="text"
+                    value={form.sourceId}
+                    onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
+                    placeholder="来源系统编号"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>来源链接</label>
+                  <input
+                    type="url"
+                    value={form.sourceUrl}
+                    onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                    placeholder="https://..."
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>标签</label>
+                <input
+                  type="text"
+                  value={form.tags}
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  placeholder="标签，用逗号分隔"
+                  style={inputStyle}
+                />
+              </div>
+            </section>
+
+            <div className="command-form-actions">
+              <span className="field-note">保存后会进入项目详情页。</span>
+              <div className="command-form-actions-main">
+                <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+                  取消
+                </button>
+                <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
+                  {loading ? "创建中..." : "创建项目"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

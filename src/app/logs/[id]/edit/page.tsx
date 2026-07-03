@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { WORK_LOG_TYPES, SOURCES, MODULES } from "@/lib/constants";
 
@@ -58,7 +59,7 @@ export default function EditLogPage() {
     try {
       const res = await fetch("/api/items?pageSize=100");
       const data = await res.json();
-      setItems(data.items);
+      setItems(data.items || []);
     } catch (error) {
       console.error("Error fetching items:", error);
     }
@@ -101,91 +102,197 @@ export default function EditLogPage() {
   };
 
   if (fetching) {
-    return <div style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>加载中...</div>;
+    return (
+      <div className="page-shell command-form-page log-entry-page">
+        <div className="card form-card command-form-card" style={{ textAlign: "center", padding: 40, color: "var(--text-tertiary)" }}>
+          加载中...
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>编辑工作日志</h1>
+    <div className="page-shell command-form-page log-entry-page">
+      <header className="command-form-header">
+        <Link href={`/logs/${id}`} className="detail-back-link">
+          ← 返回日志详情
+        </Link>
+        <div>
+          <span className="section-eyebrow">COMMAND FORM / LOG</span>
+          <h1>编辑日志</h1>
+          <p>调整日志内容、关联事项和分类来源，保持与详情页一致的扫读方式。</p>
+        </div>
+      </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card form-card" style={{ padding: 24 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>工作日期 *</label>
-                <input type="date" value={form.workDate} onChange={(e) => setForm({ ...form, workDate: e.target.value })} required style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }} />
+        <div className="card form-card command-form-card log-entry-card">
+          <div style={{ display: "grid", gap: 16 }}>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>记录上下文</h2>
+                <p>工作日期和关联事项。</p>
               </div>
+
+              <div className="field-grid-2">
+                <div style={{ width: "min(260px, 100%)" }}>
+                  <label style={fieldLabel}>工作日期 *</label>
+                  <input
+                    type="date"
+                    value={form.workDate}
+                    onChange={(e) => setForm({ ...form, workDate: e.target.value })}
+                    required
+                    className="input"
+                  />
+                </div>
+                <div />
+              </div>
+
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>关联事项</label>
-                <select value={form.itemId} onChange={(e) => setForm({ ...form, itemId: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}>
+                <label style={fieldLabel}>关联事项</label>
+                <select
+                  value={form.itemId}
+                  onChange={(e) => setForm({ ...form, itemId: e.target.value })}
+                  style={fieldInput}
+                >
                   <option value="">不关联</option>
-                  {items.map((item) => (<option key={item.id} value={item.id}>{item.title}</option>))}
+                  {items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
                 </select>
               </div>
-            </div>
+            </section>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>标题 *</label>
-              <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }} />
-            </div>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>日志内容</h2>
+                <p>标题与正文。</p>
+              </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>内容 *</label>
-              <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} required style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }} />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>类型</label>
-                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}>
-                  {WORK_LOG_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>来源</label>
-                <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}>
-                  {SOURCES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>模块</label>
-                <select value={form.module} onChange={(e) => setForm({ ...form, module: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}>
-                  <option value="">选择模块</option>
-                  {MODULES.map((m) => (<option key={m} value={m}>{m}</option>))}
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>项目</label>
-                <input type="text" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }} />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>标签</label>
-                <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="标签（用逗号分隔）" style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <label className="field-checkbox">
+                <label style={fieldLabel}>标题 *</label>
                 <input
-                  type="checkbox"
-                  checked={form.reportable}
-                  onChange={(e) => setForm({ ...form, reportable: e.target.checked })}
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  style={fieldInput}
                 />
-                可汇报
-              </label>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>来源链接</label>
-                <input type="url" value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://..." style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }} />
               </div>
-            </div>
 
-            <div className="field-actions form-footer">
-              <button type="button" onClick={() => router.back()} className="btn btn-secondary">取消</button>
-              <button type="submit" disabled={loading} className="btn btn-primary">{loading ? "保存中..." : "保存"}</button>
+              <div>
+                <label style={fieldLabel}>内容 *</label>
+                <textarea
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  rows={8}
+                  required
+                  className="input log-content-input"
+                />
+              </div>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>分类与来源</h2>
+                <p>类型、来源、模块、项目、标签与外部链接。</p>
+              </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={fieldLabel}>类型</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {WORK_LOG_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>来源</label>
+                  <select
+                    value={form.source}
+                    onChange={(e) => setForm({ ...form, source: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {SOURCES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>模块</label>
+                  <select
+                    value={form.module}
+                    onChange={(e) => setForm({ ...form, module: e.target.value })}
+                    style={fieldInput}
+                  >
+                    <option value="">选择模块</option>
+                    {MODULES.map((module) => (
+                      <option key={module} value={module}>{module}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <div>
+                  <label style={fieldLabel}>项目</label>
+                  <input
+                    type="text"
+                    value={form.project}
+                    onChange={(e) => setForm({ ...form, project: e.target.value })}
+                    style={fieldInput}
+                  />
+                </div>
+                <div>
+                  <label style={fieldLabel}>标签</label>
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="标签，用逗号分隔"
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <label className="field-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.reportable}
+                    onChange={(e) => setForm({ ...form, reportable: e.target.checked })}
+                  />
+                  可汇报
+                </label>
+                <div>
+                  <label style={fieldLabel}>来源链接</label>
+                  <input
+                    type="url"
+                    value={form.sourceUrl}
+                    onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                    placeholder="https://..."
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <div className="command-form-actions">
+              <span className="field-note">保存后会进入日志详情页。</span>
+              <div className="command-form-actions-main">
+                <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+                  取消
+                </button>
+                <button type="submit" disabled={loading} className="btn btn-primary">
+                  {loading ? "保存中..." : "保存日志"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -193,3 +300,21 @@ export default function EditLogPage() {
     </div>
   );
 }
+
+const fieldInput = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 6,
+  border: "1px solid var(--border-primary)",
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
+  fontSize: 14,
+};
+
+const fieldLabel = {
+  display: "block" as const,
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--text-primary)",
+  marginBottom: 6,
+};

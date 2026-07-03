@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MODULES, PRIORITIES, SOURCES, STATUSES, WORK_ITEM_TYPES, WORK_LOG_TYPES } from "@/lib/constants";
+import { MODULES, SOURCES, WORK_LOG_TYPES, WORK_ITEM_TYPES, PRIORITIES, STATUSES } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import Icon from "@/components/Icon";
 import ActionItemDraftSection from "@/components/ActionItemDraftSection";
@@ -187,7 +188,7 @@ function NewLogForm() {
 
     const failures = results.filter((result) => result.status === "rejected");
     if (failures.length > 0) {
-      alert(`父记录已保存，但有 ${failures.length} 条 Action Item 创建失败`);
+      alert(`记录已保存，但有 ${failures.length} 条 Action Item 创建失败`);
     }
   };
 
@@ -344,102 +345,105 @@ function NewLogForm() {
   const submitLabel = form.relationMode === "new" ? "先创建事项并保存日志" : "创建日志";
 
   return (
-    <div className="log-entry-page">
-      <header className="command-page-header log-entry-header">
+    <div className="page-shell command-form-page log-entry-page">
+      <header className="command-form-header">
+        <Link href="/logs" className="detail-back-link">
+          ← 返回日志列表
+        </Link>
         <div>
-          <span className="section-eyebrow">CAPTURE TODAY&apos;S SIGNALS</span>
-          <h1>记录今日进展</h1>
-          <p>日志记录今天发生的事实；需要持续跟进时再关联事项。</p>
+          <span className="section-eyebrow">COMMAND FORM / LOG</span>
+          <h1>记录进展</h1>
+          <p>日志用于记录今天发生的事实，必要时可以顺手关联事项或新建事项。</p>
         </div>
-        <span className="capture-status"><i />FACT CAPTURE</span>
       </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card log-entry-card form-card">
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div className="log-date-row">
-              <div className="log-date-field">
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  工作日期 *
-                </label>
-                <input
-                  type="date"
-                  value={form.workDate}
-                  onChange={(e) => setForm({ ...form, workDate: e.target.value })}
-                  required
-                  className="input"
-                />
+        <div className="card form-card log-entry-card command-form-card">
+          <div style={{ display: "grid", gap: 16 }}>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>记录上下文</h2>
+                <p>日期和与事项的关联方式。</p>
               </div>
-            </div>
 
-            <fieldset className="relation-fieldset">
-              <legend>关联方式</legend>
-              <div className="relation-mode-grid">
-                {([
-                  { value: "none", title: "不关联事项", description: "只记录事实，保持轻量", icon: "file-text" },
-                  { value: "existing", title: "关联已有事项", description: "把进展归入正在跟踪的事项", icon: "target" },
-                  { value: "new", title: "创建新事项并关联", description: "记录事实并立即建立闭环", icon: "plus" },
-                ] as const).map((mode) => (
-                  <button
-                    key={mode.value}
-                    type="button"
-                    className={`relation-mode-card${form.relationMode === mode.value ? " is-selected" : ""}`}
-                    aria-pressed={form.relationMode === mode.value}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        relationMode: mode.value,
-                        itemId: mode.value === "existing" ? prev.itemId : "",
-                      }))
-                    }
-                  >
-                    <span className="relation-mode-icon"><Icon name={mode.icon} size={18} /></span>
-                    <span><strong>{mode.title}</strong><small>{mode.description}</small></span>
-                    <i className="relation-check"><Icon name="check-circle" size={15} /></i>
-                  </button>
-                ))}
+              <div className="field-grid-2">
+                <div style={{ width: "min(260px, 100%)" }}>
+                  <label style={fieldLabel}>工作日期 *</label>
+                  <input
+                    type="date"
+                    value={form.workDate}
+                    onChange={(e) => setForm({ ...form, workDate: e.target.value })}
+                    required
+                    className="input"
+                  />
+                </div>
+                <div />
               </div>
-            </fieldset>
 
-            {form.relationMode === "existing" && (
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  选择已有事项
-                </label>
-                <select
-                  value={form.itemId}
-                  onChange={(e) => handleItemChange(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                  disabled={items.length === 0}
-                >
-                  <option value="">{items.length === 0 ? "当前没有可关联事项" : "请选择已有事项"}</option>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.title}
-                    </option>
+              <fieldset className="relation-fieldset">
+                <legend>关联方式</legend>
+                <div className="relation-mode-grid">
+                  {([
+                    { value: "none", title: "不关联事项", description: "只记录事实，保持轻量", icon: "file-text" },
+                    { value: "existing", title: "关联已有事项", description: "把进展归入正在跟踪的事项", icon: "target" },
+                    { value: "new", title: "创建新事项并关联", description: "记录事实并立刻建立跟进对象", icon: "plus" },
+                  ] as const).map((mode) => (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      className={`relation-mode-card${form.relationMode === mode.value ? " is-selected" : ""}`}
+                      aria-pressed={form.relationMode === mode.value}
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          relationMode: mode.value,
+                          itemId: mode.value === "existing" ? prev.itemId : "",
+                        }))
+                      }
+                    >
+                      <span className="relation-mode-icon"><Icon name={mode.icon} size={18} /></span>
+                      <span>
+                        <strong>{mode.title}</strong>
+                        <small>{mode.description}</small>
+                      </span>
+                      <i className="relation-check"><Icon name="check-circle" size={15} /></i>
+                    </button>
                   ))}
-                </select>
-              </div>
-            )}
+                </div>
+              </fieldset>
 
-            {form.relationMode === "new" && (
-              <div className="card form-section" style={{ padding: 16, background: "var(--bg-secondary)" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div>
-                    <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>新事项信息</h2>
-                    <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                      新事项将继承本条日志的标题、项目、模块和标签，用于跟踪需要闭环的风险、问题、待办或跨团队依赖。
-                    </p>
+              {form.relationMode === "existing" && (
+                <div>
+                  <label style={fieldLabel}>选择已有事项</label>
+                  <select
+                    value={form.itemId}
+                    onChange={(e) => handleItemChange(e.target.value)}
+                    style={fieldInput}
+                    disabled={items.length === 0}
+                  >
+                    <option value="">{items.length === 0 ? "当前没有可关联事项" : "请选择已有事项"}</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {form.relationMode === "new" && (
+                <div className="command-form-section">
+                  <div className="command-form-section-header">
+                    <h2>新事项信息</h2>
+                    <p>新事项会继承这条日志的标题、项目、模块和标签。</p>
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                      事项类型
-                    </label>
+                    <label style={fieldLabel}>事项类型</label>
                     <select
                       value={form.newType}
                       onChange={(e) => setForm({ ...form, newType: e.target.value })}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                      style={fieldInput}
                     >
                       {WORK_ITEM_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -447,15 +451,13 @@ function NewLogForm() {
                     </select>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="field-grid-2">
                     <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                        优先级
-                      </label>
+                      <label style={fieldLabel}>优先级</label>
                       <select
                         value={form.newPriority}
                         onChange={(e) => setForm({ ...form, newPriority: e.target.value })}
-                        style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                        style={fieldInput}
                       >
                         {PRIORITIES.map((priority) => (
                           <option key={priority.value} value={priority.value}>
@@ -465,13 +467,11 @@ function NewLogForm() {
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                        状态
-                      </label>
+                      <label style={fieldLabel}>状态</label>
                       <select
                         value={form.newStatus}
                         onChange={(e) => setForm({ ...form, newStatus: e.target.value })}
-                        style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                        style={fieldInput}
                       >
                         {STATUSES.map((status) => (
                           <option key={status.value} value={status.value}>
@@ -482,212 +482,205 @@ function NewLogForm() {
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="field-grid-2">
                     <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                        负责人
-                      </label>
+                      <label style={fieldLabel}>负责人</label>
                       <input
                         type="text"
                         value={form.newOwner}
                         onChange={(e) => setForm({ ...form, newOwner: e.target.value })}
                         placeholder="可选"
-                        style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                        style={fieldInput}
                       />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                        截止日期
-                      </label>
+                      <label style={fieldLabel}>截止日期</label>
                       <input
                         type="date"
                         value={form.newDueDate}
                         onChange={(e) => setForm({ ...form, newDueDate: e.target.value })}
-                        style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
+                        style={fieldInput}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                      下一步行动
-                    </label>
+                    <label style={fieldLabel}>下一步行动</label>
                     <textarea
                       value={form.newNextAction}
                       onChange={(e) => setForm({ ...form, newNextAction: e.target.value })}
-                      placeholder="可选"
                       rows={3}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }}
+                      placeholder="可选"
+                      style={{ ...fieldInput, resize: "vertical" as const }}
                     />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </section>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                标题 *
-              </label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="输入日志标题，新事项会继承这个标题"
-                required
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-              />
-            </div>
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>日志内容</h2>
+                <p>标题与正文，记录今天的事实和进展。</p>
+              </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                内容 *
-              </label>
-              <textarea
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                placeholder="粘贴飞书消息、会议结论、问题进展、临时想法……"
-                rows={11}
-                required
-                className="input log-content-input"
-              />
-            </div>
+              <div>
+                <label style={fieldLabel}>标题 *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="输入日志标题"
+                  required
+                  style={fieldInput}
+                />
+              </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  类型
-                </label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                >
-                  {WORK_LOG_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
+                <label style={fieldLabel}>内容 *</label>
+                <textarea
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  placeholder="记录事实、结论、问题或临时想法"
+                  rows={11}
+                  required
+                  className="input log-content-input"
+                />
               </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  来源
-                </label>
-                <select
-                  value={form.source}
-                  onChange={(e) => setForm({ ...form, source: e.target.value })}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                >
-                  {SOURCES.map((source) => (
-                    <option key={source.value} value={source.value}>
-                      {source.label}
-                    </option>
-                  ))}
-                </select>
+            </section>
+
+            <section className="command-form-section">
+              <div className="command-form-section-header">
+                <h2>分类与来源</h2>
+                <p>类型、来源、模块、项目、标签和外部链接。</p>
               </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  模块
-                </label>
-                <select
-                  value={form.module}
-                  onChange={(e) => setForm({ ...form, module: e.target.value })}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                >
-                  <option value="">选择模块</option>
-                  {MODULES.map((module) => (
-                    <option key={module} value={module}>
-                      {module}
-                    </option>
-                  ))}
-                </select>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={fieldLabel}>类型</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {WORK_LOG_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>来源</label>
+                  <select
+                    value={form.source}
+                    onChange={(e) => setForm({ ...form, source: e.target.value })}
+                    style={fieldInput}
+                  >
+                    {SOURCES.map((source) => (
+                      <option key={source.value} value={source.value}>
+                        {source.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>模块</label>
+                  <select
+                    value={form.module}
+                    onChange={(e) => setForm({ ...form, module: e.target.value })}
+                    style={fieldInput}
+                  >
+                    <option value="">选择模块</option>
+                    {MODULES.map((module) => (
+                      <option key={module} value={module}>
+                        {module}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+
+              <div className="field-grid-3">
+                <div>
+                  <label style={fieldLabel}>项目</label>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => handleProjectChange(e.target.value)}
+                    style={fieldInput}
+                  >
+                    <option value="">选择已有项目（可选）</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                        {project.code ? ` (${project.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={fieldLabel}>项目名称</label>
+                  <input
+                    type="text"
+                    value={form.project}
+                    onChange={(e) => setForm({ ...form, project: e.target.value })}
+                    placeholder="可手填或由项目选择同步"
+                    style={fieldInput}
+                  />
+                </div>
+                <div>
+                  <label style={fieldLabel}>标签</label>
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="标签，用逗号分隔"
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+
+              <div className="field-grid-2">
+                <label className="field-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.reportable}
+                    onChange={(e) => setForm({ ...form, reportable: e.target.checked })}
+                  />
+                  可汇报
+                </label>
+                <div>
+                  <label style={fieldLabel}>来源链接</label>
+                  <input
+                    type="url"
+                    value={form.sourceUrl}
+                    onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                    placeholder="https://..."
+                    style={fieldInput}
+                  />
+                </div>
+              </div>
+            </section>
 
             <ActionItemDraftSection
               enabled={actionItemsEnabled}
               drafts={actionItemDrafts}
               onEnabledChange={setActionItemsEnabled}
               onDraftsChange={setActionItemDrafts}
+              title="后续行动"
+              description="可选：保存日志后再补充需要跟进的行动项。"
             />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  项目
-                </label>
-                <select
-                  value={form.projectId}
-                  onChange={(e) => handleProjectChange(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                >
-                  <option value="">选择已有项目（可选）</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}{p.code ? ` (${p.code})` : ""}
-                    </option>
-                  ))}
-                </select>
+            <div className="command-form-actions">
+              <span className="field-note">保存后会进入日志详情页。</span>
+              <div className="command-form-actions-main">
+                <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+                  取消
+                </button>
+                <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
+                  {loading ? "保存中..." : submitLabel}
+                </button>
               </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  项目名称
-                </label>
-                <input
-                  type="text"
-                  value={form.project}
-                  onChange={(e) => setForm({ ...form, project: e.target.value })}
-                  placeholder="手填项目名称"
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  标签
-                </label>
-                <input
-                  type="text"
-                  value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  placeholder="标签，用逗号分隔"
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <label className="field-checkbox">
-                <input
-                  type="checkbox"
-                  checked={form.reportable}
-                  onChange={(e) => setForm({ ...form, reportable: e.target.checked })}
-                />
-                可汇报
-              </label>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
-                  来源链接
-                </label>
-                <input
-                  type="url"
-                  value={form.sourceUrl}
-                  onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
-                  placeholder="https://..."
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-                />
-              </div>
-            </div>
-
-            <div className="field-actions form-footer">
-              <button type="button" onClick={() => router.back()} className="btn btn-secondary">
-                取消
-              </button>
-              <button ref={submitButtonRef} type="submit" disabled={loading} className="btn btn-primary">
-                {loading ? "创建中..." : submitLabel}
-              </button>
             </div>
           </div>
         </div>
@@ -703,3 +696,21 @@ export default function NewLogPage() {
     </Suspense>
   );
 }
+
+const fieldInput = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 6,
+  border: "1px solid var(--border-primary)",
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
+  fontSize: 14,
+};
+
+const fieldLabel = {
+  display: "block" as const,
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--text-primary)",
+  marginBottom: 6,
+};
