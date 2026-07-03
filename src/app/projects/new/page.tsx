@@ -85,24 +85,6 @@ export default function NewProjectPage() {
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 6,
-    border: "1px solid var(--border-primary)",
-    background: "var(--bg-secondary)",
-    color: "var(--text-primary)",
-    fontSize: 14,
-  };
-
-  const labelStyle = {
-    display: "block" as const,
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--text-primary)",
-    marginBottom: 6,
-  };
-
   return (
     <div className="page-shell command-form-page">
       <header className="command-form-header">
@@ -118,7 +100,7 @@ export default function NewProjectPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="card form-card command-form-card">
-          <div style={{ display: "grid", gap: 16 }}>
+          <div className="command-form-stack">
             <section className="command-form-section">
               <div className="command-form-section-header">
                 <h2>基础信息</h2>
@@ -127,36 +109,36 @@ export default function NewProjectPage() {
 
               <div className="field-grid-2">
                 <div>
-                  <label style={labelStyle}>项目名称 *</label>
+                  <label className="form-field-label">项目名称 *</label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="输入项目名称"
                     required
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>项目编码</label>
+                  <label className="form-field-label">项目编码</label>
                   <input
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                     placeholder="例如 OS14"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
               </div>
 
               <div>
-                <label style={labelStyle}>描述</label>
+                <label className="form-field-label">描述</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="项目描述"
                   rows={3}
-                  style={{ ...inputStyle, resize: "vertical" as const }}
+                  className="form-field-control form-field-textarea"
                 />
               </div>
             </section>
@@ -169,24 +151,24 @@ export default function NewProjectPage() {
 
               <div className="field-grid-3">
                 <div>
-                  <label style={labelStyle}>类型</label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+                  <label className="form-field-label">类型</label>
+                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="form-field-control">
                     {PROJECT_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>状态</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                  <label className="form-field-label">状态</label>
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="form-field-control">
                     {PROJECT_STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>阶段</label>
-                  <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} style={inputStyle}>
+                  <label className="form-field-label">阶段</label>
+                  <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="form-field-control">
                     <option value="">选择阶段</option>
                     {PROJECT_STAGES.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
@@ -197,31 +179,31 @@ export default function NewProjectPage() {
 
               <div className="field-grid-3">
                 <div>
-                  <label style={labelStyle}>健康度</label>
-                  <select value={form.health} onChange={(e) => setForm({ ...form, health: e.target.value })} style={inputStyle}>
+                  <label className="form-field-label">健康度</label>
+                  <select value={form.health} onChange={(e) => setForm({ ...form, health: e.target.value })} className="form-field-control">
                     {HEALTH_OPTIONS.map((h) => (
                       <option key={h.value} value={h.value}>{h.label}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>负责人</label>
+                  <label className="form-field-label">负责人</label>
                   <input
                     type="text"
                     value={form.owner}
                     onChange={(e) => setForm({ ...form, owner: e.target.value })}
                     placeholder="可选"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>PM</label>
+                  <label className="form-field-label">PM</label>
                   <input
                     type="text"
                     value={form.pm}
                     onChange={(e) => setForm({ ...form, pm: e.target.value })}
                     placeholder="项目经理"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
               </div>
@@ -235,16 +217,16 @@ export default function NewProjectPage() {
 
               <div className="field-grid-3">
                 <div>
-                  <label style={labelStyle}>开始日期</label>
-                  <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} style={inputStyle} />
+                  <label className="form-field-label">开始日期</label>
+                  <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="form-field-control" />
                 </div>
                 <div>
-                  <label style={labelStyle}>目标日期</label>
-                  <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} style={inputStyle} />
+                  <label className="form-field-label">目标日期</label>
+                  <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} className="form-field-control" />
                 </div>
                 <div>
-                  <label style={labelStyle}>发布日期</label>
-                  <input type="date" value={form.releaseDate} onChange={(e) => setForm({ ...form, releaseDate: e.target.value })} style={inputStyle} />
+                  <label className="form-field-label">发布日期</label>
+                  <input type="date" value={form.releaseDate} onChange={(e) => setForm({ ...form, releaseDate: e.target.value })} className="form-field-control" />
                 </div>
               </div>
             </section>
@@ -256,35 +238,35 @@ export default function NewProjectPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>当前摘要</label>
+                <label className="form-field-label">当前摘要</label>
                 <textarea
                   value={form.currentSummary}
                   onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
                   placeholder="当前状态、结论或摘要"
                   rows={3}
-                  style={{ ...inputStyle, resize: "vertical" as const }}
+                  className="form-field-control form-field-textarea"
                 />
               </div>
 
               <div className="field-grid-2">
                 <div>
-                  <label style={labelStyle}>下一个里程碑</label>
+                  <label className="form-field-label">下一个里程碑</label>
                   <input
                     type="text"
                     value={form.nextMilestone}
                     onChange={(e) => setForm({ ...form, nextMilestone: e.target.value })}
                     placeholder="下一个里程碑"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>下一步行动</label>
+                  <label className="form-field-label">下一步行动</label>
                   <input
                     type="text"
                     value={form.nextAction}
                     onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
                     placeholder="下一步行动"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
               </div>
@@ -298,45 +280,45 @@ export default function NewProjectPage() {
 
               <div className="field-grid-3">
                 <div>
-                  <label style={labelStyle}>来源系统</label>
+                  <label className="form-field-label">来源系统</label>
                   <input
                     type="text"
                     value={form.sourceSystem}
                     onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
                     placeholder="例如 JIRA / 飞书"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>来源编号</label>
+                  <label className="form-field-label">来源编号</label>
                   <input
                     type="text"
                     value={form.sourceId}
                     onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
                     placeholder="来源系统编号"
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>来源链接</label>
+                  <label className="form-field-label">来源链接</label>
                   <input
                     type="url"
                     value={form.sourceUrl}
                     onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
                     placeholder="https://..."
-                    style={inputStyle}
+                    className="form-field-control"
                   />
                 </div>
               </div>
 
               <div>
-                <label style={labelStyle}>标签</label>
+                <label className="form-field-label">标签</label>
                 <input
                   type="text"
                   value={form.tags}
                   onChange={(e) => setForm({ ...form, tags: e.target.value })}
                   placeholder="标签，用逗号分隔"
-                  style={inputStyle}
+                  className="form-field-control"
                 />
               </div>
             </section>

@@ -1322,6 +1322,13 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
   font-size: 14px;
 }
 .form-field-textarea { resize: vertical; }
+.project-edit-form-page { max-width: 800px; margin: 0 auto; }
+.project-edit-return-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.project-edit-title { margin: 0 0 8px; color: var(--text-primary); font-size: 22px; font-weight: 700; }
+.project-edit-card { padding: 24px; }
+.project-form-grid-name { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.project-form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.project-form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 .project-list-page .command-page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
