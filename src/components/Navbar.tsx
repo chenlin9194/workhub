@@ -114,6 +114,10 @@ export default function Navbar() {
 
   const availableToolLinks = toolLinks.filter((tool) => tool.enabled && tool.url.trim());
 
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <nav className="navbar">
       <div className="navbar-container">

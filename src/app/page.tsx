@@ -4,7 +4,12 @@ import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import { prisma } from "@/lib/prisma";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
-import { PROJECT_STATUS_LABELS } from "@/lib/constants";
+import {
+  PRIORITY_LABELS,
+  PROJECT_STAGE_LABELS,
+  PROJECT_STATUS_LABELS,
+  STATUS_LABELS,
+} from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +19,9 @@ interface PageProps {
 
 type WorkItemList = Awaited<ReturnType<typeof prisma.workItem.findMany>>;
 type WorkLogList = Awaited<ReturnType<typeof prisma.workLog.findMany>>;
+type DashboardItem = WorkItemList[number];
 
-type FocusKey = "open" | "following" | "blocked" | "p0" | "p1" | "todayLogs" | "todayClosed";
+type FocusKey = "open" | "following" | "blocked" | "overdue" | "p0" | "p1" | "todayLogs" | "todayClosed";
 
 type FocusView =
   | {
@@ -37,11 +43,27 @@ const FOCUS_LABELS: Record<FocusKey, string> = {
   open: "待处理事项",
   following: "跟进中事项",
   blocked: "已阻塞事项",
+  overdue: "逾期事项",
   p0: "P0 紧急事项",
   p1: "P1 高优事项",
   todayLogs: "今日日志",
   todayClosed: "今日关闭事项",
 };
+
+const sidebarNav = [
+  { href: "/", label: "工作台", icon: "home", active: true },
+  { href: "/projects", label: "项目", icon: "folder" },
+  { href: "/items", label: "事项", icon: "list" },
+  { href: "/logs", label: "日志", icon: "file-text" },
+  { href: "/reports", label: "汇报", icon: "chart" },
+];
+
+const toolLinks = [
+  { href: "/today", label: "今日视图", icon: "calendar" },
+  { href: "/export/today", label: "导出日报", icon: "download" },
+  { href: "/stats", label: "统计概览", icon: "activity" },
+  { href: "/settings/tools", label: "工具入口", icon: "settings" },
+];
 
 function normalizeFocusKey(value?: string): FocusKey | null {
   if (!value) return null;
@@ -50,6 +72,7 @@ function normalizeFocusKey(value?: string): FocusKey | null {
   if (key === "open") return "open";
   if (key === "following") return "following";
   if (key === "blocked") return "blocked";
+  if (key === "overdue") return "overdue";
   if (key === "p0") return "p0";
   if (key === "p1") return "p1";
   if (key === "todaylogs") return "todayLogs";
@@ -60,6 +83,133 @@ function normalizeFocusKey(value?: string): FocusKey | null {
 
 function getDashboardFocusHref(focus: FocusKey) {
   return `/?focus=${focus}`;
+}
+
+function getShortDate(value?: string | Date | null) {
+  if (!value) return "未设定";
+  return new Date(value).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+}
+
+function getTags(tags?: string | null) {
+  if (!tags) return [];
+  return tags
+    .split(/[,，\s]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+function uniqueItems(items: DashboardItem[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function getProjectFocusText(
+  projects: {
+    items: { id: string }[];
+    code: string | null;
+    name: string;
+    currentSummary: string | null;
+    nextMilestone: string | null;
+    nextAction: string | null;
+  }[]
+) {
+  const project = projects.find((item) => item.items.length > 0 && (item.nextAction || item.nextMilestone || item.currentSummary)) ?? projects[0];
+  if (!project) return "当前没有进行中项目需要额外提示";
+
+  const projectName = project.code || project.name;
+  const focus = project.nextAction || project.nextMilestone || project.currentSummary;
+  if (!focus) return `${projectName} 需要保持例行跟进`;
+
+  return `${projectName} 仍需跟进${focus}`;
+}
+
+function getBannerJudgement({
+  blockedCount,
+  p0Count,
+  p1Count,
+  overdueCount,
+  focusText,
+}: {
+  blockedCount: number;
+  p0Count: number;
+  p1Count: number;
+  overdueCount: number;
+  focusText: string;
+}) {
+  const riskParts = [];
+  if (blockedCount > 0) riskParts.push(`${blockedCount} 个阻塞`);
+  if (p0Count > 0) riskParts.push(`${p0Count} 个 P0`);
+  if (overdueCount > 0) riskParts.push(`${overdueCount} 个逾期`);
+
+  const riskText = riskParts.length > 0 ? `当前需优先处理 ${riskParts.join("、")}` : "当前无阻塞";
+  const p1Text = p1Count > 0 ? `P1 高优 ${p1Count} 项` : "暂无 P1 高优积压";
+
+  return `${riskText}，${p1Text}，${focusText}`;
+}
+
+function CompactTaskRow({ item }: { item: DashboardItem }) {
+  const tags = getTags(item.tags);
+
+  return (
+    <details className="cockpit-task-row">
+      <summary>
+        <span className={`badge badge-${item.priority.toLowerCase()}`}>
+          {PRIORITY_LABELS[item.priority] || item.priority}
+        </span>
+        <span className={`badge badge-${item.status}`}>
+          {STATUS_LABELS[item.status] || item.status}
+        </span>
+        <strong>{item.title}</strong>
+        <span className="cockpit-task-date">{item.dueDate || getShortDate(item.updatedAt)}</span>
+        <Icon name="chevron-right" size={13} />
+      </summary>
+      <div className="cockpit-task-detail">
+        <p>
+          <span>当前进展</span>
+          {item.currentSummary || item.description || "当前进展待补充。"}
+        </p>
+        <p>
+          <span>Next Action</span>
+          {item.nextAction || "下一步动作待补充。"}
+        </p>
+        <div className="cockpit-task-tags">
+          {item.project && <span>{item.project}</span>}
+          {item.module && <span>{item.module}</span>}
+          {item.owner && <span>{item.owner}</span>}
+          {tags.map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
+        <Link href={`/items/${item.id}`} className="cockpit-inline-link">
+          打开事项 <Icon name="chevron-right" size={12} />
+        </Link>
+      </div>
+    </details>
+  );
+}
+
+function AttentionRow({ item, reason }: { item: DashboardItem; reason: string }) {
+  return (
+    <Link href={`/items/${item.id}`} className="attention-row">
+      <span className="attention-reason">{reason}</span>
+      <strong>{item.title}</strong>
+      <span>{item.dueDate ? `到期 ${item.dueDate}` : STATUS_LABELS[item.status] || item.status}</span>
+    </Link>
+  );
+}
+
+function getAttentionReason(item: DashboardItem, today: string) {
+  if (item.dueDate && item.dueDate < today) return "Overdue";
+  if (item.priority === "P0") return "P0";
+  if (item.status === "blocked") return "Blocked";
+  if (item.priority === "P1") return "P1";
+  if (item.status === "following") return "Following";
+  return "Due soon";
 }
 
 async function loadFocusView(focus: FocusKey, today: string, todayStart: Date, todayEnd: Date): Promise<FocusView> {
@@ -90,6 +240,21 @@ async function loadFocusView(focus: FocusKey, today: string, todayStart: Date, t
       });
 
       return { key: focus, kind: "items", title: `聚焦视图：${FOCUS_LABELS[focus]}`, emptyText: "当前没有阻塞事项。", items };
+    }
+    case "overdue": {
+      const items = await prisma.workItem.findMany({
+        where: { dueDate: { lt: today }, status: { not: "closed" } },
+        orderBy: [{ dueDate: "asc" }, { updatedAt: "desc" }],
+        take: 20,
+      });
+
+      return {
+        key: focus,
+        kind: "items",
+        title: `聚焦视图：${FOCUS_LABELS[focus]}`,
+        emptyText: "当前没有逾期事项，交付节奏稳定。",
+        items,
+      };
     }
     case "p0": {
       const items = await prisma.workItem.findMany({
@@ -136,6 +301,9 @@ export default async function Dashboard({ searchParams }: PageProps) {
   const { focus: rawFocus } = await searchParams;
   const focus = normalizeFocusKey(rawFocus);
   const today = getLocalDateString();
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 3);
+  const dueSoonEnd = getLocalDateString(soon);
   const { start: todayStart, end: todayEnd } = getTodayRange();
 
   const [
@@ -148,7 +316,11 @@ export default async function Dashboard({ searchParams }: PageProps) {
     todayClosedCount,
     todayDueItems,
     overdueItems,
-    recentLogs,
+    p0Items,
+    blockedItems,
+    p1Items,
+    followingItems,
+    upcomingItems,
     recentItems,
     activeProjects,
   ] = await Promise.all([
@@ -161,16 +333,44 @@ export default async function Dashboard({ searchParams }: PageProps) {
     prisma.workItem.count({ where: { closedAt: { gte: todayStart, lt: todayEnd } } }),
     prisma.workItem.findMany({
       where: { dueDate: today, status: { not: "closed" } },
-      orderBy: { priority: "asc" },
-      take: 10,
+      orderBy: [{ priority: "asc" }, { updatedAt: "desc" }],
+      take: 8,
     }),
     prisma.workItem.findMany({
       where: { dueDate: { lt: today }, status: { not: "closed" } },
-      orderBy: { dueDate: "asc" },
-      take: 10,
+      orderBy: [{ dueDate: "asc" }, { priority: "asc" }],
+      take: 8,
     }),
-    prisma.workLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.workItem.findMany({ where: { status: { not: "closed" } }, orderBy: { updatedAt: "desc" }, take: 10 }),
+    prisma.workItem.findMany({
+      where: { priority: "P0", status: { not: "closed" } },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
+    prisma.workItem.findMany({
+      where: { status: "blocked" },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
+    prisma.workItem.findMany({
+      where: { priority: "P1", status: { not: "closed" } },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
+    prisma.workItem.findMany({
+      where: { status: "following" },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
+    prisma.workItem.findMany({
+      where: { dueDate: { gt: today, lte: dueSoonEnd }, status: { not: "closed" } },
+      orderBy: [{ dueDate: "asc" }, { priority: "asc" }],
+      take: 6,
+    }),
+    prisma.workItem.findMany({
+      where: { status: { not: "closed" } },
+      orderBy: { updatedAt: "desc" },
+      take: 8,
+    }),
     prisma.project.findMany({
       where: { status: { in: ["active", "planning"] } },
       include: {
@@ -181,322 +381,287 @@ export default async function Dashboard({ searchParams }: PageProps) {
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: 5,
+      take: 6,
     }),
   ]);
 
   const focusView = focus ? await loadFocusView(focus, today, todayStart, todayEnd) : null;
+  const primaryAttentionItems = uniqueItems([...overdueItems, ...p0Items, ...blockedItems]);
+  const fallbackAttentionItems = uniqueItems([...p1Items, ...followingItems, ...upcomingItems]);
+  const attentionItems = (primaryAttentionItems.length > 0 ? primaryAttentionItems : fallbackAttentionItems).slice(0, 7);
+  const todayItems = uniqueItems([...todayDueItems, ...recentItems]).slice(0, 8);
+  const bannerJudgement = getBannerJudgement({
+    blockedCount,
+    p0Count,
+    p1Count,
+    overdueCount: overdueItems.length,
+    focusText: getProjectFocusText(activeProjects),
+  });
 
   const stats = [
-    { label: "待处理", meta: "Open", value: openCount, icon: "inbox", tone: "blue", focus: "open" as const },
-    { label: "跟进中", meta: "Following", value: followingCount, icon: "activity", tone: "cyan", focus: "following" as const },
-    { label: "已阻塞", meta: "Blocked", value: blockedCount, icon: "shield-off", tone: "danger", focus: "blocked" as const },
-    { label: "P0 紧急", meta: "Critical", value: p0Count, icon: "zap", tone: "critical", focus: "p0" as const },
-    { label: "P1 高优", meta: "High", value: p1Count, icon: "alert-triangle", tone: "warning", focus: "p1" as const },
-    { label: "今日日志", meta: "Today", value: todayLogsCount, icon: "file-text", tone: "purple", focus: "todayLogs" as const },
-    { label: "今日关闭", meta: "Delivered", value: todayClosedCount, icon: "check-circle", tone: "success", focus: "todayClosed" as const },
-  ];
-
-  const flowSteps = [
-    {
-      key: "01",
-      title: "Capture",
-      icon: "edit",
-      text: "记录今天发生的事实，例如会议结论、飞书摘录、问题进展。",
-    },
-    {
-      key: "02",
-      title: "Track",
-      icon: "target",
-      text: "把需要闭环的风险、问题、待办沉淀为事项。",
-    },
-    {
-      key: "03",
-      title: "Export",
-      icon: "download",
-      text: "导出事实上下文，交给外部工具继续整理成日报 / 周报材料。",
-    },
+    { label: "待处理", meta: "OPEN", value: openCount, icon: "inbox", tone: "blue", focus: "open" as const },
+    { label: "跟进中", meta: "FOLLOWING", value: followingCount, icon: "activity", tone: "cyan", focus: "following" as const },
+    { label: "已阻塞", meta: "BLOCKED", value: blockedCount, icon: "shield-off", tone: "danger", focus: "blocked" as const },
+    { label: "P0 紧急", meta: "P0", value: p0Count, icon: "zap", tone: "critical", focus: "p0" as const },
+    { label: "P1 高优", meta: "P1", value: p1Count, icon: "alert-triangle", tone: "warning", focus: "p1" as const },
+    { label: "今日日志", meta: "TODAY", value: todayLogsCount, icon: "file-text", tone: "purple", focus: "todayLogs" as const },
+    { label: "今日关闭", meta: "DONE", value: todayClosedCount, icon: "check-circle", tone: "success", focus: "todayClosed" as const },
   ];
 
   return (
     <div className="dashboard-shell">
-      <section className="dashboard-hero">
-        <div className="hero-orbit hero-orbit-one" />
-        <div className="hero-orbit hero-orbit-two" />
-        <div className="hero-content">
-          <div className="hero-kicker">
-            <span className="hero-status-dot" />
-            DELIVERY SYSTEM ONLINE
-          </div>
-          <h1>Local Work Hub</h1>
-          <p className="hero-subtitle">OS Delivery Command Center</p>
-          <p className="hero-date">{formatTodayStr()}</p>
-          <div className="hero-situation">
-            <Icon name="activity" size={17} />
-            今日：{todayLogsCount} 条日志 · {p0Count + p1Count} 个高优事项 · {blockedCount} 个阻塞 · {overdueItems.length} 个逾期
-          </div>
-          <div className="hero-actions">
-            <Link href="/logs/new" className="btn hero-btn-primary">
-              <Icon name="edit" size={15} />
-              记录今日日志
-            </Link>
-            <Link href="/items/new" className="btn hero-btn-secondary">
-              <Icon name="plus" size={15} />
-              新建跟踪事项
-            </Link>
-            <Link href="/today" className="btn hero-btn-secondary">
-              <Icon name="calendar" size={15} />
-              打开今日视图
-            </Link>
-            <Link href="/export/today" className="btn hero-btn-ghost">
-              <Icon name="download" size={15} />
-              导出日报
-            </Link>
-            <Link href="/stats" className="btn hero-btn-ghost">
-              <Icon name="chart" size={15} />
-              统计概览
-            </Link>
-          </div>
-        </div>
-        <div className="hero-system-mark" aria-hidden="true">
-          <Icon name="cpu" size={34} />
-          <span>OS / PM</span>
-        </div>
-      </section>
-
-      <section className="workflow-grid" aria-label="Work Hub 工作流程">
-        {flowSteps.map((step) => (
-          <div key={step.key} className="workflow-card">
-            <div className="workflow-icon">
-              <Icon name={step.icon} size={19} />
-            </div>
-            <div>
-              <div className="workflow-heading">
-                <span>{step.key}</span>
-                {step.title}
-              </div>
-              <p>{step.text}</p>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section>
-        <div className="dashboard-section-title">
-          <div>
-            <span className="section-eyebrow">Live Overview</span>
-            <h2>交付态势</h2>
-          </div>
-          <span className="section-live">
-            <i />
-            实时数据
+      <aside className="cockpit-sidebar" aria-label="首页导航">
+        <Link href="/" className="cockpit-brand">
+          <span className="cockpit-brand-mark">
+            <Icon name="clipboard-list" size={18} />
           </span>
-        </div>
-        <div className="situation-grid">
-          {stats.map((stat) => {
-            const isActive = focus === stat.focus;
-            const statTone = stat.value > 0 ? stat.tone : "neutral";
+          <span>
+            <strong>Work Hub</strong>
+            <small>Local Console</small>
+          </span>
+        </Link>
 
-            return (
-              <Link
-                key={stat.label}
-                href={getDashboardFocusHref(stat.focus)}
-                scroll={false}
-                className={`stat-card stat-card-${statTone}${isActive ? " stat-card-active" : ""}`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <div className="stat-topline">
-                  <span className="stat-icon">
-                    <Icon name={stat.icon} size={18} />
-                  </span>
-                  <span className="stat-meta">{stat.meta}</span>
-                </div>
-                <div className="stat-value">{stat.value}</div>
-                <div className="stat-label">{stat.label}</div>
-              </Link>
-            );
-          })}
+        <div className="cockpit-nav-group">
+          <span className="cockpit-nav-label">PRIMARY</span>
+          {sidebarNav.map((item) => (
+            <Link key={item.href} href={item.href} className={`cockpit-nav-item${item.active ? " is-active" : ""}`}>
+              <Icon name={item.icon} size={15} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </div>
-      </section>
 
-      {focusView && (
-        <section>
-          <div className="dashboard-section-title">
-            <div>
-              <span className="section-eyebrow">Focus View</span>
-              <h2>{focusView.title}</h2>
-            </div>
-            <span className="section-live">
-              <i />
-              {focusView.kind === "items" ? `${focusView.items.length} 项` : `${focusView.logs.length} 条`}
-            </span>
+        <div className="cockpit-nav-group">
+          <span className="cockpit-nav-label">TOOLS</span>
+          {toolLinks.map((item) => (
+            <Link key={item.href} href={item.href} className="cockpit-nav-item">
+              <Icon name={item.icon} size={15} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </aside>
+
+      <div className="cockpit-content">
+        <header className="cockpit-topbar">
+          <div>
+            <span className="cockpit-path">工作台 / Cockpit Dashboard</span>
+            <strong>{formatTodayStr()}</strong>
           </div>
-          {focusView.kind === "items" ? (
-            focusView.items.length === 0 ? (
-              <div className="card empty-state">
-                <div className="empty-icon">
-                  <Icon name="clipboard-list" size={28} />
-                </div>
-                <p>{focusView.emptyText}</p>
-              </div>
-            ) : (
-              <div className="content-card-grid">
-                {focusView.items.map((item) => (
-                  <WorkItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            )
-          ) : focusView.logs.length === 0 ? (
-            <div className="card empty-state">
-              <div className="empty-icon">
-                <Icon name="file-text" size={28} />
-              </div>
-              <p>{focusView.emptyText}</p>
-            </div>
-          ) : (
-            <div className="content-card-grid">
-              {focusView.logs.map((log) => (
-                <WorkLogCard key={log.id} log={log} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      <section className="deadline-grid">
-        <div className="card deadline-panel">
-          <div className="section-header">
-            <span className="section-header-icon today">
-              <Icon name="calendar" size={16} />
-            </span>
-            <span>今日到期事项</span>
-            <span className="section-count">{todayDueItems.length} 项</span>
-          </div>
-          {todayDueItems.length === 0 ? (
-            <div className="compact-empty">今日无到期事项</div>
-          ) : (
-            todayDueItems.map((item) => <WorkItemCard key={item.id} item={item} />)
-          )}
-        </div>
-
-        <div className="card deadline-panel deadline-panel-risk">
-          <div className="section-header section-header-risk">
-            <span className="section-header-icon">
-              <Icon name="alert-triangle" size={16} />
-            </span>
-            <span>逾期未关闭事项</span>
-            <span className="section-count">{overdueItems.length} 项</span>
-          </div>
-          {overdueItems.length === 0 ? (
-            <div className="compact-empty">无逾期事项，交付节奏良好</div>
-          ) : (
-            overdueItems.map((item) => <WorkItemCard key={item.id} item={item} />)
-          )}
-        </div>
-      </section>
-
-      {activeProjects.length > 0 && (
-        <section>
-          <div className="dashboard-section-title">
-            <div>
-              <span className="section-eyebrow">Project Portfolio</span>
-              <h2>项目态势</h2>
-            </div>
-            <Link href="/projects" className="section-link">
-              查看全部 <Icon name="chevron-right" size={14} />
+          <form action="/items" className="cockpit-search">
+            <Icon name="search" size={14} />
+            <input type="hidden" name="visibility" value="open" />
+            <input name="keyword" placeholder="搜索事项、项目、责任人" />
+          </form>
+          <div className="cockpit-topbar-actions">
+            <Link href="/today" className="cockpit-icon-btn" title="通知入口">
+              <Icon name="message-square" size={15} />
+            </Link>
+            <Link href="/settings/tools" className="cockpit-icon-btn" title="主题入口">
+              <Icon name="sun" size={15} />
             </Link>
           </div>
-          <div className="content-card-grid">
-            {activeProjects.map((proj) => (
-              <Link
-                key={proj.id}
-                href={`/projects/${proj.id}`}
-                className="card card-hover project-card"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div className="project-card-header">
-                  <h3 className="project-card-title">
-                    {proj.name}
-                    {proj.code && <span className="project-card-code">{proj.code}</span>}
-                  </h3>
-                  <span className="entity-pill entity-pill--muted">
-                    {PROJECT_STATUS_LABELS[proj.status] || proj.status}
+        </header>
+
+        <main className="cockpit-grid">
+          <section className="cockpit-main-column">
+            <section className="dashboard-hero command-banner">
+              <div className="hero-orbit hero-orbit-one" />
+              <div className="hero-orbit hero-orbit-two" />
+              <div className="hero-content">
+                <div className="hero-kicker">
+                  <span className="hero-status-dot" />
+                  LOCAL WORK HUB
+                </div>
+                <h1>当前交付上下文</h1>
+                <p className="hero-subtitle">{formatTodayStr()} · 首页态势总览</p>
+                <p className="banner-judgement">{bannerJudgement}</p>
+                <div className="banner-summary-grid" aria-label="当前态势摘要">
+                  <Link href={getDashboardFocusHref("blocked")}>
+                    <span>阻塞</span>
+                    <strong>{blockedCount}</strong>
+                  </Link>
+                  <Link href={getDashboardFocusHref("p0")}>
+                    <span>P0 紧急</span>
+                    <strong>{p0Count}</strong>
+                  </Link>
+                  <Link href={getDashboardFocusHref("overdue")}>
+                    <span>逾期</span>
+                    <strong>{overdueItems.length}</strong>
+                  </Link>
+                  <Link href={getDashboardFocusHref("todayLogs")}>
+                    <span>今日日志</span>
+                    <strong>{todayLogsCount}</strong>
+                  </Link>
+                </div>
+                <div className="hero-actions">
+                  <Link href="/logs/new" className="btn hero-btn-primary">
+                    <Icon name="edit" size={15} />
+                    记录今日日志
+                  </Link>
+                  <Link href="/items/new" className="btn hero-btn-secondary">
+                    <Icon name="plus" size={15} />
+                    新建事项
+                  </Link>
+                  <Link href="/export/today" className="btn hero-btn-secondary">
+                    <Icon name="download" size={15} />
+                    导出日报
+                  </Link>
+                  <Link href="/today" className="btn hero-btn-ghost">
+                    <Icon name="calendar" size={15} />
+                    今日视图
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            <section className="card cockpit-card">
+              <div className="cockpit-card-head">
+                <div>
+                  <span className="section-eyebrow">Live Overview</span>
+                  <h2>交付态势</h2>
+                </div>
+                <span className="section-live">
+                  <i />
+                  实时数据
+                </span>
+              </div>
+              <div className="situation-grid cockpit-metrics">
+                {stats.map((stat) => {
+                  const isActive = focus === stat.focus;
+                  const statTone = stat.value > 0 ? stat.tone : "neutral";
+
+                  return (
+                    <Link
+                      key={stat.meta}
+                      href={getDashboardFocusHref(stat.focus)}
+                      scroll={false}
+                      className={`stat-card stat-card-${statTone}${isActive ? " stat-card-active" : ""}`}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <div className="stat-topline">
+                        <span className="stat-icon">
+                          <Icon name={stat.icon} size={18} />
+                        </span>
+                        <span className="stat-meta">{stat.meta}</span>
+                      </div>
+                      <div className="stat-value">{stat.value}</div>
+                      <div className="stat-label">{stat.label}</div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+
+            {focusView && (
+              <section className="card cockpit-card cockpit-focus-card">
+                <div className="cockpit-card-head">
+                  <div>
+                    <span className="section-eyebrow">Focus View</span>
+                    <h2>{focusView.title}</h2>
+                  </div>
+                  <span className="section-live">
+                    <i />
+                    {focusView.kind === "items" ? `${focusView.items.length} 项` : `${focusView.logs.length} 条`}
                   </span>
                 </div>
-                <div className="project-card-meta">
-                  <span><Icon name="clipboard-list" size={12} /> {proj._count.items} 事项</span>
-                  {proj.items.length > 0 && (
-                    <span className="entity-pill entity-pill--warning">
-                      <Icon name="alert-triangle" size={12} /> {proj.items.length} 风险
-                    </span>
-                  )}
-                  {proj.nextMilestone && <span><Icon name="flag" size={12} /> {proj.nextMilestone}</span>}
+                {focusView.kind === "items" ? (
+                  focusView.items.length === 0 ? (
+                    <div className="compact-empty">{focusView.emptyText}</div>
+                  ) : (
+                    <div className="content-card-grid">
+                      {focusView.items.map((item) => (
+                        <WorkItemCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )
+                ) : focusView.logs.length === 0 ? (
+                  <div className="compact-empty">{focusView.emptyText}</div>
+                ) : (
+                  <div className="content-card-grid">
+                    {focusView.logs.map((log) => (
+                      <WorkLogCard key={log.id} log={log} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            <section className="card cockpit-card">
+              <div className="cockpit-card-head">
+                <div>
+                  <span className="section-eyebrow">Today Queue</span>
+                  <h2>今日事项</h2>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+                <Link href="/items" className="section-link">
+                  查看全部 <Icon name="chevron-right" size={14} />
+                </Link>
+              </div>
+              <div className="cockpit-task-list">
+                {todayItems.length === 0 ? (
+                  <div className="compact-empty">当前没有需要今天处理的事项，交付节奏稳定。</div>
+                ) : (
+                  todayItems.map((item) => <CompactTaskRow key={item.id} item={item} />)
+                )}
+              </div>
+            </section>
+          </section>
 
-      <section>
-        <div className="dashboard-section-title">
-          <div>
-            <span className="section-eyebrow">Signal Stream</span>
-            <h2>最近日志</h2>
-          </div>
-          <Link href="/logs" className="section-link">
-            查看全部 <Icon name="chevron-right" size={14} />
-          </Link>
-        </div>
-        {recentLogs.length === 0 ? (
-          <div className="card empty-state">
-            <div className="empty-icon">
-              <Icon name="file-text" size={28} />
-            </div>
-            <p>今天还没有工作日志。记录会议结论、飞书消息、问题进展或临时想法。</p>
-            <div className="empty-actions">
-              <Link href="/logs/new" className="btn btn-primary">
-                记录今日日志
-              </Link>
-              <Link href="/items/new" className="btn btn-secondary">
-                新建跟踪事项
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="content-card-grid">
-            {recentLogs.map((log) => (
-              <WorkLogCard key={log.id} log={log} />
-            ))}
-          </div>
-        )}
-      </section>
+          <aside className="cockpit-side-column">
+            <section className="card cockpit-card">
+              <div className="cockpit-card-head">
+                <div>
+                  <span className="section-eyebrow">Need Attention</span>
+                  <h2>今日焦点</h2>
+                </div>
+                <span className="section-count">{attentionItems.length} 项</span>
+              </div>
+              <div className="attention-list">
+                {attentionItems.length === 0 ? (
+                  <div className="attention-ok">
+                    <Icon name="check-circle" size={18} />
+                    当前没有 P0、阻塞、逾期或临近到期事项。
+                  </div>
+                ) : (
+                  attentionItems.map((item) => (
+                    <AttentionRow key={item.id} item={item} reason={getAttentionReason(item, today)} />
+                  ))
+                )}
+              </div>
+            </section>
 
-      <section>
-        <div className="dashboard-section-title">
-          <div>
-            <span className="section-eyebrow">Execution Queue</span>
-            <h2>最近更新事项</h2>
-          </div>
-          <Link href="/items" className="section-link">
-            查看全部 <Icon name="chevron-right" size={14} />
-          </Link>
-        </div>
-        {recentItems.length === 0 ? (
-          <div className="card empty-state">
-            <div className="empty-icon">
-              <Icon name="clipboard-list" size={28} />
-            </div>
-            <p>暂无事项，点击“新建跟踪事项”开始沉淀需要闭环的工作。</p>
-          </div>
-        ) : (
-          <div className="content-card-grid">
-            {recentItems.map((item) => (
-              <WorkItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
-      </section>
+            <section className="card cockpit-card">
+              <div className="cockpit-card-head">
+                <div>
+                  <span className="section-eyebrow">Portfolio</span>
+                  <h2>项目态势</h2>
+                </div>
+                <Link href="/projects" className="section-link">
+                  全部 <Icon name="chevron-right" size={14} />
+                </Link>
+              </div>
+              <div className="portfolio-list">
+                {activeProjects.length === 0 ? (
+                  <div className="compact-empty">当前没有进行中或规划中的项目。</div>
+                ) : (
+                  activeProjects.map((project) => (
+                    <Link key={project.id} href={`/projects/${project.id}`} className="portfolio-row">
+                      <span className="portfolio-code">{project.code || "NO-CODE"}</span>
+                      <strong>{project.name}</strong>
+                      <span className="entity-pill entity-pill--muted">
+                        {PROJECT_STATUS_LABELS[project.status] || project.status}
+                      </span>
+                      <span>{project._count.items} 事项</span>
+                      <span>{project.stage ? PROJECT_STAGE_LABELS[project.stage] || project.stage : "阶段未设定"}</span>
+                      <small>{project.currentSummary || project.nextMilestone || project.nextAction || "暂无备注"}</small>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
     </div>
   );
 }
