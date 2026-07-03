@@ -88,9 +88,10 @@ export default function ProjectsPage() {
     }
   }, [keyword, status, health, stage]);
 
-  // Select filters fire immediately; keyword uses 300ms debounce
   useEffect(() => {
-    const timer = setTimeout(() => { fetchProjects(); }, keyword ? 300 : 0);
+    const timer = setTimeout(() => {
+      fetchProjects();
+    }, keyword ? 300 : 0);
     return () => clearTimeout(timer);
   }, [fetchProjects, keyword]);
 
@@ -99,74 +100,64 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="page-shell">
-      <section className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-kicker">
-            <span className="page-hero-dot" />
-            PROJECT PORTFOLIO
-          </div>
+    <div className="command-list-page project-list-page">
+      <div className="command-page-header">
+        <div>
+          <span className="section-eyebrow">PROJECT PORTFOLIO</span>
           <h1>项目管理</h1>
-          <p className="page-hero-subtitle">
-            按项目维度聚合事项、追踪健康度、生成项目快照。
-          </p>
-          <div className="page-hero-actions">
-            <Link href="/projects/new" className="btn btn-primary">
-              <Icon name="plus" size={15} />
-              新建项目
-            </Link>
-          </div>
+          <p>统一查看关键项目的状态、风险信号和下一步动作。</p>
         </div>
-      </section>
+        <div className="page-header-actions">
+          <Link href="/projects/new" className="btn btn-primary">
+            <Icon name="plus" size={15} />
+            新建项目
+          </Link>
+        </div>
+      </div>
 
-      <section className="filter-section">
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="搜索项目名称、编码、描述..."
-              style={{ flex: 1, minWidth: 200, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-            />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-            >
-              <option value="">全部状态</option>
-              {PROJECT_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <select
-              value={health}
-              onChange={(e) => setHealth(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-            >
-              <option value="">全部健康度</option>
-              {HEALTH_OPTIONS.map((h) => (
-                <option key={h.value} value={h.value}>{h.label}</option>
-              ))}
-            </select>
-            <select
-              value={stage}
-              onChange={(e) => setStage(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14 }}
-            >
-              <option value="">全部阶段</option>
-              {PROJECT_STAGES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <button onClick={handleSearch} className="btn btn-secondary">
-              <Icon name="search" size={15} />
-              搜索
-            </button>
-          </div>
+      <div className="card filter-panel">
+        <div className="filter-panel-label">
+          <Icon name="search" size={14} />
+          项目筛选
         </div>
-      </section>
+        <div className="filter-grid">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            placeholder="搜索项目名称、代码、摘要..."
+          />
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">全部状态</option>
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <select value={health} onChange={(e) => setHealth(e.target.value)}>
+            <option value="">全部健康度</option>
+            {HEALTH_OPTIONS.map((h) => (
+              <option key={h.value} value={h.value}>
+                {h.label}
+              </option>
+            ))}
+          </select>
+          <select value={stage} onChange={(e) => setStage(e.target.value)}>
+            <option value="">全部阶段</option>
+            {PROJECT_STAGES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <button onClick={handleSearch} className="btn btn-secondary">
+            <Icon name="search" size={15} />
+            搜索
+          </button>
+        </div>
+      </div>
 
       <section>
         <div className="dashboard-section-title">
@@ -182,16 +173,17 @@ export default function ProjectsPage() {
 
         {loading ? (
           <PageLoadingState
-            title="加载项目列表..."
+            title="正在加载项目列表..."
             description="正在读取项目、状态和风险信号。"
             rows={4}
           />
         ) : projects.length === 0 ? (
-          <div className="card empty-state">
+          <div className="card empty-state compact-list-empty">
             <div className="empty-icon">
               <Icon name="folder" size={28} />
             </div>
-            <p>暂无项目，点击「新建项目」开始管理项目。</p>
+            <strong>当前没有项目</strong>
+            <p>点击“新建项目”开始管理项目。</p>
             <div className="empty-actions">
               <Link href="/projects/new" className="btn btn-primary">
                 <Icon name="plus" size={15} />
@@ -300,13 +292,17 @@ export default function ProjectsPage() {
                         );
                       })}
                       {reportableLogCount > 0 && (
-                        <Link href={signalToLogsHref("reportable", project.id)} className="entity-pill entity-pill--muted" style={{ textDecoration: "none" }}>
+                        <Link
+                          href={signalToLogsHref("reportable", project.id)}
+                          className="entity-pill entity-pill--muted"
+                          style={{ textDecoration: "none" }}
+                        >
                           可汇报日志 {reportableLogCount}
                         </Link>
                       )}
                       {hasPrimaryLink && (
                         <span className="entity-pill entity-pill--muted">
-                          <Icon name="external-link" size={11} /> 主链接
+                          <Icon name="external-link" size={11} /> 主要链接
                         </span>
                       )}
                       {hasMemberSignal && (
@@ -330,14 +326,18 @@ export default function ProjectsPage() {
                   </div>
 
                   {nextNodeTitle && (
-                    <div className="entity-card-note" style={{ marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      <Icon name="flag" size={12} /> 下个节点：{nextNodeTitle}
+                    <div className="entity-card-note project-card-next-node">
+                      <Icon name="flag" size={12} /> 下一个节点：{nextNodeTitle}
                     </div>
                   )}
 
                   <div className="project-card-footer">
-                    <span><Icon name="clipboard-list" size={12} /> {project._count?.items || 0} 事项</span>
-                    <span><Icon name="file-text" size={12} /> {project._count?.logs || 0} 日志</span>
+                    <span>
+                      <Icon name="clipboard-list" size={12} /> {project._count?.items || 0} 事项
+                    </span>
+                    <span>
+                      <Icon name="file-text" size={12} /> {project._count?.logs || 0} 日志
+                    </span>
                     <Link
                       href={`/projects/${project.id}`}
                       className="section-link"
