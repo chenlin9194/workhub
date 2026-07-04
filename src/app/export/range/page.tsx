@@ -21,8 +21,24 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
           <div className="export-notice-icon">i</div>
           <div><strong>请提供导出日期范围</strong><p>请选择 start 和 end 日期，生成对应时间范围的 Markdown 事实包。日期格式为 YYYY-MM-DD。</p></div>
         </div>
+        <form action="/export/range" className="card form-card export-range-query-form">
+          <div className="field-grid-2">
+            <label>
+              <span className="form-field-label">开始日期</span>
+              <input className="form-field-control" name="start" type="date" required />
+            </label>
+            <label>
+              <span className="form-field-label">结束日期</span>
+              <input className="form-field-control" name="end" type="date" required />
+            </label>
+          </div>
+          <div className="export-range-actions">
+            <button type="submit" className="btn btn-primary">生成区间事实包</button>
+            <span>提交后将跳转到带 start / end 参数的区间事实包页面。</span>
+          </div>
+        </form>
         <div className="card export-preview export-range-help">
-          <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-query.txt</span><span>INPUT</span></div>
+          <div className="export-preview-bar"><span><i className="preview-dot red" /><i className="preview-dot amber" /><i className="preview-dot green" /></span><span>range-query.txt</span><span>EXAMPLE</span></div>
           <code>/export/range?start=2025-01-01&end=2025-01-07</code>
         </div>
       </div>
