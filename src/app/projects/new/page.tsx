@@ -99,9 +99,9 @@ export default function NewProjectPage() {
       </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card form-card command-form-card">
+        <div className="card form-card command-form-card project-command-form-card">
           <div className="command-form-stack">
-            <section className="command-form-section">
+            <section className="command-form-section project-form-section-main">
               <div className="command-form-section-header">
                 <h2>基础信息</h2>
                 <p>项目名称、编码与描述。</p>
@@ -137,13 +137,13 @@ export default function NewProjectPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="项目描述"
-                  rows={3}
+                  rows={2}
                   className="form-field-control form-field-textarea"
                 />
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section project-form-section-side">
               <div className="command-form-section-header">
                 <h2>状态与责任</h2>
                 <p>类型、状态、阶段、健康度与 owner / PM。</p>
@@ -209,7 +209,7 @@ export default function NewProjectPage() {
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section project-form-section-side">
               <div className="command-form-section-header">
                 <h2>时间节点</h2>
                 <p>开始、目标与发布时间。</p>
@@ -231,26 +231,27 @@ export default function NewProjectPage() {
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section project-form-section-main">
               <div className="command-form-section-header">
                 <h2>交付摘要</h2>
                 <p>当前摘要、下一里程碑和下一步动作。</p>
               </div>
 
-              <div>
-                <label className="form-field-label">当前摘要</label>
+              <div className="project-form-delivery-grid">
+                <div>
+                  <label className="form-field-label">当前摘要</label>
                 <textarea
                   value={form.currentSummary}
                   onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
                   placeholder="当前状态、结论或摘要"
-                  rows={3}
+                  rows={2}
                   className="form-field-control form-field-textarea"
                 />
-              </div>
+                </div>
 
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">下一个里程碑</label>
+                <div className="project-form-side-stack">
+                  <div>
+                    <label className="form-field-label">下一个里程碑</label>
                   <input
                     type="text"
                     value={form.nextMilestone}
@@ -258,9 +259,9 @@ export default function NewProjectPage() {
                     placeholder="下一个里程碑"
                     className="form-field-control"
                   />
-                </div>
-                <div>
-                  <label className="form-field-label">下一步行动</label>
+                  </div>
+                  <div>
+                    <label className="form-field-label">下一步行动</label>
                   <input
                     type="text"
                     value={form.nextAction}
@@ -268,17 +269,18 @@ export default function NewProjectPage() {
                     placeholder="下一步行动"
                     className="form-field-control"
                   />
+                  </div>
                 </div>
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section project-form-section-wide">
               <div className="command-form-section-header">
                 <h2>来源与标签</h2>
                 <p>外部来源、追踪编号和检索标签。</p>
               </div>
 
-              <div className="field-grid-3">
+              <div className="project-form-source-grid">
                 <div>
                   <label className="form-field-label">来源系统</label>
                   <input
@@ -309,17 +311,16 @@ export default function NewProjectPage() {
                     className="form-field-control"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="form-field-label">标签</label>
+                <div>
+                  <label className="form-field-label">标签</label>
                 <input
                   type="text"
                   value={form.tags}
                   onChange={(e) => setForm({ ...form, tags: e.target.value })}
                   placeholder="标签，用逗号分隔"
                   className="form-field-control"
-                />
+                  />
+                </div>
               </div>
             </section>
 

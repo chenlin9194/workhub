@@ -1223,10 +1223,10 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .command-form-page,
 .log-entry-page {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1440px;
   margin: 0;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 .command-form-header {
   display: grid;
@@ -1252,12 +1252,12 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 }
 .command-form-card,
 .log-entry-card {
-  padding: 18px;
+  padding: 14px;
 }
 .command-form-section {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--bg-secondary) 84%, var(--bg-tertiary));
@@ -1298,7 +1298,7 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 }
 .command-form-page .field-grid-2,
 .command-form-page .field-grid-3 {
-  gap: 14px;
+  gap: 12px;
 }
 .command-form-page .field-grid-tight {
   gap: 10px;
@@ -1308,7 +1308,7 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 }
 
 /* Reusable command form field primitives from Phase D.3. */
-.command-form-stack { display: grid; gap: 16px; }
+.command-form-stack { display: grid; gap: 12px; }
 .command-form-message { text-align: center; padding: 40px; color: var(--text-tertiary); }
 .form-field-narrow { width: min(260px, 100%); }
 .form-field-label {
@@ -1330,14 +1330,46 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 }
 .form-field-textarea { resize: vertical; }
 
-/* Project edit compatibility helpers keep the legacy narrow edit layout stable. */
-.project-edit-form-page { max-width: 800px; margin: 0 auto; }
-.project-edit-return-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+/* Project edit helpers align the edit screen with wide command-form workspaces. */
+.project-edit-form-page { width: 100%; max-width: 1440px; margin: 0; }
+.project-edit-return-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .project-edit-title { margin: 0 0 8px; color: var(--text-primary); font-size: 22px; font-weight: 700; }
-.project-edit-card { padding: 24px; }
-.project-form-grid-name { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-.project-form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.project-form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.project-edit-card { padding: 14px; }
+.project-form-grid-name { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.project-form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.project-form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* Project command forms prioritize horizontal cockpit density. */
+.project-command-form-card .command-form-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  align-items: start;
+  gap: 12px;
+}
+.project-edit-card.project-command-form-card .command-form-stack {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.project-command-form-card textarea.form-field-control {
+  min-height: 92px;
+}
+.project-command-form-card .project-form-section-main { grid-column: span 1; }
+.project-command-form-card .project-form-section-side { grid-column: span 1; }
+.project-command-form-card .project-form-section-wide { grid-column: 1 / -1; }
+.project-command-form-card .command-form-actions { grid-column: 1 / -1; }
+.project-form-delivery-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr); gap: 12px; align-items: start; }
+.project-form-side-stack { display: grid; gap: 12px; }
+.project-form-source-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.project-edit-block { min-width: 0; }
+.project-edit-block-name { grid-column: span 7; }
+.project-edit-block-description { grid-column: span 5; }
+.project-edit-block-status,
+.project-edit-block-owner,
+.project-edit-block-dates,
+.project-edit-block-summary,
+.project-edit-block-delivery { grid-column: span 6; }
+.project-edit-block-source { grid-column: span 8; }
+.project-edit-block-tags { grid-column: span 4; }
+.project-edit-block-actions { grid-column: 1 / -1; }
 .project-list-page .command-page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

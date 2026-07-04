@@ -144,10 +144,10 @@ export default function EditProjectPage() {
       <h1 className="project-edit-title">编辑项目</h1>
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="card form-card project-edit-card">
+        <div className="card form-card project-edit-card project-command-form-card">
           <div className="command-form-stack">
             {/* Name & Code */}
-            <div className="project-form-grid-name">
+            <div className="project-form-grid-name project-edit-block project-edit-block-name">
               <div>
                 <label className="form-field-label">项目名称 *</label>
                 <input
@@ -170,7 +170,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Description */}
-            <div>
+            <div className="project-edit-block project-edit-block-description">
               <label className="form-field-label">描述</label>
               <textarea
                 value={form.description}
@@ -181,7 +181,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Type, Status, Stage */}
-            <div className="project-form-grid-3">
+            <div className="project-form-grid-3 project-edit-block project-edit-block-status">
               <div>
                 <label className="form-field-label">类型</label>
                 <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="form-field-control">
@@ -210,7 +210,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Health, Owner, PM */}
-            <div className="project-form-grid-3">
+            <div className="project-form-grid-3 project-edit-block project-edit-block-owner">
               <div>
                 <label className="form-field-label">健康度</label>
                 <select value={form.health} onChange={(e) => setForm({ ...form, health: e.target.value })} className="form-field-control">
@@ -240,7 +240,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Dates */}
-            <div className="project-form-grid-3">
+            <div className="project-form-grid-3 project-edit-block project-edit-block-dates">
               <div>
                 <label className="form-field-label">开始日期</label>
                 <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="form-field-control" />
@@ -256,7 +256,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Summary & Milestone */}
-            <div>
+            <div className="project-edit-block project-edit-block-summary">
               <label className="form-field-label">当前摘要</label>
               <textarea
                 value={form.currentSummary}
@@ -266,7 +266,7 @@ export default function EditProjectPage() {
               />
             </div>
 
-            <div className="project-form-grid-2">
+            <div className="project-form-grid-2 project-edit-block project-edit-block-delivery">
               <div>
                 <label className="form-field-label">下个里程碑</label>
                 <input
@@ -288,7 +288,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Source */}
-            <div className="project-form-grid-3">
+            <div className="project-form-grid-3 project-edit-block project-edit-block-source">
               <div>
                 <label className="form-field-label">来源系统</label>
                 <input
@@ -319,7 +319,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Tags */}
-            <div>
+            <div className="project-edit-block project-edit-block-tags">
               <label className="form-field-label">标签</label>
               <input
                 type="text"
@@ -330,7 +330,7 @@ export default function EditProjectPage() {
             </div>
 
             {/* Buttons */}
-            <div className="field-actions form-footer">
+            <div className="field-actions form-footer project-edit-block project-edit-block-actions">
               <Link href={`/projects/${id}`} className="btn btn-secondary">
                 取消
               </Link>
