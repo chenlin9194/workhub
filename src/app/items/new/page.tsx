@@ -189,9 +189,9 @@ function NewItemForm() {
       </header>
 
       <form onSubmit={handleSubmit}>
-        <div className="card form-card command-form-card">
+        <div className="card form-card command-form-card item-command-form-card">
           <div className="command-form-stack">
-            <section className="command-form-section">
+            <section className="command-form-section item-form-section-main">
               <div className="command-form-section-header">
                 <h2>基础信息</h2>
                 <p>标题、描述和基础归属。</p>
@@ -221,7 +221,7 @@ function NewItemForm() {
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section item-form-section-side">
               <div className="command-form-section-header">
                 <h2>关联与分类</h2>
                 <p>项目、模块、标签。</p>
@@ -282,7 +282,7 @@ function NewItemForm() {
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section item-form-section-status">
               <div className="command-form-section-header">
                 <h2>状态与责任</h2>
                 <p>类型、优先级、状态、owner 和截止日期。</p>
@@ -350,7 +350,7 @@ function NewItemForm() {
               </div>
             </section>
 
-            <section className="command-form-section">
+            <section className="command-form-section item-form-section-signal">
               <div className="command-form-section-header">
                 <h2>交付信号</h2>
                 <p>下一步动作、健康度、汇报层级和来源信息。</p>
@@ -467,14 +467,16 @@ function NewItemForm() {
               </div>
             </section>
 
-            <ActionItemDraftSection
-              enabled={actionItemsEnabled}
-              drafts={actionItemDrafts}
-              onEnabledChange={setActionItemsEnabled}
-              onDraftsChange={setActionItemDrafts}
-              title="后续行动"
-              description="可选：保存后补充几个需要跟进的行动项。"
-            />
+            <div className="item-form-section-wide">
+              <ActionItemDraftSection
+                enabled={actionItemsEnabled}
+                drafts={actionItemDrafts}
+                onEnabledChange={setActionItemsEnabled}
+                onDraftsChange={setActionItemDrafts}
+                title="后续行动"
+                description="可选：保存后补充几个需要跟进的行动项。"
+              />
+            </div>
 
             <div className="command-form-actions">
               <span className="field-note">保存后会进入事项详情页。</span>

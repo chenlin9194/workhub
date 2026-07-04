@@ -1370,6 +1370,38 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .project-edit-block-source { grid-column: span 8; }
 .project-edit-block-tags { grid-column: span 4; }
 .project-edit-block-actions { grid-column: 1 / -1; }
+
+/* Item command forms reuse the cockpit-density layout with item-specific spans. */
+.item-command-form-card .command-form-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  align-items: start;
+  gap: 12px;
+}
+.item-command-form-card .item-form-section-main { grid-column: 1; grid-row: 1; }
+.item-command-form-card .item-form-section-side { grid-column: 2; grid-row: 1; }
+.item-command-form-card .item-form-section-signal { grid-column: 1; grid-row: 2; }
+.item-command-form-card .item-form-section-status { grid-column: 2; grid-row: 2; }
+.item-command-form-card .item-form-section-wide,
+.item-command-form-card .command-form-actions { grid-column: 1 / -1; }
+.item-command-form-card textarea.form-field-control {
+  min-height: 92px;
+}
+.item-form-signal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 12px;
+  align-items: start;
+}
+.item-form-signal-side {
+  display: grid;
+  gap: 12px;
+}
+.item-form-source-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
 .project-list-page .command-page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
