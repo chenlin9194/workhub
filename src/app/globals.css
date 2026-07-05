@@ -1817,6 +1817,15 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .tool-card-title { margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 650; }
 .tool-card-url { color: var(--accent-blue); font-size: 13px; word-break: break-all; text-decoration: none; }
 .tool-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tool-sort-control { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: 13px; }
+.tool-sort-input { width: 100px; padding: 8px 10px; }
+.tool-settings-form-card { padding: 20px; }
+.tool-settings-form { display: flex; flex-direction: column; gap: 16px; }
+.tool-settings-primary-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.tool-settings-meta-grid { display: grid; grid-template-columns: 160px 160px 1fr; gap: 16px; }
+.tool-enabled-control { display: flex; align-items: center; gap: 8px; padding-top: 10px; color: var(--text-primary); font-size: 14px; }
+.tool-settings-form-actions { display: flex; align-items: end; justify-content: flex-end; gap: 8px; }
+.tool-list-stack { display: flex; flex-direction: column; gap: 12px; }
 .today-row:hover { background: var(--bg-tertiary); }
 .page-enter { animation: pageIn 0.26s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

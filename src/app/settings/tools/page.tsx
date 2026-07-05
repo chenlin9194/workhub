@@ -55,32 +55,25 @@ function ToolLinkRow({
       </div>
 
       <div className="tool-card-actions">
-        <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => onEdit(tool)}>
+        <button className="btn btn-secondary btn-sm" onClick={() => onEdit(tool)}>
           编辑
         </button>
-        <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => onToggleEnabled(tool)}>
+        <button className="btn btn-secondary btn-sm" onClick={() => onToggleEnabled(tool)}>
           {tool.enabled ? "停用" : "启用"}
         </button>
-        <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => onDelete(tool)}>
+        <button className="btn btn-secondary btn-sm" onClick={() => onDelete(tool)}>
           删除
         </button>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-primary)" }}>
+        <label className="tool-sort-control">
           <span>排序值</span>
           <input
             type="number"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            style={{
-              width: 100,
-              padding: "8px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--border-primary)",
-              background: "var(--bg-secondary)",
-              color: "var(--text-primary)",
-            }}
+            className="form-field-control tool-sort-input"
           />
         </label>
-        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => onSaveSortOrder(tool, Number(sortOrder) || 0)}>
+        <button className="btn btn-primary btn-sm" onClick={() => onSaveSortOrder(tool, Number(sortOrder) || 0)}>
           保存排序
         </button>
       </div>
@@ -253,21 +246,21 @@ export default function ToolSettingsPage() {
           </p>
         </div>
         <div className="page-header-actions">
-          <Link href="/" className="btn btn-secondary" style={{ fontSize: 13 }}>
+          <Link href="/" className="btn btn-secondary btn-sm">
             返回工作台
           </Link>
         </div>
       </div>
 
-      <div className="card form-card" style={{ padding: 20 }}>
+      <div className="card form-card tool-settings-form-card">
         <div className="form-section-header">
           <h2>{editingId ? "编辑工具" : "新增工具"}</h2>
           <p>只维护常用入口，排序越小越靠前显示。</p>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
+        <form onSubmit={handleSubmit} className="tool-settings-form">
+          <div className="tool-settings-primary-grid">
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+              <label className="form-field-label">
                 名称 *
               </label>
               <input
@@ -276,19 +269,11 @@ export default function ToolSettingsPage() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="例如 JIRA"
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
+                className="form-field-control"
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+              <label className="form-field-label">
                 链接 *
               </label>
               <input
@@ -297,25 +282,17 @@ export default function ToolSettingsPage() {
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
                 placeholder="https://..."
                 required
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
+                className="form-field-control"
               />
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "160px 160px 1fr", gap: 16 }}>
+          <div className="tool-settings-meta-grid">
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+              <label className="form-field-label">
                 启用
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--text-primary)", paddingTop: 10 }}>
+              <label className="tool-enabled-control">
                 <input
                   type="checkbox"
                   checked={form.enabled}
@@ -325,31 +302,23 @@ export default function ToolSettingsPage() {
               </label>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>
+              <label className="form-field-label">
                 排序值
               </label>
               <input
                 type="number"
                 value={form.sortOrder}
                 onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-primary)",
-                  background: "var(--bg-secondary)",
-                  color: "var(--text-primary)",
-                  fontSize: 14,
-                }}
+                className="form-field-control"
               />
             </div>
-            <div style={{ display: "flex", alignItems: "end", gap: 8, justifyContent: "flex-end" }}>
+            <div className="tool-settings-form-actions">
               {editingId && (
-                <button type="button" onClick={resetForm} className="btn btn-secondary" style={{ fontSize: 13 }}>
+                <button type="button" onClick={resetForm} className="btn btn-secondary btn-sm">
                   取消编辑
                 </button>
               )}
-              <button type="submit" className="btn btn-primary" disabled={saving} style={{ fontSize: 13 }}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
                 {saving ? "保存中..." : editingId ? "更新工具" : "新增工具"}
               </button>
             </div>
@@ -387,7 +356,7 @@ export default function ToolSettingsPage() {
             <p>请先添加 JIRA、Gerrit、Jenkins 等链接。</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="tool-list-stack">
             {toolLinks.map((tool) => (
               <ToolLinkRow
                 key={tool.id}
