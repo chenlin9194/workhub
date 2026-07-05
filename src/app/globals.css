@@ -3047,6 +3047,1278 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
   }
 }
 
+/* ===== Phase F.2 Soft Glass Visual Upgrade ===== */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: rgba(255, 255, 255, 0.86);
+  --bg-tertiary: rgba(241, 245, 249, 0.82);
+  --bg-hover: rgba(226, 232, 240, 0.72);
+  --bg-accent: #eef2ff;
+  --bg-elevated: rgba(255, 255, 255, 0.9);
+
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-tertiary: #9ca3af;
+  --text-quaternary: #d1d5db;
+
+  --border-primary: rgba(226, 232, 240, 0.86);
+  --border-secondary: rgba(203, 213, 225, 0.92);
+  --border-glow: rgba(91, 110, 240, 0.22);
+
+  --accent-blue: #5b6ef0;
+  --accent-blue-light: #eef2ff;
+  --accent-blue-deep: #4a5bdb;
+  --accent-green: #10b981;
+  --accent-green-light: #ecfdf5;
+  --accent-orange: #f59e0b;
+  --accent-orange-light: #fffbeb;
+  --accent-red: #ef4444;
+  --accent-red-light: #fef2f2;
+  --accent-purple: #8b5cf6;
+  --accent-purple-light: #f3e8ff;
+  --accent-indigo: #6366f1;
+  --accent-indigo-light: #eef2ff;
+  --accent-cyan: #06b6d4;
+  --accent-cyan-light: #ecfeff;
+
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-surface-strong: rgba(255, 255, 255, 0.86);
+  --glass-surface-soft: rgba(255, 255, 255, 0.56);
+  --glass-border: rgba(255, 255, 255, 0.62);
+  --glass-shadow: 0 18px 44px rgba(59, 89, 152, 0.10), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --glass-shadow-soft: 0 8px 24px rgba(59, 89, 152, 0.07), 0 1px 2px rgba(15, 23, 42, 0.03);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 28px rgba(59, 89, 152, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 22px 56px rgba(59, 89, 152, 0.13);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 20px;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #08111f;
+  --bg-secondary: rgba(15, 23, 42, 0.88);
+  --bg-tertiary: rgba(30, 41, 59, 0.84);
+  --bg-hover: rgba(51, 65, 85, 0.72);
+  --bg-accent: #172554;
+  --bg-elevated: rgba(15, 23, 42, 0.92);
+
+  --text-primary: #e5edf7;
+  --text-secondary: #b6c3d4;
+  --text-tertiary: #7f8da3;
+  --text-quaternary: #536174;
+
+  --border-primary: rgba(51, 65, 85, 0.78);
+  --border-secondary: rgba(71, 85, 105, 0.9);
+  --border-glow: rgba(129, 140, 248, 0.28);
+
+  --glass-surface: rgba(15, 23, 42, 0.62);
+  --glass-surface-strong: rgba(15, 23, 42, 0.84);
+  --glass-surface-soft: rgba(15, 23, 42, 0.48);
+  --glass-border: rgba(148, 163, 184, 0.20);
+  --glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --glass-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+html {
+  background: var(--bg-primary);
+}
+
+body {
+  background:
+    radial-gradient(circle at 82% 2%, rgba(91, 110, 240, 0.22), transparent 30rem),
+    radial-gradient(circle at 92% 34%, rgba(139, 92, 246, 0.16), transparent 32rem),
+    radial-gradient(circle at 20% 0%, rgba(6, 182, 212, 0.09), transparent 28rem),
+    linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 42%, #eef4ff 100%);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 82% 2%, rgba(99, 102, 241, 0.19), transparent 30rem),
+    radial-gradient(circle at 92% 34%, rgba(139, 92, 246, 0.14), transparent 32rem),
+    radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.08), transparent 28rem),
+    linear-gradient(180deg, #07101e 0%, var(--bg-primary) 52%, #0d1830 100%);
+}
+
+a:hover,
+.cockpit-inline-link:hover,
+.project-card-title-link:hover,
+.tool-card-url:hover,
+.section-link:hover {
+  color: var(--accent-blue-deep, var(--accent-blue));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.card,
+.form-card,
+.command-form-card,
+.log-entry-card,
+.cockpit-card,
+.project-card,
+.work-item-card,
+.work-log-card,
+.tool-card,
+.reports-panel-card,
+.reports-boundary-card,
+.reports-shortcuts-card,
+.report-entry-card,
+.export-notice,
+.today-situation,
+.today-section,
+.filter-panel,
+.detail-page .card,
+.project-overview-panel,
+.project-meta-item,
+.detail-insight-panel,
+.detail-meta-item,
+.relation-mode-card,
+.action-item-draft-row,
+.cockpit-task-row,
+.attention-row,
+.portfolio-row {
+  border-color: var(--border-primary);
+  background: var(--glass-surface-strong);
+  box-shadow: var(--glass-shadow-soft);
+  backdrop-filter: blur(14px) saturate(1.04);
+  -webkit-backdrop-filter: blur(14px) saturate(1.04);
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.card-hover:hover,
+.card-link:hover .card,
+.project-card:hover,
+.report-entry-card:hover,
+.work-item-card:hover,
+.work-log-card:hover,
+.tool-card:hover,
+.relation-mode-card:hover,
+.cockpit-task-row:hover,
+.attention-row:hover,
+.portfolio-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-secondary);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), var(--glass-shadow-soft);
+}
+
+.btn {
+  min-height: 32px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  transition: transform 150ms ease, filter 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.99); }
+.btn-primary,
+.hero-btn-primary {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-deep, #4a5bdb)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 18px rgba(91, 110, 240, 0.22) !important;
+}
+.btn-secondary,
+.hero-btn-secondary {
+  color: var(--text-secondary) !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  border-color: var(--border-primary) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.btn-ghost,
+.hero-btn-ghost {
+  color: var(--accent-blue) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.btn-secondary:hover,
+.btn-ghost:hover,
+.hero-btn-secondary:hover,
+.hero-btn-ghost:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+.input,
+.form-field-control,
+.filter-grid > input,
+.filter-grid > select,
+.form-card input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.form-card select,
+.form-card textarea {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  border-radius: var(--radius-md) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+  background-color: rgba(255, 255, 255, 0.76) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  font-size: 14px !important;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.input:focus,
+.form-field-control:focus,
+.filter-grid > input:focus,
+.filter-grid > select:focus,
+.form-card input:focus,
+.form-card select:focus,
+.form-card textarea:focus {
+  border-color: var(--accent-blue) !important;
+  box-shadow: none !important;
+}
+
+textarea.input,
+.form-card textarea,
+.log-content-input {
+  min-height: 112px !important;
+  line-height: 1.6;
+}
+
+select.input,
+.form-card select,
+.filter-grid > select {
+  padding-right: 34px !important;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%), linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%) !important;
+  background-position: calc(100% - 18px) 52%, calc(100% - 12px) 52% !important;
+  background-size: 6px 6px !important;
+  background-repeat: no-repeat !important;
+}
+
+.badge,
+.entity-pill,
+.project-signal-chip,
+.cockpit-task-tags span,
+.attention-reason,
+.portfolio-code,
+.entity-card-meta > span,
+.work-card-meta > span {
+  min-height: 20px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.badge-other,
+.entity-pill--muted,
+.entity-card-meta > span,
+.work-card-meta > span {
+  color: var(--text-tertiary);
+  background: rgba(243, 244, 246, 0.78);
+  border-color: transparent;
+}
+
+.dashboard-shell {
+  background:
+    radial-gradient(circle at 72% 0%, rgba(91, 110, 240, 0.12), transparent 28rem),
+    radial-gradient(circle at 96% 24%, rgba(139, 92, 246, 0.13), transparent 30rem);
+}
+
+.cockpit-sidebar {
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(226, 232, 240, 0.78);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.cockpit-brand-mark {
+  background: radial-gradient(circle at 32% 24%, #93c5fd 0%, var(--accent-blue) 48%, var(--accent-blue-deep, #4a5bdb) 100%);
+  box-shadow: 0 10px 24px rgba(91, 110, 240, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.cockpit-nav-label,
+.section-eyebrow,
+.filter-panel-label,
+.detail-field-label,
+.project-meta-label,
+.stat-meta {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cockpit-nav-group {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cockpit-nav-label {
+  padding: 0 12px;
+  margin: 8px 0 0;
+}
+
+.cockpit-nav-item {
+  min-height: 36px;
+  padding: 0 12px 0 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.cockpit-nav-item:hover {
+  transform: translateX(1px);
+  border-color: transparent;
+  color: var(--text-primary);
+  background: rgba(243, 244, 246, 0.76);
+}
+
+.cockpit-nav-item.is-active {
+  color: var(--text-primary);
+  border-color: transparent;
+  background: rgba(238, 242, 255, 0.92);
+}
+
+.cockpit-nav-item.is-active::before {
+  left: 0;
+  width: 2px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--accent-blue);
+}
+
+.cockpit-topbar {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(226, 232, 240, 0.78);
+  box-shadow: 0 8px 26px rgba(59, 89, 152, 0.06);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.cockpit-search {
+  min-height: 32px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--border-primary);
+}
+
+.cockpit-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.cockpit-icon-btn:hover {
+  transform: translateY(-1px);
+  color: var(--text-primary);
+  background: rgba(243, 244, 246, 0.86);
+}
+
+.shell-tool-menu {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(226, 232, 240, 0.82);
+  box-shadow: 0 22px 54px rgba(59, 89, 152, 0.16);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.shell-tool-menu__item {
+  border-radius: var(--radius-md);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.shell-tool-menu__item:hover {
+  background: rgba(238, 242, 255, 0.86);
+}
+
+.command-banner.dashboard-hero,
+.dashboard-hero {
+  position: relative;
+  min-height: 232px;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.72);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.95) 0 3.5rem, rgba(255, 255, 255, 0.20) 3.6rem 6.4rem, transparent 6.5rem),
+    radial-gradient(circle at 92% 18%, rgba(139, 92, 246, 0.28), transparent 16rem),
+    radial-gradient(circle at 72% 70%, rgba(91, 110, 240, 0.18), transparent 18rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 249, 255, 0.72) 46%, rgba(238, 242, 255, 0.86) 100%);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.dashboard-hero::before,
+.command-banner.dashboard-hero::before {
+  content: "";
+  position: absolute;
+  display: block;
+  right: -72px;
+  top: -76px;
+  width: 360px;
+  height: 300px;
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  border-radius: 48% 52% 42% 58% / 46% 32% 68% 54%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(139, 92, 246, 0.20) 50%, rgba(91, 110, 240, 0.18)),
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.92), transparent 30%);
+  box-shadow: inset 18px 22px 50px rgba(255, 255, 255, 0.58), inset -22px -28px 58px rgba(91, 110, 240, 0.16), 0 22px 58px rgba(91, 110, 240, 0.18);
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.dashboard-hero::after,
+.command-banner.dashboard-hero::after {
+  content: "";
+  position: absolute;
+  display: block;
+  right: 210px;
+  top: 26px;
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.25) 36%, rgba(91, 110, 240, 0.18) 72%, rgba(139, 92, 246, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow: inset 12px 16px 28px rgba(255, 255, 255, 0.72), 0 18px 40px rgba(91, 110, 240, 0.16);
+  opacity: 0.86;
+  z-index: 0;
+}
+
+.hero-content { position: relative; z-index: 2; }
+.dashboard-hero .hero-situation {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.58);
+  border-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+.dashboard-hero .hero-orbit,
+.dashboard-hero .hero-system-mark { display: none; }
+
+.cockpit-grid {
+  gap: 16px;
+}
+
+.cockpit-main-column,
+.cockpit-side-column {
+  gap: 16px;
+}
+
+.cockpit-side-column .card,
+.cockpit-side-column .cockpit-card,
+.cockpit-focus-card {
+  background: var(--glass-surface-soft);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow-soft);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.cockpit-card-head,
+.section-header,
+.today-section-header {
+  background: rgba(255, 255, 255, 0.46);
+  border-color: var(--border-primary);
+}
+
+.stat-card,
+.cockpit-metrics .stat-card {
+  min-height: 104px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.78);
+  border-color: var(--border-primary);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+}
+
+.stat-card::after { opacity: 0; }
+.stat-card-blue,
+.stat-card-cyan,
+.stat-card-purple,
+.stat-card-success {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.78);
+  border-color: var(--border-primary);
+}
+.stat-card-danger,
+.stat-card-critical {
+  color: var(--accent-red);
+  border-color: color-mix(in srgb, var(--accent-red) 18%, var(--border-primary));
+  background: color-mix(in srgb, var(--accent-red-light) 34%, rgba(255, 255, 255, 0.86));
+}
+.stat-card-danger::before,
+.stat-card-critical::before { background: var(--accent-red); }
+.stat-card-warning {
+  color: var(--accent-orange);
+  border-color: color-mix(in srgb, var(--accent-orange) 18%, var(--border-primary));
+  background: color-mix(in srgb, var(--accent-orange-light) 36%, rgba(255, 255, 255, 0.86));
+}
+.stat-card-warning::before { background: var(--accent-orange); }
+.stat-card .stat-value {
+  color: currentColor;
+  font-size: 28px;
+}
+.stat-card .stat-label { color: var(--text-secondary); }
+
+.project-signal-card--danger,
+.project-milestone-card--risk,
+.detail-meta-item--danger,
+.signal-danger,
+.priority-readout.critical,
+.work-item-card.is-blocked,
+.log-type-risk,
+.log-type-blocker,
+.section-tone-danger,
+.feedback-note--error {
+  border-left: 3px solid var(--accent-red);
+  background: color-mix(in srgb, var(--accent-red-light) 34%, rgba(255, 255, 255, 0.84));
+}
+
+.project-signal-card--warning,
+.signal-warning,
+.priority-readout.high {
+  border-left: 3px solid var(--accent-orange);
+  background: color-mix(in srgb, var(--accent-orange-light) 36%, rgba(255, 255, 255, 0.84));
+}
+
+.empty-state {
+  color: var(--text-tertiary);
+}
+.empty-state .empty-icon {
+  color: var(--text-tertiary);
+  background: rgba(243, 244, 246, 0.72);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+.empty-state--error {
+  border-left: 3px solid var(--accent-red);
+  background: color-mix(in srgb, var(--accent-red-light) 30%, rgba(255, 255, 255, 0.78));
+}
+.empty-state--error .empty-icon {
+  color: var(--accent-red);
+  background: var(--accent-red-light);
+}
+
+.today-row:hover,
+.cockpit-task-row:hover,
+.attention-row:hover,
+.portfolio-row:hover,
+.shell-tool-menu__item:hover {
+  background: rgba(243, 244, 246, 0.76);
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .command-form-card,
+[data-theme="dark"] .log-entry-card,
+[data-theme="dark"] .cockpit-card,
+[data-theme="dark"] .project-card,
+[data-theme="dark"] .work-item-card,
+[data-theme="dark"] .work-log-card,
+[data-theme="dark"] .tool-card,
+[data-theme="dark"] .reports-panel-card,
+[data-theme="dark"] .reports-boundary-card,
+[data-theme="dark"] .reports-shortcuts-card,
+[data-theme="dark"] .report-entry-card,
+[data-theme="dark"] .filter-panel,
+[data-theme="dark"] .detail-page .card,
+[data-theme="dark"] .cockpit-sidebar,
+[data-theme="dark"] .cockpit-topbar,
+[data-theme="dark"] .shell-tool-menu,
+[data-theme="dark"] .cockpit-side-column .card,
+[data-theme="dark"] .cockpit-side-column .cockpit-card,
+[data-theme="dark"] .cockpit-focus-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .cockpit-metrics .stat-card {
+  background: var(--glass-surface-strong);
+  border-color: var(--border-primary);
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+}
+
+[data-theme="dark"] .command-banner.dashboard-hero,
+[data-theme="dark"] .dashboard-hero {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(148, 163, 184, 0.16) 0 3.8rem, transparent 6rem),
+    radial-gradient(circle at 92% 18%, rgba(139, 92, 246, 0.18), transparent 16rem),
+    radial-gradient(circle at 72% 70%, rgba(96, 165, 250, 0.13), transparent 18rem),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(17, 24, 39, 0.74) 46%, rgba(30, 41, 59, 0.86) 100%);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .dashboard-hero::before,
+[data-theme="dark"] .command-banner.dashboard-hero::before,
+[data-theme="dark"] .dashboard-hero::after,
+[data-theme="dark"] .command-banner.dashboard-hero::after {
+  opacity: 0.42;
+}
+
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .hero-btn-secondary,
+[data-theme="dark"] .cockpit-icon-btn,
+[data-theme="dark"] .cockpit-search,
+[data-theme="dark"] .input,
+[data-theme="dark"] .form-field-control,
+[data-theme="dark"] .filter-grid > input,
+[data-theme="dark"] .filter-grid > select,
+[data-theme="dark"] .form-card input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+[data-theme="dark"] .form-card select,
+[data-theme="dark"] .form-card textarea {
+  background-color: rgba(15, 23, 42, 0.72) !important;
+  border-color: var(--border-primary) !important;
+}
+
+@media (max-width: 780px) {
+  .command-banner.dashboard-hero,
+  .dashboard-hero {
+    min-height: auto;
+  }
+
+  .dashboard-hero::before,
+  .command-banner.dashboard-hero::before,
+  .dashboard-hero::after,
+  .command-banner.dashboard-hero::after {
+    opacity: 0.28;
+    transform: scale(0.82);
+    transform-origin: right top;
+  }
+}
+
+/* ===== Phase F.2.1 Soft Glass Contrast Fix ===== */
+body {
+  background:
+    radial-gradient(circle at 86% 0%, rgba(91, 110, 240, 0.16), transparent 31rem),
+    radial-gradient(circle at 96% 34%, rgba(139, 92, 246, 0.10), transparent 34rem),
+    radial-gradient(circle at 18% 0%, rgba(6, 182, 212, 0.08), transparent 28rem),
+    linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 44%, #f1f6ff 100%);
+}
+
+.dashboard-shell {
+  background:
+    radial-gradient(circle at 76% 0%, rgba(91, 110, 240, 0.08), transparent 28rem),
+    radial-gradient(circle at 99% 24%, rgba(139, 92, 246, 0.08), transparent 30rem);
+}
+
+.command-banner.dashboard-hero,
+.dashboard-hero {
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.92) 0 3.2rem, rgba(255, 255, 255, 0.18) 3.3rem 6.1rem, transparent 6.2rem),
+    radial-gradient(circle at 92% 18%, rgba(139, 92, 246, 0.23), transparent 16rem),
+    radial-gradient(circle at 72% 70%, rgba(91, 110, 240, 0.14), transparent 18rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.82) 50%, rgba(238, 242, 255, 0.84) 100%);
+}
+
+.dashboard-hero h1,
+.command-banner h1,
+.dashboard-hero .hero-subtitle,
+.command-banner .hero-subtitle,
+.hero-date,
+.banner-judgement {
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
+}
+
+.dashboard-hero .hero-subtitle,
+.command-banner .hero-subtitle,
+.hero-date,
+.banner-judgement {
+  color: var(--text-secondary) !important;
+}
+
+.banner-summary-grid a {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.56);
+  border-color: rgba(226, 232, 240, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.banner-summary-grid a:hover {
+  border-color: var(--border-secondary);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.banner-summary-grid span {
+  color: var(--text-tertiary);
+}
+
+.banner-summary-grid strong {
+  color: var(--text-primary);
+}
+
+.dashboard-hero::before,
+.command-banner.dashboard-hero::before {
+  opacity: 0.72;
+}
+
+.dashboard-hero::after,
+.command-banner.dashboard-hero::after {
+  opacity: 0.68;
+}
+
+.cockpit-card-head,
+.section-header,
+.today-section-header {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 86% 0%, rgba(99, 102, 241, 0.15), transparent 31rem),
+    radial-gradient(circle at 96% 34%, rgba(139, 92, 246, 0.10), transparent 34rem),
+    radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.07), transparent 28rem),
+    linear-gradient(180deg, #07101e 0%, var(--bg-primary) 52%, #0d1830 100%);
+}
+
+[data-theme="dark"] .cockpit-nav-item.is-active {
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.20);
+  border-color: rgba(129, 140, 248, 0.22);
+}
+
+[data-theme="dark"] .cockpit-nav-item.is-active::before {
+  background: #818cf8;
+}
+
+[data-theme="dark"] .cockpit-card-head,
+[data-theme="dark"] .section-header,
+[data-theme="dark"] .today-section-header {
+  background: rgba(15, 23, 42, 0.46);
+  border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .banner-summary-grid a {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.56);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .banner-summary-grid span {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .banner-summary-grid strong,
+[data-theme="dark"] .banner-judgement,
+[data-theme="dark"] .dashboard-hero h1,
+[data-theme="dark"] .command-banner h1 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .dashboard-hero .hero-subtitle,
+[data-theme="dark"] .command-banner .hero-subtitle,
+[data-theme="dark"] .hero-date {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .stat-card-blue,
+[data-theme="dark"] .stat-card-cyan,
+[data-theme="dark"] .stat-card-purple,
+[data-theme="dark"] .stat-card-success {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.66);
+}
+
+[data-theme="dark"] .project-signal-card--danger,
+[data-theme="dark"] .project-milestone-card--risk,
+[data-theme="dark"] .detail-meta-item--danger,
+[data-theme="dark"] .signal-danger,
+[data-theme="dark"] .priority-readout.critical,
+[data-theme="dark"] .work-item-card.is-blocked,
+[data-theme="dark"] .log-type-risk,
+[data-theme="dark"] .log-type-blocker,
+[data-theme="dark"] .section-tone-danger,
+[data-theme="dark"] .feedback-note--error {
+  background: color-mix(in srgb, var(--accent-red-light) 48%, rgba(15, 23, 42, 0.82));
+}
+
+[data-theme="dark"] .project-signal-card--warning,
+[data-theme="dark"] .signal-warning,
+[data-theme="dark"] .priority-readout.high {
+  background: color-mix(in srgb, var(--accent-orange-light) 46%, rgba(15, 23, 42, 0.82));
+}
+
+/* ===== Phase F.2.2 Dark Hover Surface Fix ===== */
+[data-theme="dark"] .cockpit-nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(129, 140, 248, 0.16);
+}
+
+[data-theme="dark"] .cockpit-nav-item.is-active:hover {
+  background: rgba(99, 102, 241, 0.24);
+  border-color: rgba(129, 140, 248, 0.28);
+}
+
+[data-theme="dark"] .today-row:hover,
+[data-theme="dark"] .cockpit-task-row:hover,
+[data-theme="dark"] .attention-row:hover,
+[data-theme="dark"] .portfolio-row:hover,
+[data-theme="dark"] .shell-tool-menu__item:hover {
+  background: rgba(51, 65, 85, 0.56);
+}
+
+[data-theme="dark"] .cockpit-icon-btn:hover,
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .btn-ghost:hover {
+  background: rgba(51, 65, 85, 0.62) !important;
+  border-color: rgba(100, 116, 139, 0.74) !important;
+}
+
+/* ===== Phase F.2.3 Product Surface Refinement ===== */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-tertiary: #9ca3af;
+}
+
+body,
+.dashboard-shell {
+  background: var(--bg-primary) !important;
+}
+
+.app-shell-main,
+.cockpit-content,
+.cockpit-grid,
+.cockpit-main-column,
+.cockpit-side-column {
+  background: transparent !important;
+}
+
+.card,
+.form-card,
+.command-form-card,
+.log-entry-card,
+.cockpit-card,
+.project-card,
+.work-item-card,
+.work-log-card,
+.tool-card,
+.reports-panel-card,
+.reports-boundary-card,
+.reports-shortcuts-card,
+.report-entry-card,
+.export-notice,
+.today-situation,
+.today-section,
+.filter-panel,
+.detail-page .card,
+.project-overview-panel,
+.project-meta-item,
+.detail-insight-panel,
+.detail-meta-item,
+.relation-mode-card,
+.action-item-draft-row,
+.cockpit-task-row,
+.attention-row,
+.portfolio-row,
+.cockpit-side-column .card,
+.cockpit-side-column .cockpit-card,
+.cockpit-focus-card {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.card-hover:hover,
+.card-link:hover .card,
+.project-card:hover,
+.report-entry-card:hover,
+.work-item-card:hover,
+.work-log-card:hover,
+.tool-card:hover,
+.relation-mode-card:hover,
+.cockpit-task-row:hover,
+.attention-row:hover,
+.portfolio-row:hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-1px);
+}
+
+.command-banner.dashboard-hero,
+.dashboard-hero {
+  border-color: #e5e7eb !important;
+  background:
+    radial-gradient(circle at 80% 18%, rgba(91, 110, 240, 0.09), transparent 15rem),
+    radial-gradient(circle at 94% 30%, rgba(139, 92, 246, 0.08), transparent 18rem),
+    linear-gradient(135deg, #ffffff 0%, rgba(248, 250, 252, 0.98) 56%, rgba(238, 242, 255, 0.72) 100%) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dashboard-hero::before,
+.command-banner.dashboard-hero::before {
+  opacity: 0.28 !important;
+  filter: blur(0.2px);
+}
+
+.dashboard-hero::after,
+.command-banner.dashboard-hero::after {
+  opacity: 0.22 !important;
+}
+
+.banner-summary-grid a,
+.dashboard-hero .hero-situation {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  color: #1f2937 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.banner-summary-grid span,
+.stat-card .stat-label,
+.stat-meta {
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.banner-summary-grid strong,
+.stat-card .stat-value {
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cockpit-side-column .cockpit-card-head h2,
+.cockpit-card-head h2,
+.section-header,
+.today-section-header strong {
+  color: #1f2937 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.cockpit-side-column p,
+.cockpit-side-column .attention-row strong,
+.cockpit-side-column .portfolio-row strong,
+.cockpit-side-column .project-card-summary {
+  color: #4b5563 !important;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.cockpit-side-column small,
+.cockpit-side-column .attention-row > span:last-child,
+.cockpit-side-column .portfolio-row > span,
+.cockpit-side-column .portfolio-row small,
+.cockpit-side-column .cockpit-card-head .section-eyebrow,
+.section-live {
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.stat-card,
+.cockpit-metrics .stat-card {
+  min-height: 104px;
+  padding: 16px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+.stat-icon,
+.cockpit-metrics .stat-icon {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+}
+
+.stat-card-cyan,
+.stat-card-purple,
+.stat-card-success,
+.stat-card-neutral {
+  color: #9ca3af !important;
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+.stat-card-cyan .stat-value,
+.stat-card-cyan .stat-label,
+.stat-card-cyan .stat-meta,
+.stat-card-purple .stat-value,
+.stat-card-purple .stat-label,
+.stat-card-purple .stat-meta,
+.stat-card-success .stat-value,
+.stat-card-success .stat-label,
+.stat-card-success .stat-meta,
+.stat-card-neutral .stat-value,
+.stat-card-neutral .stat-label,
+.stat-card-neutral .stat-meta {
+  color: #9ca3af !important;
+}
+
+.stat-card-blue .stat-value,
+.stat-card-blue .stat-label,
+.stat-card-blue .stat-meta {
+  color: #1f2937 !important;
+}
+
+.stat-card-danger,
+.stat-card-critical {
+  color: #ef4444 !important;
+  border-color: color-mix(in srgb, #ef4444 24%, #e5e7eb) !important;
+  background: #fef2f2 !important;
+}
+
+.stat-card-warning {
+  color: #f59e0b !important;
+  border-color: color-mix(in srgb, #f59e0b 22%, #e5e7eb) !important;
+  background: #fffbeb !important;
+}
+
+.stat-card-danger .stat-value,
+.stat-card-critical .stat-value,
+.stat-card-warning .stat-value {
+  color: #1f2937 !important;
+}
+
+.stat-card-danger .stat-label,
+.stat-card-critical .stat-label,
+.stat-card-warning .stat-label,
+.stat-card-danger .stat-meta,
+.stat-card-critical .stat-meta,
+.stat-card-warning .stat-meta {
+  color: #4b5563 !important;
+}
+
+.cockpit-nav-label,
+.section-eyebrow,
+.filter-panel-label,
+.detail-field-label,
+.project-meta-label,
+.monitor-section-heading > small,
+.today-section-header small {
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase;
+}
+
+.cockpit-nav-label {
+  margin: 24px 0 8px !important;
+  padding: 0 12px !important;
+}
+
+.section-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.btn,
+.btn-secondary,
+.hero-btn-secondary,
+.cockpit-icon-btn {
+  min-height: 32px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  gap: 8px !important;
+}
+
+.btn-secondary,
+.hero-btn-secondary {
+  color: #4b5563 !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+.btn-secondary:hover,
+.hero-btn-secondary:hover {
+  color: #1f2937 !important;
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+.cockpit-icon-btn {
+  width: 32px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.cockpit-task-list {
+  gap: 0 !important;
+  padding: 0 12px 8px !important;
+}
+
+.cockpit-task-row {
+  min-height: 44px !important;
+  border-width: 0 0 1px 0 !important;
+  border-color: #e5e7eb !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.cockpit-task-row:last-child {
+  border-bottom-color: transparent !important;
+}
+
+.cockpit-task-row summary {
+  min-height: 44px !important;
+  padding: 0 12px !important;
+  align-items: center !important;
+}
+
+.cockpit-task-date {
+  color: #9ca3af !important;
+  font-size: 12px !important;
+}
+
+.cockpit-task-row:hover,
+.today-row:hover {
+  background: #f3f4f6 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.badge,
+.entity-pill,
+.project-signal-chip,
+.cockpit-task-tags span,
+.attention-reason,
+.portfolio-code,
+.entity-card-meta > span,
+.work-card-meta > span {
+  min-height: 20px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.input,
+.form-field-control,
+.filter-grid > input,
+.filter-grid > select,
+.form-card input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.form-card select,
+.form-card textarea {
+  border-radius: 8px !important;
+  background: #ffffff !important;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .dashboard-shell {
+  background: #08111f !important;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .command-form-card,
+[data-theme="dark"] .log-entry-card,
+[data-theme="dark"] .cockpit-card,
+[data-theme="dark"] .project-card,
+[data-theme="dark"] .work-item-card,
+[data-theme="dark"] .work-log-card,
+[data-theme="dark"] .tool-card,
+[data-theme="dark"] .reports-panel-card,
+[data-theme="dark"] .reports-boundary-card,
+[data-theme="dark"] .reports-shortcuts-card,
+[data-theme="dark"] .report-entry-card,
+[data-theme="dark"] .filter-panel,
+[data-theme="dark"] .detail-page .card,
+[data-theme="dark"] .cockpit-side-column .card,
+[data-theme="dark"] .cockpit-side-column .cockpit-card,
+[data-theme="dark"] .cockpit-focus-card {
+  background: #0f172a !important;
+  border-color: #223047 !important;
+}
+
+[data-theme="dark"] .cockpit-side-column .cockpit-card-head h2,
+[data-theme="dark"] .cockpit-card-head h2,
+[data-theme="dark"] .section-header,
+[data-theme="dark"] .today-section-header strong {
+  color: #e5edf7 !important;
+}
+
+[data-theme="dark"] .cockpit-side-column p,
+[data-theme="dark"] .cockpit-side-column .attention-row strong,
+[data-theme="dark"] .cockpit-side-column .portfolio-row strong,
+[data-theme="dark"] .cockpit-side-column .project-card-summary {
+  color: #b6c3d4 !important;
+}
+
+[data-theme="dark"] .cockpit-side-column small,
+[data-theme="dark"] .cockpit-side-column .attention-row > span:last-child,
+[data-theme="dark"] .cockpit-side-column .portfolio-row > span,
+[data-theme="dark"] .cockpit-side-column .portfolio-row small,
+[data-theme="dark"] .section-live,
+[data-theme="dark"] .cockpit-nav-label,
+[data-theme="dark"] .section-eyebrow,
+[data-theme="dark"] .filter-panel-label,
+[data-theme="dark"] .detail-field-label,
+[data-theme="dark"] .project-meta-label {
+  color: #7f8da3 !important;
+}
+
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .cockpit-metrics .stat-card {
+  background: #0f172a !important;
+  border-color: #223047 !important;
+}
+
+[data-theme="dark"] .stat-card-cyan,
+[data-theme="dark"] .stat-card-purple,
+[data-theme="dark"] .stat-card-success,
+[data-theme="dark"] .stat-card-neutral {
+  color: #7f8da3 !important;
+}
+
+[data-theme="dark"] .stat-card-cyan .stat-value,
+[data-theme="dark"] .stat-card-cyan .stat-label,
+[data-theme="dark"] .stat-card-purple .stat-value,
+[data-theme="dark"] .stat-card-purple .stat-label,
+[data-theme="dark"] .stat-card-success .stat-value,
+[data-theme="dark"] .stat-card-success .stat-label,
+[data-theme="dark"] .stat-card-neutral .stat-value,
+[data-theme="dark"] .stat-card-neutral .stat-label {
+  color: #7f8da3 !important;
+}
+
+[data-theme="dark"] .cockpit-task-row:hover,
+[data-theme="dark"] .today-row:hover {
+  background: #162033 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
