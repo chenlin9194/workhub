@@ -44,7 +44,7 @@ export default function ActionItemDraftSection({
   };
 
   return (
-    <section className="form-card" style={{ marginBottom: 24 }}>
+    <section className="form-card action-item-draft-section">
       <div className="dashboard-section-title">
         <div>
           <span className="section-eyebrow">ACTION ITEMS</span>
@@ -52,7 +52,7 @@ export default function ActionItemDraftSection({
         </div>
       </div>
 
-      <div className="card" style={{ padding: 16 }}>
+      <div className="card action-item-draft-card">
         <label className="field-checkbox">
           <input
             type="checkbox"
@@ -71,19 +71,12 @@ export default function ActionItemDraftSection({
         <p className="field-help">{description}</p>
 
         {enabled && (
-          <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+          <div className="action-item-draft-list">
             {drafts.map((draft, index) => (
-              <div
-                key={index}
-                className="card form-section"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-primary)",
-                }}
-              >
-                <div style={{ display: "grid", gap: 12 }}>
+              <div key={index} className="card form-section action-item-draft-row">
+                <div className="action-item-draft-fields">
                   <div>
-                    <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
+                    <label className="action-item-draft-label">
                       标题
                     </label>
                     <input
@@ -91,35 +84,19 @@ export default function ActionItemDraftSection({
                       value={draft.title}
                       onChange={(e) => updateDraft(index, { title: e.target.value })}
                       placeholder="输入待办标题"
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 6,
-                        border: "1px solid var(--border-primary)",
-                        background: "var(--bg-secondary)",
-                        color: "var(--text-primary)",
-                        fontSize: 14,
-                      }}
+                      className="form-field-control"
                     />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+                  <div className="action-item-draft-meta-grid">
                     <div>
-                      <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
+                      <label className="action-item-draft-label">
                         状态
                       </label>
                       <select
                         value={draft.status}
                         onChange={(e) => updateDraft(index, { status: e.target.value })}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: 6,
-                          border: "1px solid var(--border-primary)",
-                          background: "var(--bg-secondary)",
-                          color: "var(--text-primary)",
-                          fontSize: 14,
-                        }}
+                        className="form-field-control"
                       >
                         {ACTION_ITEM_STATUSES.map((status) => (
                           <option key={status.value} value={status.value}>
@@ -130,7 +107,7 @@ export default function ActionItemDraftSection({
                     </div>
 
                     <div>
-                      <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
+                      <label className="action-item-draft-label">
                         负责人
                       </label>
                       <input
@@ -138,35 +115,19 @@ export default function ActionItemDraftSection({
                         value={draft.owner}
                         onChange={(e) => updateDraft(index, { owner: e.target.value })}
                         placeholder="可选"
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: 6,
-                          border: "1px solid var(--border-primary)",
-                          background: "var(--bg-secondary)",
-                          color: "var(--text-primary)",
-                          fontSize: 14,
-                        }}
+                        className="form-field-control"
                       />
                     </div>
 
                     <div>
-                      <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
+                      <label className="action-item-draft-label">
                         截止日期
                       </label>
                       <input
                         type="date"
                         value={draft.dueDate}
                         onChange={(e) => updateDraft(index, { dueDate: e.target.value })}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: 6,
-                          border: "1px solid var(--border-primary)",
-                          background: "var(--bg-secondary)",
-                          color: "var(--text-primary)",
-                          fontSize: 14,
-                        }}
+                        className="form-field-control"
                       />
                     </div>
                   </div>

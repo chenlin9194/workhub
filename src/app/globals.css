@@ -1333,6 +1333,15 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 }
 .form-field-textarea { resize: vertical; }
 
+/* Action item draft helper used by item/log command forms. */
+.action-item-draft-section { margin-bottom: 24px; }
+.action-item-draft-card { padding: 16px; }
+.action-item-draft-list { display: grid; gap: 12px; margin-top: 16px; }
+.action-item-draft-row { border: 1px solid var(--border-primary); background: var(--bg-secondary); }
+.action-item-draft-fields { display: grid; gap: 12px; }
+.action-item-draft-label { display: block; margin-bottom: 4px; color: var(--text-tertiary); font-size: 12px; }
+.action-item-draft-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+
 /* Project edit helpers align the edit screen with wide command-form workspaces. */
 .project-edit-form-page { width: 100%; max-width: 1440px; margin: 0; }
 .project-edit-return-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
