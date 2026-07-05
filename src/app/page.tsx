@@ -2,6 +2,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
+import HomeTopbarActions from "@/components/HomeTopbarActions";
 import { prisma } from "@/lib/prisma";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
 import {
@@ -453,14 +454,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
             <input type="hidden" name="visibility" value="open" />
             <input name="keyword" placeholder="搜索事项、项目、责任人" />
           </form>
-          <div className="cockpit-topbar-actions">
-            <Link href="/today" className="cockpit-icon-btn" title="通知入口">
-              <Icon name="message-square" size={15} />
-            </Link>
-            <Link href="/settings/tools" className="cockpit-icon-btn" title="主题入口">
-              <Icon name="sun" size={15} />
-            </Link>
-          </div>
+          <HomeTopbarActions />
         </header>
 
         <main className="cockpit-grid">

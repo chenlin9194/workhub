@@ -404,30 +404,28 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .dashboard-shell { display: flex; flex-direction: column; gap: 28px; }
 .dashboard-hero {
   position: relative;
-  min-height: 312px;
+  min-height: auto;
   display: flex;
   align-items: stretch;
   overflow: hidden;
-  padding: 36px 38px;
-  border: 1px solid color-mix(in srgb, var(--border-secondary) 68%, transparent);
-  border-radius: 24px;
-  color: #fff;
-  background:
-    linear-gradient(115deg, color-mix(in srgb, #17263b 84%, var(--bg-secondary)) 0%, color-mix(in srgb, #27436a 78%, var(--bg-secondary)) 52%, color-mix(in srgb, #3a2d58 82%, var(--bg-secondary)) 100%),
-    #1b2f4e;
-  box-shadow: var(--shadow-md);
+  padding: 30px 32px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
   isolation: isolate;
 }
-.dashboard-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.14; background-image: linear-gradient(rgba(255,255,255,0.11) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.11) 1px, transparent 1px); background-size: 34px 34px; mask-image: linear-gradient(90deg, black, transparent 92%); }
-.dashboard-hero::after { content: ""; position: absolute; right: -7%; top: -45%; width: 480px; height: 480px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(37, 99, 235, 0.16), transparent 68%); filter: blur(12px); opacity: 0.75; }
-[data-theme="dark"] .dashboard-hero { background: linear-gradient(115deg, color-mix(in srgb, #09111e 82%, var(--bg-secondary)), color-mix(in srgb, #142847 78%, var(--bg-secondary)) 56%, color-mix(in srgb, #281f43 82%, var(--bg-secondary))); border-color: color-mix(in srgb, var(--border-secondary) 58%, transparent); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
+.dashboard-hero::before,
+.dashboard-hero::after { display: none; }
+[data-theme="dark"] .dashboard-hero { background: var(--bg-secondary); border-color: var(--border-primary); box-shadow: var(--shadow-sm); backdrop-filter: none; }
 .hero-content { position: relative; z-index: 2; max-width: 850px; }
-.hero-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: #c7d7ea; font-size: 10px; font-weight: 800; letter-spacing: 0.18em; }
-.hero-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #7dd3fc; box-shadow: 0 0 10px rgba(125, 211, 252, 0.18); animation: statusBlink 3s ease-in-out infinite; }
-@keyframes statusBlink { 50% { opacity: 0.45; } }
-.dashboard-hero h1 { margin: 0; font-size: clamp(34px, 5vw, 54px); line-height: 1; font-weight: 760; letter-spacing: -0.045em; }
-.hero-subtitle { margin: 9px 0 0; color: #d3dbe8; font-size: 16px; font-weight: 520; letter-spacing: 0.055em; }
-.hero-date { margin: 7px 0 0; color: rgba(255,255,255,0.58); font-size: 12px; }
+.hero-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--text-tertiary); font-size: 10px; font-weight: 800; letter-spacing: 0.16em; }
+.hero-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); box-shadow: none; }
+@keyframes statusBlink { 50% { opacity: 0.55; } }
+.dashboard-hero h1 { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.05; font-weight: 760; letter-spacing: -0.04em; }
+.hero-subtitle { margin: 9px 0 0; color: var(--text-secondary); font-size: 15px; font-weight: 520; letter-spacing: 0.02em; }
+.hero-date { margin: 7px 0 0; color: var(--text-tertiary); font-size: 12px; }
 .hero-situation { width: fit-content; max-width: 100%; display: flex; align-items: center; gap: 8px; margin-top: 24px; padding: 10px 13px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #eef4fa; background: rgba(255,255,255,0.07); backdrop-filter: blur(8px); font-size: 13px; line-height: 1.5; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 19px; }
 .hero-btn-primary { color: #0b2348; background: #fff; box-shadow: 0 8px 24px rgba(2, 8, 23, 0.18); }
@@ -2842,6 +2840,79 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .reports-shortcuts-card { padding: 16px; }
 .reports-shortcuts-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .reports-shortcuts-note { margin: 12px 0 0; color: var(--text-tertiary); font-size: 12px; line-height: 1.6; }
+
+/* ===== Phase G Visual Refinement ===== */
+.home-tool-menu-anchor { position: relative; }
+
+.dashboard-hero .hero-situation {
+  margin-top: 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  backdrop-filter: none;
+}
+.dashboard-hero .hero-actions { margin-top: 18px; }
+.dashboard-hero .hero-btn-primary { color: #fff; background: var(--accent-blue); box-shadow: 0 1px 2px rgba(37, 99, 235, 0.18); }
+.dashboard-hero .hero-btn-secondary { color: var(--text-primary); border-color: var(--border-primary); background: var(--bg-secondary); backdrop-filter: none; }
+.dashboard-hero .hero-btn-ghost { color: var(--text-secondary); border-color: var(--border-primary); background: transparent; }
+.dashboard-hero .hero-btn-secondary:hover,
+.dashboard-hero .hero-btn-ghost:hover { background: var(--bg-tertiary); border-color: var(--border-secondary); }
+.dashboard-hero .hero-orbit,
+.dashboard-hero .hero-system-mark { display: none; }
+
+.section-live i { box-shadow: none; }
+.stat-card { min-height: 116px; background: var(--bg-secondary); }
+.stat-card::after { opacity: 0; }
+.stat-card:hover,
+.stat-card-active { transform: translateY(-1px); border-color: var(--border-secondary); box-shadow: var(--shadow-sm); }
+.stat-card .stat-value { font-size: 28px; }
+.stat-card-blue,
+.stat-card-cyan,
+.stat-card-purple,
+.stat-card-success { border-color: var(--border-primary); background: var(--bg-secondary); }
+.stat-card-danger,
+.stat-card-critical { background: color-mix(in srgb, var(--accent-red-light) 12%, var(--bg-secondary)); }
+.stat-card-warning { background: color-mix(in srgb, var(--accent-orange-light) 12%, var(--bg-secondary)); }
+.stat-icon { background: color-mix(in srgb, currentColor 9%, transparent); }
+
+.today-situation { border-color: var(--border-primary); background: var(--bg-secondary); }
+.today-situation-label { background: var(--bg-tertiary); }
+.today-metric { color: var(--text-primary); }
+.today-metric.metric-danger { color: var(--accent-red); }
+.today-metric.metric-warning { color: var(--accent-orange); }
+.today-section::before { width: 2px; opacity: 0.72; }
+.today-section-header { background: var(--bg-secondary); }
+.section-tone-success .today-section-header,
+.section-tone-cyan .today-section-header,
+.section-tone-warning .today-section-header,
+.section-tone-purple .today-section-header,
+.section-tone-danger .today-section-header { background: var(--bg-secondary); }
+.today-section-icon { background: color-mix(in srgb, currentColor 10%, transparent); }
+
+.project-card { color: inherit; background: var(--bg-secondary); }
+.project-health-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+.project-signal-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.project-signal-chip--critical { color: var(--accent-red); background: color-mix(in srgb, var(--accent-red-light) 18%, var(--bg-secondary)); border-color: color-mix(in srgb, var(--accent-red) 20%, var(--border-primary)); }
+.project-signal-chip--danger,
+.project-signal-chip--warning { color: var(--accent-orange); background: color-mix(in srgb, var(--accent-orange-light) 18%, var(--bg-secondary)); border-color: color-mix(in srgb, var(--accent-orange) 20%, var(--border-primary)); }
+.entity-pill-link { text-decoration: none; }
+
+.item-detail-page .card,
+.log-detail-page .card,
+.project-detail-page .card { background: var(--bg-secondary); }
 
 .tool-settings-page {
   gap: 16px;

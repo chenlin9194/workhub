@@ -24,29 +24,6 @@ const HEALTH_TONE: Record<string, string> = {
   unknown: "neutral",
 };
 
-const RISK_SIGNAL_STYLES: Record<string, { color: string; background: string; border: string }> = {
-  critical: {
-    color: "var(--accent-red)",
-    background: "color-mix(in srgb, var(--accent-red-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-red) 20%, var(--border-primary))",
-  },
-  danger: {
-    color: "var(--accent-orange)",
-    background: "color-mix(in srgb, var(--accent-orange-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-orange) 20%, var(--border-primary))",
-  },
-  warning: {
-    color: "var(--accent-orange)",
-    background: "color-mix(in srgb, var(--accent-orange-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-orange) 20%, var(--border-primary))",
-  },
-  neutral: {
-    color: "var(--text-tertiary)",
-    background: "var(--bg-secondary)",
-    border: "var(--border-primary)",
-  },
-};
-
 type ProjectsApiResponse = {
   projects?: Project[];
   total?: number;
@@ -198,7 +175,7 @@ export default function ProjectsPage() {
               const riskSignals = [
                 { key: "p0p1", label: "P0/P1", value: signals?.p0p1Count ?? 0, tone: "critical", href: signalToItemsHref("p0p1", project.id) },
                 { key: "blocked", label: "阻塞", value: signals?.blockedCount ?? 0, tone: "danger", href: signalToItemsHref("blocked", project.id) },
-                { key: "redYellow", label: "红黄", value: signals?.redYellowCount ?? 0, tone: "warning", href: signalToItemsHref("redYellow", project.id) },
+                { key: "redYellow", label: "健康红/黄", value: signals?.redYellowCount ?? 0, tone: "warning", href: signalToItemsHref("redYellow", project.id) },
                 { key: "overdue", label: "逾期", value: signals?.overdueCount ?? 0, tone: "danger", href: signalToItemsHref("overdue", project.id) },
               ].filter((signal) => signal.value > 0);
               const reportableLogCount = signals?.recentReportableLogCount ?? 0;
@@ -218,7 +195,6 @@ export default function ProjectsPage() {
                 <div
                   key={project.id}
                   className="card card-hover project-card"
-                  style={{ color: "inherit" }}
                 >
                   <div className="project-card-header">
                     <div className="project-card-title-row">
@@ -238,8 +214,7 @@ export default function ProjectsPage() {
                       </h3>
                     </div>
                     <span
-                      className={`badge badge-${HEALTH_TONE[project.health] || "neutral"}`}
-                      style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4 }}
+                      className={`badge badge-${HEALTH_TONE[project.health] || "neutral"} project-health-badge`}
                     >
                       {HEALTH_LABELS[project.health] || project.health}
                     </span>
@@ -268,25 +243,13 @@ export default function ProjectsPage() {
                   {hasVisibleSignal && (
                     <div className="project-card-signals">
                       {riskSignals.map((signal) => {
-                        const style = RISK_SIGNAL_STYLES[signal.tone] || RISK_SIGNAL_STYLES.neutral;
-                        const chipStyle = {
-                          fontSize: 12,
-                          padding: "2px 8px",
-                          borderRadius: 999,
-                          color: style.color,
-                          background: style.background,
-                          border: `1px solid ${style.border}`,
-                          fontWeight: 600,
-                          textDecoration: "none",
-                          display: "inline-flex",
-                          alignItems: "center",
-                        };
+                        const signalClassName = `project-signal-chip project-signal-chip--${signal.tone}`;
                         return signal.href ? (
-                          <Link key={signal.key} href={signal.href} style={chipStyle}>
+                          <Link key={signal.key} href={signal.href} className={signalClassName}>
                             {signal.label} {signal.value}
                           </Link>
                         ) : (
-                          <span key={signal.key} style={chipStyle}>
+                          <span key={signal.key} className={signalClassName}>
                             {signal.label} {signal.value}
                           </span>
                         );
@@ -294,8 +257,7 @@ export default function ProjectsPage() {
                       {reportableLogCount > 0 && (
                         <Link
                           href={signalToLogsHref("reportable", project.id)}
-                          className="entity-pill entity-pill--muted"
-                          style={{ textDecoration: "none" }}
+                          className="entity-pill entity-pill--muted entity-pill-link"
                         >
                           可汇报日志 {reportableLogCount}
                         </Link>
