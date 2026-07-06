@@ -1077,6 +1077,24 @@ input.input[type="date"], input.input[type="url"], input.input[type="number"] { 
 .log-type-meeting .log-type-icon { color: var(--accent-purple); background: var(--accent-purple-light); }
 .log-type-update::after { background: var(--accent-blue); }
 .log-type-update .log-type-icon { color: var(--accent-blue); background: var(--accent-blue-light); }
+.work-log-card.is-system-update {
+  border-color: color-mix(in srgb, var(--text-tertiary) 18%, var(--border-primary));
+  background: color-mix(in srgb, var(--bg-secondary) 78%, var(--bg-tertiary));
+  box-shadow: none;
+  filter: saturate(0.7);
+}
+.work-log-card.is-system-update::after {
+  background: var(--text-tertiary);
+  box-shadow: none;
+}
+.work-log-card.is-system-update .log-type-icon {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+.work-log-card.is-system-update .entity-card-title,
+.work-log-card.is-system-update .entity-card-summary {
+  color: var(--text-secondary);
+}
 
 .project-card {
   display: flex;

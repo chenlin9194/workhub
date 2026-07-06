@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get("source");
     const hasItem = searchParams.get("hasItem");
     const reportable = searchParams.get("reportable");
+    const view = searchParams.get("view");
     const keyword = searchParams.get("keyword");
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "20");
@@ -49,6 +50,25 @@ export async function GET(request: NextRequest) {
     if (hasItem === "false") andClauses.push({ itemId: null });
     if (reportable === "true") where.reportable = true;
     if (reportable === "false") where.reportable = false;
+    if (view === "facts") {
+      andClauses.push({
+        OR: [
+          { reportable: true },
+          { type: { in: ["risk", "blocker", "decision", "issue"] } },
+        ],
+      });
+    }
+    if (view === "risk_blocker") {
+      andClauses.push({ type: { in: ["risk", "blocker"] } });
+    }
+    if (view === "system") {
+      andClauses.push({
+        AND: [
+          { type: "update" },
+          { title: { startsWith: "事项变化：" } },
+        ],
+      });
+    }
     if (keyword) {
       andClauses.push({
         OR: [

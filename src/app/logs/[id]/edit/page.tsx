@@ -120,7 +120,7 @@ export default function EditLogPage() {
         <div>
           <span className="section-eyebrow">COMMAND FORM / LOG</span>
           <h1>编辑日志</h1>
-          <p>调整日志内容、关联事项和分类来源，保持与详情页一致的扫读方式。</p>
+          <p>日志用于记录已经发生的关键事实、会议结论、风险暴露、阻塞原因、决策和可汇报素材。</p>
         </div>
       </header>
 
@@ -167,7 +167,7 @@ export default function EditLogPage() {
             <section className="command-form-section log-form-section-content">
               <div className="command-form-section-header">
                 <h2>日志内容</h2>
-                <p>标题与正文。</p>
+                <p>如果需要持续跟踪状态，请建事项；如果只是下一步谁做什么，请建行动项。</p>
               </div>
 
               <div>
@@ -211,6 +211,7 @@ export default function EditLogPage() {
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
+                  <p className="field-help">待办请优先创建行动项；日志只记录已经发生、未来需要解释或汇报的事实。</p>
                 </div>
                 <div>
                   <label className="form-field-label">来源</label>
@@ -300,4 +301,3 @@ export default function EditLogPage() {
     </div>
   );
 }
-

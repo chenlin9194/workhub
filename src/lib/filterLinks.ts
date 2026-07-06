@@ -25,6 +25,7 @@ type LogQuery = {
   source?: string;
   hasItem?: string;
   reportable?: string | boolean;
+  view?: string;
   keyword?: string;
 };
 
@@ -102,6 +103,7 @@ export function buildLogsQueryString(filters: LogQuery, pagination?: Pagination)
   appendString(params, "hasItem", filters.hasItem);
   if (typeof filters.reportable === "boolean") appendBoolean(params, "reportable", filters.reportable);
   else appendString(params, "reportable", filters.reportable);
+  appendString(params, "view", filters.view);
   appendString(params, "keyword", filters.keyword);
   appendPagination(params, pagination);
 

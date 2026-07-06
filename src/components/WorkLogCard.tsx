@@ -37,11 +37,18 @@ const typeIcons: Record<string, string> = {
   other: "flag",
 };
 
+const highValueTypes = new Set(["risk", "blocker", "decision", "issue"]);
+
 export default function WorkLogCard({ log, showLink = true, evidenceLabel }: WorkLogCardProps) {
   const reportable = Boolean(log.reportable);
-  const typeClass = `log-type-${log.type}`;
+  const isSystemUpdate = log.type === "update" && log.title.startsWith("事项变化：");
+  const isHighValue = !isSystemUpdate && (reportable || highValueTypes.has(log.type));
+  const typeClass = `log-type-${log.type}${isSystemUpdate ? " is-system-update" : ""}${isHighValue ? " is-high-value" : ""}`;
   const content = (
-    <div className={`card card-hover entity-card work-log-card ${typeClass}`}>
+    <div
+      className={`card card-hover entity-card work-log-card ${typeClass}`}
+      style={isSystemUpdate ? { opacity: 0.78 } : undefined}
+    >
       <div className="log-card-topline entity-card-header">
         <span className="log-type-icon"><Icon name={typeIcons[log.type] || "file-text"} size={16} /></span>
         <div className="log-card-heading entity-card-body">
@@ -49,6 +56,16 @@ export default function WorkLogCard({ log, showLink = true, evidenceLabel }: Wor
             {evidenceLabel && (
               <span className="entity-pill entity-pill--blue">
                 {evidenceLabel}
+              </span>
+            )}
+            {isHighValue && !evidenceLabel && (
+              <span className="entity-pill entity-pill--blue">
+                关键事实
+              </span>
+            )}
+            {isSystemUpdate && (
+              <span className="entity-pill entity-pill--muted">
+                系统动态
               </span>
             )}
             <span className={`badge badge-${log.type}`}>{WORK_LOG_TYPE_LABELS[log.type] || log.type}</span>

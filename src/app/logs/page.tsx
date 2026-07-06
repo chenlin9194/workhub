@@ -21,6 +21,7 @@ type LogFilters = {
   source: string;
   hasItem: string;
   reportable: string;
+  view: string;
   keyword: string;
 };
 
@@ -51,8 +52,18 @@ const DEFAULT_FILTERS: LogFilters = {
   source: "",
   hasItem: "",
   reportable: "",
+  view: "facts",
   keyword: "",
 };
+
+const LOG_VIEW_OPTIONS = [
+  { key: "facts", label: "关键事实", hint: "风险、阻塞、决策、问题与可汇报记录" },
+  { key: "risk_blocker", label: "风险/阻塞", hint: "只看需要升级或跨团队推动的异常事实" },
+  { key: "decision", label: "决策", hint: "只看已经形成结论的记录" },
+  { key: "reportable", label: "可汇报", hint: "只看可进入日报/周报/管理汇报的素材" },
+  { key: "system", label: "系统动态", hint: "自动记录的事项状态变化，用于追溯，不进入默认关键事实" },
+  { key: "all", label: "全部记录", hint: "包含普通记录与系统状态变化" },
+] as const;
 
 function readLogFilters(searchParams: URLSearchParams): LogFilters {
   return {
@@ -66,8 +77,18 @@ function readLogFilters(searchParams: URLSearchParams): LogFilters {
     source: searchParams.get("source") || "",
     hasItem: searchParams.get("hasItem") || "",
     reportable: searchParams.get("reportable") || "",
+    view: searchParams.get("view") || "facts",
     keyword: searchParams.get("keyword") || "",
   };
+}
+
+function getActiveView(filters: LogFilters) {
+  if (filters.view === "facts") return "facts";
+  if (filters.view === "risk_blocker") return "risk_blocker";
+  if (filters.view === "system") return "system";
+  if (filters.type === "decision") return "decision";
+  if (filters.reportable === "true") return "reportable";
+  return "all";
 }
 
 export default function LogsPage() {
@@ -144,6 +165,21 @@ export default function LogsPage() {
     setPage(1);
   };
 
+  const applyView = (view: string) => {
+    const scopedFilters = {
+      projectId: filters.projectId,
+      project: filters.project,
+      itemId: filters.itemId,
+    };
+
+    if (view === "facts") applyQuickView({ ...scopedFilters, view: "facts" });
+    else if (view === "risk_blocker") applyQuickView({ ...scopedFilters, view: "risk_blocker" });
+    else if (view === "decision") applyQuickView({ ...scopedFilters, view: "", type: "decision" });
+    else if (view === "reportable") applyQuickView({ ...scopedFilters, view: "", reportable: "true" });
+    else if (view === "system") applyQuickView({ ...scopedFilters, view: "system" });
+    else applyQuickView({ ...scopedFilters, view: "" });
+  };
+
   const copyMarkdown = () => {
     let md = "# 工作日志列表\n\n";
     logs.forEach((log) => {
@@ -156,13 +192,16 @@ export default function LogsPage() {
     alert("已复制到剪贴板");
   };
 
+  const activeView = getActiveView(filters);
+  const activeViewHint = LOG_VIEW_OPTIONS.find((view) => view.key === activeView)?.hint;
+
   return (
     <div className="command-list-page log-list-page">
       <div className="command-page-header">
         <div>
-          <span className="section-eyebrow">SIGNAL ARCHIVE</span>
-          <h1>工作日志</h1>
-          <p>回看会议、进展、风险与决策留下的事实记录。</p>
+          <span className="section-eyebrow">FACT TIMELINE</span>
+          <h1>事实记录台</h1>
+          <p>默认只看关键事实与汇报证据，普通状态流进入“全部记录”。</p>
         </div>
         <div className="page-header-actions">
           <button onClick={copyMarkdown} className="btn btn-secondary list-action-button"><Icon name="copy" size={14} />复制 Markdown</button>
@@ -172,32 +211,35 @@ export default function LogsPage() {
 
       <div className="card log-quick-view-panel">
         <div className="log-quick-view-head">
-          <span>快速视图</span>
-          <strong>先回看需要支撑汇报和闭环的事实</strong>
+          <span>事实分层</span>
+          <strong>先回看需要支撑汇报、复盘和解释项目状态的事实</strong>
+          {activeViewHint && <p>{activeViewHint}</p>}
         </div>
         <div className="log-quick-view-actions">
-          <button type="button" onClick={() => applyQuickView({ startDate: today, endDate: today })} className="btn btn-secondary">
+          {LOG_VIEW_OPTIONS.map((view) => (
+            <button
+              key={view.key}
+              type="button"
+              onClick={() => applyView(view.key)}
+              className={`btn ${activeView === view.key ? "btn-primary" : "btn-secondary"}`}
+              title={view.hint}
+            >
+              {view.label}
+            </button>
+          ))}
+          <button type="button" onClick={() => applyQuickView({ startDate: today, endDate: today, view: "" })} className="btn btn-secondary">
             今日日志
           </button>
-          <button type="button" onClick={() => applyQuickView({ type: "risk" })} className="btn btn-secondary">
-            风险阻塞
-          </button>
-          <button type="button" onClick={() => applyQuickView({ startDate: today, endDate: today, type: "decision" })} className="btn btn-secondary">
-            决策
-          </button>
-          <button type="button" onClick={() => applyQuickView({ reportable: "true" })} className="btn btn-secondary">
-            可汇报
-          </button>
-          <button type="button" onClick={() => applyQuickView({ hasItem: "false" })} className="btn btn-secondary">
+          <button type="button" onClick={() => applyQuickView({ hasItem: "false", view: "" })} className="btn btn-secondary">
             未关联事项
           </button>
           {filters.projectId || filters.project ? (
             <button
               type="button"
-              onClick={() => applyQuickView({ projectId: filters.projectId, project: filters.project })}
+              onClick={() => applyQuickView({ projectId: filters.projectId, project: filters.project, view: "facts" })}
               className="btn btn-secondary"
             >
-              项目日志
+              项目关键事实
             </button>
           ) : (
             <Link href="/projects" className="btn btn-secondary">
@@ -249,7 +291,7 @@ export default function LogsPage() {
 
       {loading ? (
         <PageLoadingState
-          title="加载日志列表..."
+          title="加载事实记录..."
           description="正在读取筛选后的日志与关联信息。"
           rows={4}
         />
