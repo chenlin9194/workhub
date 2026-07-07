@@ -137,24 +137,6 @@ export default function ProjectHeaderSection({ project }: ProjectHeaderSectionPr
           </div>
         </div>
 
-        <div className="project-meta-grid">
-          <div className="project-meta-item">
-            <div className="project-meta-label">健康</div>
-            <div className="project-meta-value">{healthLabel}</div>
-          </div>
-          <div className="project-meta-item">
-            <div className="project-meta-label">状态</div>
-            <div className="project-meta-value">{statusLabel}</div>
-          </div>
-          <div className="project-meta-item">
-            <div className="project-meta-label">阶段</div>
-            <div className="project-meta-value">{stageLabel}</div>
-          </div>
-          <div className="project-meta-item">
-            <div className="project-meta-label">类型</div>
-            <div className="project-meta-value">{typeLabel}</div>
-          </div>
-        </div>
       </div>
     </section>
   );

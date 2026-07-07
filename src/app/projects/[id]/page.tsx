@@ -176,17 +176,24 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="page-shell cockpit-page detail-page project-detail-page">
-      <ProjectHeaderSection project={project} />
-      <ProjectOverviewSection project={project} />
-      <ProjectSignalSection
-        projectId={project.id}
-        itemCount={project._count?.items || 0}
-        logCount={project._count?.logs || 0}
-        p0p1Count={p0p1Count}
-        blockedCount={blockedCount}
-        redYellowCount={redYellowCount}
-        overdueCount={overdueCount}
-      />
+      <div id="project-overview" style={{ scrollMarginTop: 12 }}>
+        <ProjectHeaderSection project={project} />
+        <ProjectOverviewSection project={project} />
+      </div>
+      <div id="project-signals" style={{ scrollMarginTop: 12 }}>
+        <ProjectSignalSection
+          projectId={project.id}
+          items={openItems}
+          logs={logs}
+          today={today}
+          itemCount={project._count?.items || 0}
+          logCount={project._count?.logs || 0}
+          p0p1Count={p0p1Count}
+          blockedCount={blockedCount}
+          redYellowCount={redYellowCount}
+          overdueCount={overdueCount}
+        />
+      </div>
 
       <section className="cockpit-section">
         <div className="card project-support-summary">
@@ -207,11 +214,17 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      <ProjectMilestoneSection projectId={project.id} />
-      <ProjectMemberSection projectId={project.id} />
-      <ProjectLinkSection projectId={project.id} />
+      <div id="project-milestones" style={{ scrollMarginTop: 12 }}>
+        <ProjectMilestoneSection projectId={project.id} />
+      </div>
+      <div id="project-members" style={{ scrollMarginTop: 12 }}>
+        <ProjectMemberSection projectId={project.id} />
+      </div>
+      <div id="project-links" style={{ scrollMarginTop: 12 }}>
+        <ProjectLinkSection projectId={project.id} />
+      </div>
 
-      <section className="cockpit-section">
+      <section className="cockpit-section" id="project-info" style={{ scrollMarginTop: 12 }}>
         <div className="dashboard-section-title">
           <div>
             <span className="section-eyebrow">PROJECT INFO</span>
@@ -283,7 +296,7 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      <section className="cockpit-section">
+      <section className="cockpit-section" id="project-items" style={{ scrollMarginTop: 12 }}>
         <div className="dashboard-section-title">
           <div>
             <span className="section-eyebrow">ITEMS</span>
@@ -353,7 +366,7 @@ export default function ProjectDetailPage() {
         )}
       </section>
 
-      <section className="cockpit-section">
+      <section className="cockpit-section" id="project-logs" style={{ scrollMarginTop: 12 }}>
         <div className="dashboard-section-title">
           <div>
             <span className="section-eyebrow">LOGS</span>
