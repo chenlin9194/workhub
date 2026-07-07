@@ -4,11 +4,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import Icon from "@/components/Icon";
 import {
+  PROJECT_MILESTONE_DATE_MODES,
+  PROJECT_MILESTONE_DATE_MODE_LABELS,
+  PROJECT_MILESTONE_STAGES,
+  PROJECT_MILESTONE_STAGE_LABELS,
   PROJECT_MILESTONE_STATUSES,
   PROJECT_MILESTONE_STATUS_LABELS,
   PROJECT_PLAN_TYPES,
   PROJECT_PLAN_TYPE_LABELS,
 } from "@/lib/constants";
+import {
+  getMilestoneActualEnd,
+  getMilestoneDateMode,
+  getMilestonePlannedEnd,
+  getMilestoneStageKey,
+  normalizeDateMode,
+} from "@/lib/projectMilestones";
 import { formatDate, getLocalDateString } from "@/lib/utils";
 import type { ProjectMilestone } from "@/lib/types";
 
@@ -16,9 +27,13 @@ type MilestoneFormState = {
   title: string;
   description: string;
   status: string;
+  stage: string;
   planType: string;
-  targetDate: string;
-  actualDate: string;
+  dateMode: string;
+  plannedStartDate: string;
+  plannedEndDate: string;
+  actualStartDate: string;
+  actualEndDate: string;
   owner: string;
   sourceUrl: string;
   sortOrder: string;
@@ -39,6 +54,8 @@ type MilestoneSignal = {
   tone: Tone;
   plannedDate: string;
   actualDate: string;
+  plannedStartDate: string;
+  actualStartDate: string;
   daysLeft?: number;
   isNext: boolean;
   isNear: boolean;
@@ -51,9 +68,13 @@ const EMPTY_MILESTONE_FORM: MilestoneFormState = {
   title: "",
   description: "",
   status: "planned",
+  stage: "planning",
   planType: "milestone",
-  targetDate: "",
-  actualDate: "",
+  dateMode: "point",
+  plannedStartDate: "",
+  plannedEndDate: "",
+  actualStartDate: "",
+  actualEndDate: "",
   owner: "",
   sourceUrl: "",
   sortOrder: "0",
@@ -61,14 +82,8 @@ const EMPTY_MILESTONE_FORM: MilestoneFormState = {
 
 const CLOSED_MILESTONE_STATUSES = new Set(["done", "cancelled"]);
 
-const STAGE_ORDER = ["planning", "concept", "plan", "verification", "other"];
-const STAGE_LABELS: Record<string, string> = {
-  planning: "规划阶段",
-  concept: "概念阶段",
-  plan: "计划阶段",
-  verification: "开发验证阶段",
-  other: "其他",
-};
+const STAGE_ORDER: string[] = PROJECT_MILESTONE_STAGES.map((stage) => stage.value);
+const LANE_ORDER: string[] = PROJECT_PLAN_TYPES.map((type) => type.value);
 
 const INPUT_STYLE = {
   width: "100%",
@@ -78,22 +93,6 @@ const INPUT_STYLE = {
   background: "var(--bg-secondary)",
   color: "var(--text-primary)",
   fontSize: 13,
-};
-
-const TABLE_CELL_STYLE = {
-  padding: "9px 10px",
-  borderBottom: "1px solid var(--border-secondary)",
-  verticalAlign: "middle" as const,
-};
-
-const TABLE_HEAD_CELL_STYLE = {
-  padding: "9px 10px",
-  borderBottom: "1px solid var(--border-primary)",
-  color: "var(--text-tertiary)",
-  fontSize: 12,
-  fontWeight: 600,
-  textAlign: "left" as const,
-  whiteSpace: "nowrap" as const,
 };
 
 const VIEW_BUTTON_STYLE = {
@@ -157,9 +156,79 @@ function diffDays(from: string, to: string) {
   return Math.round((toUtcTime(to) - toUtcTime(from)) / 86400000);
 }
 
+function getMonthLastDay(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function parseYmd(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return { year, month, day };
+}
+
+function getHalfMonthStart(value: string) {
+  const { year, month, day } = parseYmd(value);
+  const halfStartDay = day <= 15 ? 1 : 16;
+  return `${year}-${String(month).padStart(2, "0")}-${String(halfStartDay).padStart(2, "0")}`;
+}
+
+function getHalfMonthEnd(value: string) {
+  const { year, month, day } = parseYmd(value);
+  const halfEndDay = day <= 15 ? 15 : getMonthLastDay(year, month);
+  return `${year}-${String(month).padStart(2, "0")}-${String(halfEndDay).padStart(2, "0")}`;
+}
+
+function getNextHalfMonthStart(value: string) {
+  const { year, month, day } = parseYmd(value);
+  if (day <= 15) return `${year}-${String(month).padStart(2, "0")}-16`;
+
+  const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+  return `${next.year}-${String(next.month).padStart(2, "0")}-01`;
+}
+
+function getHalfMonthLabel(value: string) {
+  const { year, month, day } = parseYmd(value);
+  return `${year}/${month} ${day <= 15 ? "上旬" : "下旬"}`;
+}
+
+function buildHalfMonthTicks(start: string, end: string) {
+  const ticks: string[] = [];
+  let cursor = getHalfMonthStart(start);
+  const endKey = getHalfMonthStart(end);
+
+  while (cursor <= endKey) {
+    ticks.push(cursor);
+    cursor = getNextHalfMonthStart(cursor);
+  }
+
+  return ticks;
+}
+
 function formatShortDate(value?: string | Date | null) {
   if (!value) return "";
   return formatDate(value);
+}
+
+function formatDateRange(start?: string | Date | null, end?: string | Date | null) {
+  const startText = formatShortDate(start);
+  const endText = formatShortDate(end);
+  if (startText && endText) return `${startText} 至 ${endText}`;
+  return startText || endText || "";
+}
+
+function getPlannedDateText(milestone: ProjectMilestone) {
+  if (getMilestoneDateMode(milestone) === "range") {
+    return formatDateRange(milestone.plannedStartDate, getMilestonePlannedEnd(milestone));
+  }
+
+  return formatShortDate(getMilestonePlannedEnd(milestone));
+}
+
+function getActualDateText(milestone: ProjectMilestone) {
+  if (getMilestoneDateMode(milestone) === "range") {
+    return formatDateRange(milestone.actualStartDate, getMilestoneActualEnd(milestone));
+  }
+
+  return formatShortDate(getMilestoneActualEnd(milestone));
 }
 
 function isMilestoneClosed(milestone: ProjectMilestone) {
@@ -169,7 +238,9 @@ function isMilestoneClosed(milestone: ProjectMilestone) {
 function getMilestoneSearchText(milestone: ProjectMilestone) {
   return [
     milestone.title,
+    PROJECT_MILESTONE_STAGE_LABELS[getMilestoneStageKey(milestone)],
     PROJECT_PLAN_TYPE_LABELS[milestone.planType || "milestone"] || milestone.planType,
+    PROJECT_MILESTONE_DATE_MODE_LABELS[getMilestoneDateMode(milestone)],
     PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status,
     milestone.owner,
     milestone.description,
@@ -180,39 +251,29 @@ function getMilestoneSearchText(milestone: ProjectMilestone) {
     .toLowerCase();
 }
 
-function inferStageKey(milestone: ProjectMilestone) {
-  const source = `${milestone.description || ""} ${milestone.title || ""}`.toLowerCase();
-
-  if (source.includes("规划阶段") || source.includes("规划ko") || source.includes("cdcp")) return "planning";
-  if (source.includes("概念阶段") || source.includes("概念启动") || source.includes("str1")) return "concept";
-  if (source.includes("计划阶段") || source.includes("str2") || source.includes("str3")) return "plan";
-  if (source.includes("开发验证阶段") || source.includes("kick off") || source.includes("str4") || source.includes("str5")) return "verification";
-  return "other";
-}
-
 function groupMilestonesByStage(milestones: ProjectMilestone[]): StageGroup[] {
   const groups = new Map<string, ProjectMilestone[]>();
 
   milestones.forEach((milestone) => {
-    const key = inferStageKey(milestone);
+    const key = getMilestoneStageKey(milestone);
     groups.set(key, [...(groups.get(key) || []), milestone]);
   });
 
   return STAGE_ORDER.map((key) => ({
     key,
-    label: STAGE_LABELS[key],
+    label: PROJECT_MILESTONE_STAGE_LABELS[key],
     milestones: groups.get(key) || [],
-  })).filter((group) => group.milestones.length > 0);
+  }));
 }
 
 function sortMilestones(milestones: ProjectMilestone[]) {
   return [...milestones].sort((a, b) => {
-    const aStage = STAGE_ORDER.indexOf(inferStageKey(a));
-    const bStage = STAGE_ORDER.indexOf(inferStageKey(b));
+    const aStage = STAGE_ORDER.indexOf(getMilestoneStageKey(a));
+    const bStage = STAGE_ORDER.indexOf(getMilestoneStageKey(b));
     if (aStage !== bStage) return aStage - bStage;
 
-    const aDate = getDateKey(a.targetDate);
-    const bDate = getDateKey(b.targetDate);
+    const aDate = getDateKey(getMilestonePlannedEnd(a));
+    const bDate = getDateKey(getMilestonePlannedEnd(b));
     if (aDate && bDate && aDate !== bDate) return aDate.localeCompare(bDate);
     if (aDate && !bDate) return -1;
     if (!aDate && bDate) return 1;
@@ -225,14 +286,16 @@ function sortMilestones(milestones: ProjectMilestone[]) {
 }
 
 function findNextMilestone(milestones: ProjectMilestone[]) {
-  const candidates = milestones.filter((milestone) => !milestone.actualDate && !isMilestoneClosed(milestone));
+  const candidates = milestones.filter((milestone) => !getMilestoneActualEnd(milestone) && !isMilestoneClosed(milestone));
   if (candidates.length === 0) return null;
   return sortMilestones(candidates)[0] ?? null;
 }
 
 function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMilestoneId?: string | null): MilestoneSignal {
-  const plannedDate = getDateKey(milestone.targetDate);
-  const actualDate = getDateKey(milestone.actualDate);
+  const plannedDate = getDateKey(getMilestonePlannedEnd(milestone));
+  const actualDate = getDateKey(getMilestoneActualEnd(milestone));
+  const plannedStartDate = getDateKey(milestone.plannedStartDate);
+  const actualStartDate = getDateKey(milestone.actualStartDate);
   const isNext = Boolean(nextMilestoneId && milestone.id === nextMilestoneId);
 
   if (actualDate) {
@@ -245,6 +308,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
           tone: "risk",
           plannedDate,
           actualDate,
+          plannedStartDate,
+          actualStartDate,
           isNext,
           isNear: false,
           isDone: true,
@@ -259,6 +324,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
           tone: "done",
           plannedDate,
           actualDate,
+          plannedStartDate,
+          actualStartDate,
           isNext,
           isNear: false,
           isDone: true,
@@ -272,6 +339,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
         tone: "done",
         plannedDate,
         actualDate,
+        plannedStartDate,
+        actualStartDate,
         isNext,
         isNear: false,
         isDone: true,
@@ -286,6 +355,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
       tone: "done",
       plannedDate,
       actualDate,
+      plannedStartDate,
+      actualStartDate,
       isNext,
       isNear: false,
       isDone: true,
@@ -301,6 +372,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
       tone: "risk",
       plannedDate,
       actualDate,
+      plannedStartDate,
+      actualStartDate,
       isNext,
       isNear: false,
       isDone: false,
@@ -318,6 +391,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
       tone: isNext ? "next" : isNear ? "active" : "muted",
       plannedDate,
       actualDate,
+      plannedStartDate,
+      actualStartDate,
       daysLeft,
       isNext,
       isNear,
@@ -333,6 +408,8 @@ function getMilestoneSignal(milestone: ProjectMilestone, today: string, nextMile
     tone: isNext ? "next" : "muted",
     plannedDate,
     actualDate,
+    plannedStartDate,
+    actualStartDate,
     isNext,
     isNear: false,
     isDone: false,
@@ -429,19 +506,6 @@ function DeviationText({ signal, fallback = "" }: { signal: MilestoneSignal; fal
   );
 }
 
-function ActualDeviationText({ signal }: { signal: MilestoneSignal }) {
-  if (!signal.actualDate) {
-    return <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>—</span>;
-  }
-
-  const tone = TONE_STYLE[signal.tone];
-  return (
-    <span style={{ color: tone.color, fontSize: 12, fontWeight: signal.isRisk ? 650 : 500, whiteSpace: "nowrap" }}>
-      {signal.deviationLabel}
-    </span>
-  );
-}
-
 function MilestoneFormPanel({
   form,
   setForm,
@@ -459,6 +523,8 @@ function MilestoneFormPanel({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const dateMode = normalizeDateMode(form.dateMode, form.planType);
+
   return (
     <div className="card entity-card entity-card--compact" style={{ padding: 12, marginBottom: 12, display: "grid", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -473,7 +539,7 @@ function MilestoneFormPanel({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, 1.4fr) minmax(130px, 0.8fr) minmax(122px, 0.75fr) minmax(260px, 1.35fr)", gap: 10, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, 1.4fr) minmax(120px, 0.75fr) minmax(130px, 0.8fr) minmax(120px, 0.7fr) minmax(122px, 0.7fr)", gap: 10, alignItems: "start" }}>
         <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
           <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>名称</span>
           <MilestoneInput
@@ -484,13 +550,48 @@ function MilestoneFormPanel({
           {error && <span style={{ color: "var(--accent-red)", fontSize: 12 }}>{error}</span>}
         </label>
         <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>阶段</span>
+          <MilestoneSelect
+            value={form.stage}
+            onChange={(value) => setForm((prev) => ({ ...prev, stage: value }))}
+            options={PROJECT_MILESTONE_STAGES}
+          />
+        </label>
+        <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
           <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>类型</span>
           <MilestoneSelect
             value={form.planType}
-            onChange={(value) => setForm((prev) => ({ ...prev, planType: value }))}
+            onChange={(value) => setForm((prev) => ({ ...prev, planType: value, dateMode: normalizeDateMode(prev.dateMode, value) }))}
             options={PROJECT_PLAN_TYPES}
           />
         </label>
+        <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>日期模式</span>
+          {form.planType === "other" ? (
+            <MilestoneSelect
+              value={dateMode}
+              onChange={(value) => setForm((prev) => ({ ...prev, dateMode: value }))}
+              options={PROJECT_MILESTONE_DATE_MODES}
+            />
+          ) : (
+            <div
+              style={{
+                minHeight: 34,
+                display: "flex",
+                alignItems: "center",
+                padding: "0 9px",
+                borderRadius: 8,
+                border: "1px solid var(--border-primary)",
+                background: "var(--bg-secondary)",
+                color: "var(--text-secondary)",
+                fontSize: 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              时间模式：{PROJECT_MILESTONE_DATE_MODE_LABELS[dateMode]}
+            </div>
+          )}
+        </div>
         <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
           <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>状态</span>
           <MilestoneSelect
@@ -499,25 +600,63 @@ function MilestoneFormPanel({
             options={PROJECT_MILESTONE_STATUSES}
           />
         </label>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 1fr) minmax(120px, 1fr)", gap: 8 }}>
+      </div>
+
+      {dateMode === "range" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(120px, 1fr))", gap: 10 }}>
+          <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>计划开始</span>
+            <MilestoneInput
+              type="date"
+              value={form.plannedStartDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, plannedStartDate: value }))}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>计划结束</span>
+            <MilestoneInput
+              type="date"
+              value={form.plannedEndDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, plannedEndDate: value }))}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>实际开始</span>
+            <MilestoneInput
+              type="date"
+              value={form.actualStartDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, actualStartDate: value }))}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>实际结束</span>
+            <MilestoneInput
+              type="date"
+              value={form.actualEndDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, actualEndDate: value }))}
+            />
+          </label>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(120px, 1fr))", gap: 10 }}>
           <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
             <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>计划日期</span>
             <MilestoneInput
               type="date"
-              value={form.targetDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, targetDate: value }))}
+              value={form.plannedEndDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, plannedEndDate: value }))}
             />
           </label>
           <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
             <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>实际日期</span>
             <MilestoneInput
               type="date"
-              value={form.actualDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, actualDate: value }))}
+              value={form.actualEndDate}
+              onChange={(value) => setForm((prev) => ({ ...prev, actualEndDate: value }))}
             />
           </label>
         </div>
-      </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(140px, 0.7fr) minmax(220px, 1.2fr) minmax(220px, 1.2fr)", gap: 10 }}>
         <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
@@ -601,71 +740,41 @@ function CompactPlanMatrix({
   nextMilestoneId?: string | null;
   onSelect: (milestone: ProjectMilestone) => void;
 }) {
-  const allMilestones = groups.flatMap((group) => group.milestones);
-  const minWidth = Math.max(780, allMilestones.length * 136 + 112);
-
   return (
-    <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-      <table style={{ width: "100%", minWidth, borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", fontSize: 13 }}>
-        <thead>
-          <tr>
-            <th style={{ ...TABLE_HEAD_CELL_STYLE, width: 112, position: "sticky", left: 0, zIndex: 3, background: "var(--bg-primary)" }}>信息项</th>
-            {groups.map((group) => (
-              <th
-                key={group.key}
-                colSpan={group.milestones.length}
-                style={{
-                  ...TABLE_HEAD_CELL_STYLE,
-                  textAlign: "center",
-                  color: "var(--text-secondary)",
-                  background: "var(--bg-secondary)",
-                  borderLeft: "1px solid var(--border-secondary)",
-                }}
-              >
-                {group.label} · {group.milestones.length} 节点
-              </th>
-            ))}
-          </tr>
-          <tr>
-            <th style={{ ...TABLE_HEAD_CELL_STYLE, width: 112, position: "sticky", left: 0, zIndex: 3, background: "var(--bg-primary)" }}>节点</th>
-            {allMilestones.map((milestone) => (
-              <th key={milestone.id} style={{ ...TABLE_HEAD_CELL_STYLE, width: 136, padding: 7, verticalAlign: "top" }}>
-                <MatrixNodeHeader
-                  milestone={milestone}
-                  signal={getMilestoneSignal(milestone, today, nextMilestoneId)}
-                  onSelect={onSelect}
-                />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={{ ...TABLE_CELL_STYLE, position: "sticky", left: 0, zIndex: 2, background: "var(--bg-primary)", color: "var(--text-tertiary)", fontWeight: 650 }}>计划日期</td>
-            {allMilestones.map((milestone) => (
-              <td key={`${milestone.id}-planned`} style={{ ...TABLE_CELL_STYLE, textAlign: "center", color: "var(--text-secondary)" }}>
-                {formatShortDate(milestone.targetDate) || "-"}
-              </td>
-            ))}
-          </tr>
-          <tr>
-            <td style={{ ...TABLE_CELL_STYLE, position: "sticky", left: 0, zIndex: 2, background: "var(--bg-primary)", color: "var(--text-tertiary)", fontWeight: 650 }}>实际日期</td>
-            {allMilestones.map((milestone) => (
-              <td key={`${milestone.id}-actual`} style={{ ...TABLE_CELL_STYLE, textAlign: "center", color: milestone.actualDate ? "var(--text-secondary)" : "var(--text-tertiary)" }}>
-                {formatShortDate(milestone.actualDate) || "—"}
-              </td>
-            ))}
-          </tr>
-          <tr>
-            <td style={{ ...TABLE_CELL_STYLE, position: "sticky", left: 0, zIndex: 2, background: "var(--bg-primary)", color: "var(--text-tertiary)", fontWeight: 650 }}>实际偏差</td>
-            {allMilestones.map((milestone) => (
-              <td key={`${milestone.id}-deviation`} style={{ ...TABLE_CELL_STYLE, textAlign: "center" }}>
-                <ActualDeviationText signal={getMilestoneSignal(milestone, today, nextMilestoneId)} />
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+    <div className="card" style={{ padding: 12, overflowX: "auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(210px, 1fr))", gap: 10, minWidth: 900 }}>
+        {groups.map((group) => (
+          <div key={group.key} style={{ display: "grid", alignContent: "start", gap: 8, minWidth: 0 }}>
+            <div style={{ padding: "6px 8px", borderRadius: 8, background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 750 }}>
+              {group.label} · {group.milestones.length}
+            </div>
+            {group.milestones.length === 0 ? (
+              <div style={{ minHeight: 78, borderRadius: 8, border: "1px dashed var(--border-primary)", color: "var(--text-tertiary)", fontSize: 12, display: "grid", placeItems: "center" }}>
+                暂无节点
+              </div>
+            ) : (
+              group.milestones.map((milestone) => {
+                const signal = getMilestoneSignal(milestone, today, nextMilestoneId);
+                const dateMode = getMilestoneDateMode(milestone);
+                const plannedLabel = dateMode === "range" ? "计划周期" : "计划日期";
+                const actualLabel = dateMode === "range" ? "实际周期" : "实际日期";
+
+                return (
+                  <div key={milestone.id} style={{ display: "grid", gap: 5, padding: 8, borderRadius: 8, border: "1px solid var(--border-secondary)", background: "var(--bg-primary)" }}>
+                    <MatrixNodeHeader milestone={milestone} signal={signal} onSelect={onSelect} />
+                    <div style={{ display: "grid", gap: 3, color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.45 }}>
+                      <span>{PROJECT_PLAN_TYPE_LABELS[milestone.planType || "milestone"] || "里程碑"} · {PROJECT_MILESTONE_DATE_MODE_LABELS[dateMode]}</span>
+                      <span>{plannedLabel}: {getPlannedDateText(milestone) || "待定"}</span>
+                      {getActualDateText(milestone) && <span>{actualLabel}: {getActualDateText(milestone)}</span>}
+                      {(signal.actualDate || signal.isRisk) && <span>偏差: <DeviationText signal={signal} fallback={signal.deviationLabel} /></span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -686,6 +795,10 @@ function DetailPanel({
   onClose: () => void;
 }) {
   const actualDeviation = signal.actualDate ? signal.deviationLabel : "—";
+  const stageLabel = PROJECT_MILESTONE_STAGE_LABELS[getMilestoneStageKey(milestone)] || "规划";
+  const dateMode = getMilestoneDateMode(milestone);
+  const plannedLabel = dateMode === "range" ? "计划周期" : "计划日期";
+  const actualLabel = dateMode === "range" ? "实际周期" : "实际日期";
   const sourceLink = milestone.sourceUrl ? (
     <a href={milestone.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>来源链接</a>
   ) : (
@@ -702,10 +815,11 @@ function DetailPanel({
             <DeviationText signal={signal} />
           </div>
           <div style={{ color: "var(--text-tertiary)", fontSize: 12, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {STAGE_LABELS[inferStageKey(milestone)]} · {PROJECT_PLAN_TYPE_LABELS[milestone.planType || "milestone"] || PROJECT_PLAN_TYPE_LABELS.milestone}
-            {" · "}计划 {formatShortDate(milestone.targetDate) || "—"}
-            {" · "}实际 {formatShortDate(milestone.actualDate) || "—"}
-            {" · "}实际偏差 {actualDeviation}
+            {stageLabel} · {PROJECT_PLAN_TYPE_LABELS[milestone.planType || "milestone"] || PROJECT_PLAN_TYPE_LABELS.milestone}
+            {" · "}{PROJECT_MILESTONE_DATE_MODE_LABELS[dateMode]}
+            {" · "}{plannedLabel} {getPlannedDateText(milestone) || "—"}
+            {" · "}{actualLabel} {getActualDateText(milestone) || "—"}
+            {" · "}偏差 {actualDeviation}
             {" · "}负责人 {milestone.owner || "—"}
             {" · "}来源 {sourceLink}
           </div>
@@ -735,65 +849,6 @@ function DetailPanel({
   );
 }
 
-function TimelineNodeCard({
-  milestone,
-  signal,
-  onSelect,
-}: {
-  milestone: ProjectMilestone;
-  signal: MilestoneSignal;
-  onSelect: (milestone: ProjectMilestone) => void;
-}) {
-  const tone = TONE_STYLE[signal.tone];
-  const isQuietFuture = !signal.isNext && !signal.isRisk && !signal.isDone && !signal.showDeviation;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(milestone)}
-      style={{
-        minWidth: 128,
-        maxWidth: 148,
-        padding: signal.isNext || signal.isRisk || signal.isDone ? 10 : 9,
-        borderRadius: 8,
-        border: `1px solid ${signal.isNext ? "var(--accent-blue)" : tone.border}`,
-        background: signal.isNext ? tone.background : signal.isRisk ? "color-mix(in srgb, var(--accent-red-light) 42%, var(--bg-primary))" : "var(--bg-primary)",
-        color: "var(--text-primary)",
-        textAlign: "left",
-        cursor: "pointer",
-        display: "grid",
-        gap: isQuietFuture ? 4 : 5,
-        boxShadow: signal.isNext ? "0 0 0 1px color-mix(in srgb, var(--accent-blue) 18%, transparent)" : "none",
-      }}
-      title={milestone.description || milestone.title}
-    >
-      {signal.isNext && <span style={{ color: "var(--accent-blue)", fontSize: 11, fontWeight: 700 }}>下一节点</span>}
-      <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{milestone.title}</strong>
-      <span style={{ color: isQuietFuture ? "var(--text-tertiary)" : "var(--text-secondary)", fontSize: 12 }}>计划 {formatShortDate(milestone.targetDate) || "-"}</span>
-      {signal.isDone && (
-        <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>实际 {formatShortDate(milestone.actualDate) || "-"}</span>
-      )}
-      <span style={{ display: "flex", justifyContent: "space-between", gap: 6, alignItems: "center" }}>
-        {isQuietFuture ? <StatusMark signal={signal} /> : <StatusPill signal={signal} />}
-        <DeviationText signal={signal} />
-      </span>
-    </button>
-  );
-}
-
-function getTimelineConnectorStyle(current: MilestoneSignal, next?: MilestoneSignal) {
-  if (next?.isNext || current.isNext) {
-    return { background: "var(--accent-blue)", height: 3, opacity: 0.78 };
-  }
-  if (current.isDone && next?.isDone) {
-    return { background: "var(--accent-green)", height: 3, opacity: 0.62 };
-  }
-  if (current.isRisk || next?.isRisk) {
-    return { background: "var(--accent-orange)", height: 3, opacity: 0.7 };
-  }
-  return { background: "var(--border-primary)", height: 2, opacity: 0.82 };
-}
-
 function TimelineView({
   groups,
   today,
@@ -805,43 +860,213 @@ function TimelineView({
   nextMilestoneId?: string | null;
   onSelect: (milestone: ProjectMilestone) => void;
 }) {
+  const milestones = groups.flatMap((group) => group.milestones);
+  const scheduledItems = milestones
+    .map((milestone) => {
+      const dateMode = getMilestoneDateMode(milestone);
+      const plannedEnd = getDateKey(getMilestonePlannedEnd(milestone));
+      const plannedStart = dateMode === "range" ? getDateKey(milestone.plannedStartDate) : plannedEnd;
+
+      if (!plannedEnd || !plannedStart) return null;
+
+      return {
+        milestone,
+        dateMode,
+        stage: getMilestoneStageKey(milestone),
+        planType: milestone.planType || "milestone",
+        start: plannedStart,
+        end: plannedEnd,
+      };
+    })
+    .filter(Boolean) as Array<{
+      milestone: ProjectMilestone;
+      dateMode: string;
+      stage: string;
+      planType: string;
+      start: string;
+      end: string;
+    }>;
+  const scheduledIds = new Set(scheduledItems.map((item) => item.milestone.id));
+  const unscheduledItems = milestones.filter((milestone) => !scheduledIds.has(milestone.id));
+  const dateValues = scheduledItems.flatMap((item) => [item.start, item.end]);
+  const scheduledLanes = LANE_ORDER.map((planType) => ({
+    planType,
+    items: scheduledItems.filter((item) => item.planType === planType),
+  })).filter((lane) => lane.items.length > 0);
+
+  const tickStart = dateValues.length > 0 ? getHalfMonthStart(dateValues.sort()[0]) : "";
+  const tickEnd = dateValues.length > 0 ? getHalfMonthEnd([...dateValues].sort().at(-1) || dateValues[0]) : "";
+  const ticks = tickStart && tickEnd ? buildHalfMonthTicks(tickStart, tickEnd) : [];
+  const tickIndexByKey = new Map(ticks.map((tick, index) => [tick, index]));
+  const todayTickIndex = tickIndexByKey.get(getHalfMonthStart(today));
+  const gridTemplateColumns = `repeat(${Math.max(1, ticks.length)}, minmax(86px, 1fr))`;
+
   return (
     <div className="card" style={{ padding: 14, overflowX: "auto" }}>
-      <div style={{ display: "flex", gap: 18, minWidth: Math.max(760, groups.flatMap((group) => group.milestones).length * 158), alignItems: "stretch" }}>
-        {groups.map((group, groupIndex) => (
-          <div key={group.key} style={{ display: "grid", gap: 10, alignContent: "start", minWidth: Math.max(180, group.milestones.length * 150) }}>
-            <div
-              style={{
-                padding: "4px 0 6px",
-                borderBottom: "1px solid var(--border-primary)",
-                color: "var(--text-secondary)",
-                fontSize: 12,
-                fontWeight: 700,
-                textAlign: "left",
-              }}
-            >
-              {group.label} · {group.milestones.length} 节点
+      <div style={{ minWidth: 920, display: "grid", gap: 12 }}>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          {groups.map((group) => (
+            <div key={group.key} style={{ padding: "7px 8px", borderRadius: 8, background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 750 }}>
+              {group.label} · {group.milestones.length}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-              {group.milestones.map((milestone, index) => {
-                const signal = getMilestoneSignal(milestone, today, nextMilestoneId);
-                const nextSignal = group.milestones[index + 1]
-                  ? getMilestoneSignal(group.milestones[index + 1], today, nextMilestoneId)
-                  : undefined;
-                const showConnector = index < group.milestones.length - 1;
-                const connectorStyle = getTimelineConnectorStyle(signal, nextSignal);
-
-                return (
-                  <div key={milestone.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <TimelineNodeCard milestone={milestone} signal={signal} onSelect={onSelect} />
-                    {showConnector && <span style={{ width: 34, borderRadius: 999, flex: "0 0 auto", ...connectorStyle }} />}
+          ))}
+        </div>
+        {scheduledItems.length > 0 ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, alignItems: "stretch" }}>
+              <div />
+              <div style={{ display: "grid", gridTemplateColumns, border: "1px solid var(--border-secondary)", borderRadius: 8, overflow: "hidden", background: "var(--bg-secondary)" }}>
+                {ticks.map((tick, index) => (
+                  <div
+                    key={tick}
+                    style={{
+                      minHeight: 32,
+                      padding: "6px 7px",
+                      borderLeft: index === 0 ? "none" : "1px solid var(--border-secondary)",
+                      color: "var(--text-tertiary)",
+                      fontSize: 11,
+                      fontWeight: 650,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {getHalfMonthLabel(tick)}
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {scheduledLanes.map(({ planType, items }) => {
+              const rowCount = items.length;
+
+              return (
+                <div key={planType} style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, alignItems: "stretch" }}>
+                <div style={{ color: "var(--text-tertiary)", fontSize: 12, fontWeight: 700, paddingTop: 12 }}>
+                  {PROJECT_PLAN_TYPE_LABELS[planType] || planType}
+                </div>
+                <div
+                  style={{
+                    position: "relative",
+                    display: "grid",
+                    gridTemplateColumns,
+                    gridTemplateRows: `repeat(${rowCount}, 34px)`,
+                    minHeight: Math.max(42, rowCount * 34 + 10),
+                    padding: "8px 0",
+                    borderRadius: 8,
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-secondary)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {ticks.map((tick, index) => (
+                    <span
+                      key={`${planType}-${tick}`}
+                      style={{
+                        gridColumn: index + 1,
+                        gridRow: `1 / ${rowCount + 1}`,
+                        borderLeft: index === 0 ? "none" : "1px solid var(--border-secondary)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  ))}
+                  {todayTickIndex !== undefined && (
+                    <span
+                      style={{
+                        gridColumn: todayTickIndex + 1,
+                        gridRow: `1 / ${rowCount + 1}`,
+                        borderLeft: "2px solid color-mix(in srgb, var(--accent-blue) 50%, transparent)",
+                        pointerEvents: "none",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+                  {items.map((item, index) => {
+                      const signal = getMilestoneSignal(item.milestone, today, nextMilestoneId);
+                      const tone = TONE_STYLE[signal.tone];
+                      const isPoint = item.dateMode === "point";
+                      const startIndex = tickIndexByKey.get(getHalfMonthStart(item.start)) ?? 0;
+                      const endIndex = tickIndexByKey.get(getHalfMonthStart(item.end)) ?? startIndex;
+
+                      return (
+                        <button
+                          key={item.milestone.id}
+                          type="button"
+                          onClick={() => onSelect(item.milestone)}
+                          title={item.milestone.description || item.milestone.title}
+                          style={{
+                            gridColumn: isPoint ? `${startIndex + 1} / span 1` : `${startIndex + 1} / ${endIndex + 2}`,
+                            gridRow: index + 1,
+                            alignSelf: "center",
+                            justifySelf: isPoint ? "center" : "stretch",
+                            width: isPoint ? 22 : "auto",
+                            minWidth: isPoint ? 22 : 72,
+                            height: 26,
+                            borderRadius: isPoint ? 999 : 7,
+                            border: `1px solid ${signal.isNext ? "var(--accent-blue)" : tone.border}`,
+                            background: signal.isRisk ? "var(--accent-red-light)" : signal.isDone ? "var(--accent-green-light)" : "var(--bg-primary)",
+                            color: "var(--text-primary)",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: isPoint ? "center" : "flex-start",
+                            padding: isPoint ? 0 : "0 8px",
+                            zIndex: 2,
+                            boxShadow: signal.isNext ? "0 0 0 1px color-mix(in srgb, var(--accent-blue) 18%, transparent)" : "none",
+                          }}
+                        >
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 650 }}>
+                            {isPoint ? "●" : item.milestone.title}
+                          </span>
+                          {isPoint && (
+                            <span style={{ position: "absolute", left: "calc(50% + 15px)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 650, whiteSpace: "nowrap" }}>
+                              {item.milestone.title}
+                            </span>
+                          )}
+                        </button>
+                      );
+                  })}
+                </div>
+              </div>
+            );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state" style={{ padding: 10, color: "var(--text-tertiary)", fontSize: 13 }}>
+            暂无已排期内容
+          </div>
+        )}
+        {unscheduledItems.length > 0 && (
+          <div style={{ display: "grid", gap: 8, paddingTop: 4 }}>
+            <div style={{ color: "var(--text-tertiary)", fontSize: 12, fontWeight: 750 }}>未排期</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {unscheduledItems.map((milestone) => {
+                const signal = getMilestoneSignal(milestone, today, nextMilestoneId);
+                return (
+                  <button
+                    key={milestone.id}
+                    type="button"
+                    onClick={() => onSelect(milestone)}
+                    style={{
+                      maxWidth: 260,
+                      padding: "7px 9px",
+                      borderRadius: 8,
+                      border: "1px dashed var(--border-primary)",
+                      background: "var(--bg-primary)",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <StatusMark signal={signal} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>{milestone.title}</span>
+                  </button>
                 );
               })}
-              {groupIndex < groups.length - 1 && <span style={{ width: 28, height: 2, borderRadius: 999, background: "var(--border-primary)", opacity: 0.72, flex: "0 0 auto" }} />}
             </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -871,7 +1096,16 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
 
   const validateMilestoneForm = useCallback((form: MilestoneFormState) => {
     if (!form.title.trim()) return "节点/计划名称不能为空";
-    if (form.actualDate && !form.targetDate) return "填写实际日期前请先填写计划日期";
+    if (!form.stage.trim()) return "阶段不能为空";
+    const dateMode = normalizeDateMode(form.dateMode, form.planType);
+    if (dateMode === "range") {
+      if (form.plannedStartDate && form.plannedEndDate && form.plannedStartDate > form.plannedEndDate) return "计划开始不能晚于计划结束";
+      if (form.actualStartDate && form.actualEndDate && form.actualStartDate > form.actualEndDate) return "实际开始不能晚于实际结束";
+      if (form.actualEndDate && !form.plannedEndDate) return "填写实际结束前请先填写计划结束";
+      return "";
+    }
+
+    if (form.actualEndDate && !form.plannedEndDate) return "填写实际日期前请先填写计划日期";
     return "";
   }, []);
 
@@ -882,9 +1116,15 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
       title: form.title.trim(),
       description: form.description,
       status: form.status.trim() || "planned",
+      stage: form.stage.trim() || "planning",
       planType: form.planType.trim() || "milestone",
-      targetDate: form.targetDate || null,
-      actualDate: form.actualDate || null,
+      dateMode: normalizeDateMode(form.dateMode, form.planType),
+      plannedStartDate: form.plannedStartDate || null,
+      plannedEndDate: form.plannedEndDate || null,
+      actualStartDate: form.actualStartDate || null,
+      actualEndDate: form.actualEndDate || null,
+      targetDate: form.plannedEndDate || null,
+      actualDate: form.actualEndDate || null,
       owner: form.owner,
       sourceUrl: form.sourceUrl,
       sortOrder: Number.isFinite(sortOrderValue) ? sortOrderValue : 0,
@@ -963,15 +1203,20 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
   const openMilestoneEditForm = (milestone: ProjectMilestone) => {
     closeMilestoneCreateForm();
     setMilestoneActionError("");
+    setSelectedMilestoneId(milestone.id);
     setEditingMilestoneId(milestone.id);
     setMilestoneEditError("");
     setMilestoneEditForm({
       title: milestone.title,
       description: milestone.description || "",
       status: milestone.status,
+      stage: getMilestoneStageKey(milestone),
       planType: milestone.planType || "milestone",
-      targetDate: toDateInputValue(milestone.targetDate),
-      actualDate: toDateInputValue(milestone.actualDate),
+      dateMode: getMilestoneDateMode(milestone),
+      plannedStartDate: toDateInputValue(milestone.plannedStartDate),
+      plannedEndDate: toDateInputValue(getMilestonePlannedEnd(milestone)),
+      actualStartDate: toDateInputValue(milestone.actualStartDate),
+      actualEndDate: toDateInputValue(getMilestoneActualEnd(milestone)),
       owner: milestone.owner || "",
       sourceUrl: milestone.sourceUrl || "",
       sortOrder: String(milestone.sortOrder),
@@ -1090,6 +1335,20 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
     }
   };
 
+  const handleMilestoneSelect = (milestone: ProjectMilestone) => {
+    if (editingMilestoneId && editingMilestoneId !== milestone.id) {
+      closeMilestoneEditForm();
+    }
+
+    if (selectedMilestoneId === milestone.id) {
+      if (editingMilestoneId === milestone.id) closeMilestoneEditForm();
+      setSelectedMilestoneId(null);
+      return;
+    }
+
+    setSelectedMilestoneId(milestone.id);
+  };
+
   const filteredByPlanType = useMemo(() => {
     const typeFiltered = selectedPlanType === "all"
       ? milestones
@@ -1111,6 +1370,10 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
   const sortedAllMilestones = useMemo(() => sortMilestones(milestones), [milestones]);
   const nextKeyMilestone = useMemo(() => findNextMilestone(sortedAllMilestones), [sortedAllMilestones]);
   const groupedMilestones = useMemo(() => groupMilestonesByStage(displayedMilestones), [displayedMilestones]);
+  const populatedStageGroups = useMemo(
+    () => groupedMilestones.filter((group) => group.milestones.length > 0),
+    [groupedMilestones]
+  );
   const selectedMilestone = selectedMilestoneId ? milestones.find((milestone) => milestone.id === selectedMilestoneId) ?? null : null;
   const riskMilestoneCount = milestones.filter((milestone) => getMilestoneSignal(milestone, today, nextKeyMilestone?.id).isRisk).length;
   const doneMilestoneCount = milestones.filter((milestone) => getMilestoneSignal(milestone, today, nextKeyMilestone?.id).isDone).length;
@@ -1162,7 +1425,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
               <>
                 <strong style={{ color: "var(--text-primary)", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {nextKeyMilestone.title}
-                  {nextKeyMilestone.targetDate ? ` · ${formatShortDate(nextKeyMilestone.targetDate)}` : ""}
+                  {getPlannedDateText(nextKeyMilestone) ? ` · ${getPlannedDateText(nextKeyMilestone)}` : ""}
                   {nextKeyMilestone.owner ? ` · ${nextKeyMilestone.owner}` : ""}
                 </strong>
                 {nextMilestoneSignal && <DeviationText signal={nextMilestoneSignal} fallback="日期待定" />}
@@ -1252,18 +1515,6 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
         />
       )}
 
-      {editingMilestoneId && (
-        <MilestoneFormPanel
-          title="编辑节点/计划"
-          form={milestoneEditForm}
-          setForm={setMilestoneEditForm}
-          saving={milestoneEditSaving}
-          error={milestoneEditError}
-          onSave={() => void handleMilestoneEditSubmit(editingMilestoneId)}
-          onCancel={closeMilestoneEditForm}
-        />
-      )}
-
       {milestonesLoading ? (
         <div className="card empty-state">
           <p>加载中...</p>
@@ -1290,18 +1541,28 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
           groups={groupedMilestones}
           today={today}
           nextMilestoneId={nextKeyMilestone?.id}
-          onSelect={(milestone) => setSelectedMilestoneId((currentId) => (currentId === milestone.id ? null : milestone.id))}
+          onSelect={handleMilestoneSelect}
         />
       ) : (
         <CompactPlanMatrix
-          groups={groupedMilestones}
+          groups={populatedStageGroups}
           today={today}
           nextMilestoneId={nextKeyMilestone?.id}
-          onSelect={(milestone) => setSelectedMilestoneId((currentId) => (currentId === milestone.id ? null : milestone.id))}
+          onSelect={handleMilestoneSelect}
         />
       )}
 
-      {selectedMilestone && !editingMilestoneId && (
+      {selectedMilestone && editingMilestoneId === selectedMilestone.id ? (
+        <MilestoneFormPanel
+          title="编辑节点/计划"
+          form={milestoneEditForm}
+          setForm={setMilestoneEditForm}
+          saving={milestoneEditSaving}
+          error={milestoneEditError}
+          onSave={() => void handleMilestoneEditSubmit(editingMilestoneId)}
+          onCancel={closeMilestoneEditForm}
+        />
+      ) : selectedMilestone ? (
         <DetailPanel
           milestone={selectedMilestone}
           signal={getMilestoneSignal(selectedMilestone, today, nextKeyMilestone?.id)}
@@ -1310,7 +1571,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
           onDelete={handleMilestoneDelete}
           onClose={() => setSelectedMilestoneId(null)}
         />
-      )}
+      ) : null}
     </section>
   );
 }

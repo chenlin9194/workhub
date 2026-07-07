@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { getMilestonePlannedEnd } from "@/lib/projectMilestones";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString, isValidYmdDateString } from "@/lib/utils";
 
@@ -16,10 +17,16 @@ type SnapshotMilestone = Prisma.ProjectMilestoneGetPayload<{
     id: true;
     title: true;
     description: true;
+    stage: true;
     planType: true;
+    dateMode: true;
     status: true;
     targetDate: true;
     actualDate: true;
+    plannedStartDate: true;
+    plannedEndDate: true;
+    actualStartDate: true;
+    actualEndDate: true;
     owner: true;
     sourceUrl: true;
     sortOrder: true;
@@ -91,14 +98,15 @@ function buildMilestoneTimeline(milestones: SnapshotMilestone[]) {
       return false;
     }
 
-    if (!milestone.targetDate) {
+    const plannedEnd = getMilestonePlannedEnd(milestone);
+    if (!plannedEnd) {
       return false;
     }
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    return milestone.targetDate < startOfToday;
+    return new Date(plannedEnd) < startOfToday;
   });
 
   const nextOpenMilestone =
@@ -205,10 +213,16 @@ export async function GET(
               id: true,
               title: true,
               description: true,
+              stage: true,
               planType: true,
+              dateMode: true,
               status: true,
               targetDate: true,
               actualDate: true,
+              plannedStartDate: true,
+              plannedEndDate: true,
+              actualStartDate: true,
+              actualEndDate: true,
               owner: true,
               sourceUrl: true,
               sortOrder: true,

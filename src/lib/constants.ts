@@ -61,12 +61,32 @@ export const PROJECT_MILESTONE_STATUS_LABELS: Record<string, string> = Object.fr
   PROJECT_MILESTONE_STATUSES.map((status) => [status.value, status.label])
 );
 
+export const PROJECT_MILESTONE_STAGES = [
+  { value: "planning", label: "规划" },
+  { value: "concept", label: "概念" },
+  { value: "plan", label: "计划" },
+  { value: "verification", label: "开发验证" },
+] as const;
+
+export const PROJECT_MILESTONE_STAGE_LABELS: Record<string, string> = Object.fromEntries(
+  PROJECT_MILESTONE_STAGES.map((stage) => [stage.value, stage.label])
+);
+
+export const PROJECT_MILESTONE_DATE_MODES = [
+  { value: "point", label: "时间点" },
+  { value: "range", label: "时间周期" },
+] as const;
+
+export const PROJECT_MILESTONE_DATE_MODE_LABELS: Record<string, string> = Object.fromEntries(
+  PROJECT_MILESTONE_DATE_MODES.map((mode) => [mode.value, mode.label])
+);
+
 export const PROJECT_PLAN_TYPES = [
   { value: "milestone", label: "里程碑" },
-  { value: "release", label: "发布计划" },
-  { value: "test", label: "测试计划" },
-  { value: "development", label: "开发计划" },
   { value: "requirement", label: "需求计划" },
+  { value: "development", label: "开发计划" },
+  { value: "test", label: "测试计划" },
+  { value: "release", label: "发布计划" },
   { value: "management", label: "管理节点" },
   { value: "other", label: "其他" },
 ] as const;

@@ -51,8 +51,11 @@ export interface ProjectPortfolioMilestone {
   id: string;
   title: string;
   status: string;
+  stage?: string | null;
   planType?: string | null;
+  dateMode?: string | null;
   targetDate?: string | Date | null;
+  plannedEndDate?: string | Date | null;
 }
 
 export interface ProjectPortfolioLink {
@@ -93,10 +96,16 @@ export interface ProjectMilestone {
   projectId: string;
   title: string;
   description?: string | null;
+  stage?: string | null;
   planType: string;
+  dateMode?: string | null;
   status: string;
   targetDate?: string | Date | null;
   actualDate?: string | Date | null;
+  plannedStartDate?: string | Date | null;
+  plannedEndDate?: string | Date | null;
+  actualStartDate?: string | Date | null;
+  actualEndDate?: string | Date | null;
   owner?: string | null;
   sourceUrl?: string | null;
   sortOrder: number;
@@ -204,10 +213,16 @@ export interface ProjectSnapshotMilestone {
   id?: string;
   title: string;
   description?: string | null;
+  stage?: string | null;
   planType: string;
+  dateMode?: string | null;
   status: string;
   targetDate?: string | null;
   actualDate?: string | null;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
   owner?: string | null;
   sourceUrl?: string | null;
   sortOrder?: number;

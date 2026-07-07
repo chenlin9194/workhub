@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { PROJECT_PLAN_TYPES } from "@/lib/constants";
+import {
+  PROJECT_MILESTONE_STAGE_VALUES,
+  normalizeDateMode,
+  normalizePlanType,
+  normalizeStage,
+} from "@/lib/projectMilestones";
 import { prisma } from "@/lib/prisma";
 import { toNullableString } from "@/lib/utils";
-
-const PROJECT_PLAN_TYPE_VALUES: Set<string> = new Set(PROJECT_PLAN_TYPES.map((type) => type.value));
 
 function normalizeRequiredString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -18,16 +21,15 @@ function normalizeStatus(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : "planned";
 }
 
-function normalizePlanType(value: unknown) {
-  if (typeof value !== "string") return "milestone";
-
-  const planType = value.trim();
-  return PROJECT_PLAN_TYPE_VALUES.has(planType) ? planType : "milestone";
-}
-
 function parseOptionalDateInput(value: unknown, fieldName: string) {
   if (value === undefined || value === null || value === "") {
     return { ok: true as const, value: null as Date | null };
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? { ok: false as const, error: `${fieldName} must be a valid date` }
+      : { ok: true as const, value };
   }
 
   if (typeof value !== "string") {
@@ -45,6 +47,14 @@ function parseOptionalDateInput(value: unknown, fieldName: string) {
   }
 
   return { ok: true as const, value: date };
+}
+
+function validateDateRange(start: Date | null, end: Date | null, label: string) {
+  if (start && end && start.getTime() > end.getTime()) {
+    return `${label} start date cannot be later than end date`;
+  }
+
+  return "";
 }
 
 export async function GET(
@@ -98,30 +108,66 @@ export async function POST(
 
     const body = await request.json();
     const title = normalizeRequiredString(body.title);
+    const description = normalizeOptionalString(body.description);
 
     if (!title) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
 
-    const targetDate = parseOptionalDateInput(body.targetDate, "targetDate");
-    if (!targetDate.ok) {
-      return NextResponse.json({ error: targetDate.error }, { status: 400 });
+    const planType = normalizePlanType(body.planType);
+    const dateMode = normalizeDateMode(body.dateMode, planType);
+    if (typeof body.stage !== "string" || !PROJECT_MILESTONE_STAGE_VALUES.has(body.stage.trim())) {
+      return NextResponse.json({ error: "stage is required" }, { status: 400 });
+    }
+    const stage = normalizeStage(body.stage, { title, description });
+
+    const plannedStartDate = parseOptionalDateInput(body.plannedStartDate, "plannedStartDate");
+    if (!plannedStartDate.ok) {
+      return NextResponse.json({ error: plannedStartDate.error }, { status: 400 });
     }
 
-    const actualDate = parseOptionalDateInput(body.actualDate, "actualDate");
-    if (!actualDate.ok) {
-      return NextResponse.json({ error: actualDate.error }, { status: 400 });
+    const plannedEndDate = parseOptionalDateInput(body.plannedEndDate ?? body.targetDate, "plannedEndDate");
+    if (!plannedEndDate.ok) {
+      return NextResponse.json({ error: plannedEndDate.error }, { status: 400 });
+    }
+
+    const actualStartDate = parseOptionalDateInput(body.actualStartDate, "actualStartDate");
+    if (!actualStartDate.ok) {
+      return NextResponse.json({ error: actualStartDate.error }, { status: 400 });
+    }
+
+    const actualEndDate = parseOptionalDateInput(body.actualEndDate ?? body.actualDate, "actualEndDate");
+    if (!actualEndDate.ok) {
+      return NextResponse.json({ error: actualEndDate.error }, { status: 400 });
+    }
+
+    if (dateMode === "range") {
+      const plannedRangeError = validateDateRange(plannedStartDate.value, plannedEndDate.value, "planned");
+      if (plannedRangeError) return NextResponse.json({ error: plannedRangeError }, { status: 400 });
+
+      const actualRangeError = validateDateRange(actualStartDate.value, actualEndDate.value, "actual");
+      if (actualRangeError) return NextResponse.json({ error: actualRangeError }, { status: 400 });
+    }
+
+    if (actualEndDate.value && !plannedEndDate.value) {
+      return NextResponse.json({ error: "plannedEndDate is required before actualEndDate" }, { status: 400 });
     }
 
     const milestone = await prisma.projectMilestone.create({
       data: {
         projectId,
         title,
-        description: normalizeOptionalString(body.description),
-        planType: normalizePlanType(body.planType),
+        description,
+        stage,
+        planType,
+        dateMode,
         status: normalizeStatus(body.status),
-        targetDate: targetDate.value,
-        actualDate: actualDate.value,
+        targetDate: plannedEndDate.value,
+        actualDate: actualEndDate.value,
+        plannedStartDate: dateMode === "range" ? plannedStartDate.value : null,
+        plannedEndDate: plannedEndDate.value,
+        actualStartDate: dateMode === "range" ? actualStartDate.value : null,
+        actualEndDate: actualEndDate.value,
         owner: normalizeOptionalString(body.owner),
         sourceUrl: normalizeOptionalString(body.sourceUrl),
         sortOrder: Number.isFinite(body.sortOrder) ? Number(body.sortOrder) : 0,

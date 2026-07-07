@@ -10,6 +10,7 @@
 import {
   HEALTH_LABELS,
   PROJECT_LINK_CATEGORIES,
+  PROJECT_MILESTONE_STAGE_LABELS,
   PROJECT_MILESTONE_STATUS_LABELS,
   PROJECT_PLAN_TYPE_LABELS,
   PROJECT_STAGE_LABELS,
@@ -21,6 +22,7 @@ import {
   STATUS_LABELS,
   SOURCE_LABELS,
 } from "@/lib/constants";
+import { getMilestoneActualEnd, getMilestoneDateMode, getMilestonePlannedEnd } from "@/lib/projectMilestones";
 import { formatDate, getLocalDateString } from "@/lib/utils";
 import type {
   ProjectSnapshotData,
@@ -87,8 +89,9 @@ export interface TodayExportData {
   decisionLogs: LogEntry[];
 }
 
-function hasText(value?: string | null) {
-  return Boolean(value && value.trim().length > 0);
+function hasText(value?: unknown) {
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  return typeof value === "string" ? value.trim().length > 0 : Boolean(value);
 }
 
 function traceId(prefix: string, index: number) {
@@ -456,7 +459,7 @@ function escapeMarkdownInline(value: string) {
     .replace(/>/g, "\\>");
 }
 
-function formatSnapshotDate(value?: string | null) {
+function formatSnapshotDate(value?: string | Date | null) {
   if (!value) return "-";
   return formatDate(value, "iso");
 }
@@ -496,18 +499,28 @@ function renderProjectLinkLine(link: ProjectSnapshotLink) {
 
 function renderMilestoneLine(milestone: ProjectSnapshotMilestone) {
   const planTypeLabel = PROJECT_PLAN_TYPE_LABELS[milestone.planType || "milestone"] || milestone.planType || "milestone";
+  const stageLabel = milestone.stage ? PROJECT_MILESTONE_STAGE_LABELS[milestone.stage] || milestone.stage : "";
   const statusLabel = PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status;
+  const dateMode = getMilestoneDateMode(milestone);
+  const plannedEnd = getMilestonePlannedEnd(milestone);
+  const actualEnd = getMilestoneActualEnd(milestone);
   const parts = [
     `状态 ${escapeMarkdownInline(statusLabel)}`,
     `类型 ${escapeMarkdownInline(planTypeLabel)}`,
   ];
 
-  if (milestone.targetDate) {
-    parts.push(`目标 ${formatSnapshotDate(milestone.targetDate)}`);
+  if (stageLabel) {
+    parts.push(`阶段 ${escapeMarkdownInline(stageLabel)}`);
   }
 
-  if (milestone.actualDate) {
-    parts.push(`实际 ${formatSnapshotDate(milestone.actualDate)}`);
+  if (dateMode === "range") {
+    const plannedRange = [milestone.plannedStartDate, plannedEnd].filter(Boolean).map((date) => formatSnapshotDate(date as string)).join(" 至 ");
+    const actualRange = [milestone.actualStartDate, actualEnd].filter(Boolean).map((date) => formatSnapshotDate(date as string)).join(" 至 ");
+    if (plannedRange) parts.push(`计划周期 ${plannedRange}`);
+    if (actualRange) parts.push(`实际周期 ${actualRange}`);
+  } else {
+    if (plannedEnd) parts.push(`计划日期 ${formatSnapshotDate(plannedEnd)}`);
+    if (actualEnd) parts.push(`实际日期 ${formatSnapshotDate(actualEnd)}`);
   }
 
   if (milestone.owner) {
@@ -652,7 +665,7 @@ function renderProjectSnapshotQualitySection(snapshot: ProjectSnapshotData) {
 
   milestones.forEach((milestone, index) => {
     const gaps: string[] = [];
-    if (!hasText(milestone.targetDate)) gaps.push("目标日期");
+    if (!hasText(getMilestonePlannedEnd(milestone))) gaps.push("计划结束/计划日期");
     if (!hasText(milestone.owner)) gaps.push("负责人");
     if (gaps.length > 0) missing.push(`${traceId("MS", index)} ${milestone.title}: 缺少 ${gaps.join("、")}`);
   });
@@ -661,7 +674,7 @@ function renderProjectSnapshotQualitySection(snapshot: ProjectSnapshotData) {
   md += `- 事实规模: 关联事项 ${items.length} 项 | 最近日志 ${logs.length} 条 | 里程碑 ${milestones.length} 个 | 成员 ${members.length} 人 | 关键链接 ${links.length} 个\n`;
   md += `- 项目基本盘: 当前摘要 ${hasText(summary?.currentSummary ?? project?.currentSummary) ? "已填写" : "待确认"} | 下一里程碑 ${hasText(summary?.nextMilestone ?? project?.nextMilestone) ? "已填写" : "待确认"} | 下一动作 ${hasText(summary?.nextAction ?? project?.nextAction) ? "已填写" : "待确认"}\n`;
   md += `- 重点事项完整性: 责任人 ${percentText(importantItems.filter((item) => hasText(item.owner)).length, importantItems.length)} | 下一步/摘要 ${percentText(importantItems.filter((item) => hasText(item.nextAction) || hasText(item.currentSummary)).length, importantItems.length)} | 外部来源 ${percentText(importantItems.filter((item) => hasText(item.sourceUrl) || hasText(item.sourceId)).length, importantItems.length)}\n`;
-  md += `- 里程碑完整性: 目标日期 ${percentText(milestones.filter((milestone) => hasText(milestone.targetDate)).length, milestones.length)} | 负责人 ${percentText(milestones.filter((milestone) => hasText(milestone.owner)).length, milestones.length)}\n\n`;
+  md += `- 里程碑完整性: 计划日期 ${percentText(milestones.filter((milestone) => hasText(getMilestonePlannedEnd(milestone))).length, milestones.length)} | 负责人 ${percentText(milestones.filter((milestone) => hasText(milestone.owner)).length, milestones.length)}\n\n`;
   md += `### 待确认信息\n\n`;
   md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 暂无明显缺口\n\n`;
 

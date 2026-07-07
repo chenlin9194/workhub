@@ -140,15 +140,21 @@ export async function GET(request: NextRequest) {
           where: {
             projectId: { in: projectIds },
             status: { notIn: COMPLETED_MILESTONE_STATUSES },
-            targetDate: { not: null },
+            OR: [
+              { plannedEndDate: { not: null } },
+              { targetDate: { not: null } },
+            ],
           },
           select: {
             id: true,
             projectId: true,
             title: true,
             status: true,
+            stage: true,
             planType: true,
+            dateMode: true,
             targetDate: true,
+            plannedEndDate: true,
           },
           orderBy: [{ targetDate: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
         }),
@@ -216,8 +222,11 @@ export async function GET(request: NextRequest) {
                   id: nextOpenMilestone.id,
                   title: nextOpenMilestone.title,
                   status: nextOpenMilestone.status,
+                  stage: nextOpenMilestone.stage,
                   planType: nextOpenMilestone.planType,
+                  dateMode: nextOpenMilestone.dateMode,
                   targetDate: nextOpenMilestone.targetDate,
+                  plannedEndDate: nextOpenMilestone.plannedEndDate,
                 }
               : null,
             primaryLink: primaryLink

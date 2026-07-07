@@ -158,10 +158,16 @@ model ProjectMilestone {
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
   description String?
+  stage       String?
   planType    String   @default("milestone")
+  dateMode    String?
   status      String   @default("planned")
   targetDate  DateTime?
   actualDate  DateTime?
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
   owner       String?
   sourceUrl   String?
   sortOrder   Int      @default(0)
