@@ -242,6 +242,23 @@ function formatDateRange(start?: string | Date | null, end?: string | Date | nul
   return startText || endText || "";
 }
 
+function formatCompactDateRange(start?: string | Date | null, end?: string | Date | null) {
+  const startText = formatShortDate(start);
+  const endText = formatShortDate(end);
+  if (startText && endText) return `${startText}-${endText}`;
+  if (startText) return `${startText}-待补`;
+  if (endText) return `待补-${endText}`;
+  return "未排期";
+}
+
+function getCompactScheduleText(milestone: ProjectMilestone) {
+  if (isRangePlan(milestone)) {
+    return formatCompactDateRange(milestone.plannedStartDate, getMilestonePlannedEnd(milestone));
+  }
+
+  return formatShortDate(getMilestonePlannedEnd(milestone)) || "未排期";
+}
+
 function getStageLabel(key: string) {
   if (key === UNSET_MILESTONE_STAGE_KEY) return "阶段未设置";
   return PROJECT_MILESTONE_STAGE_LABELS[key] || "阶段未设置";
@@ -909,43 +926,120 @@ function MilestoneFormPanel({
   );
 }
 
-function MatrixNodeHeader({
-  milestone,
-  signal,
-  onSelect,
-}: {
-  milestone: ProjectMilestone;
-  signal: MilestoneSignal;
-  onSelect: (milestone: ProjectMilestone) => void;
-}) {
-  const tone = TONE_STYLE[signal.tone];
+const COMPACT_STAGE_LIMIT = 8;
+const MAIN_STAGE_KEYS: Set<string> = new Set(PROJECT_MILESTONE_STAGES.map((stage) => stage.value));
+
+function getCompactStatusText(signal: MilestoneSignal) {
+  if (signal.isRisk) return signal.deviationLabel;
+  return signal.statusLabel;
+}
+
+function getCompactScheduleSortDate(milestone: ProjectMilestone) {
+  if (isRangePlan(milestone)) {
+    return getDateKey(getMilestonePlannedEnd(milestone)) || getDateKey(milestone.plannedStartDate);
+  }
+
+  return getDateKey(getMilestonePlannedEnd(milestone));
+}
+
+function sortCompactStageMilestones(milestones: ProjectMilestone[], nextMilestoneId?: string | null) {
+  return [...milestones].sort((a, b) => {
+    const aNext = a.id === nextMilestoneId;
+    const bNext = b.id === nextMilestoneId;
+    if (aNext !== bNext) return aNext ? -1 : 1;
+
+    const aDate = getCompactScheduleSortDate(a);
+    const bDate = getCompactScheduleSortDate(b);
+    if (aDate && bDate && aDate !== bDate) return aDate.localeCompare(bDate);
+    if (aDate && !bDate) return -1;
+    if (!aDate && bDate) return 1;
+
+    const sortOrderDiff = a.sortOrder - b.sortOrder;
+    if (sortOrderDiff !== 0) return sortOrderDiff;
+
+    return a.title.localeCompare(b.title, "zh-CN");
+  });
+}
+
+function isActualPointLate(milestone: ProjectMilestone) {
+  const plannedDate = getDateKey(getMilestonePlannedEnd(milestone));
+  const actualDate = getDateKey(getMilestoneActualEnd(milestone));
+  return Boolean(plannedDate && actualDate && actualDate > plannedDate);
+}
+
+function isActualRangeStartLate(milestone: ProjectMilestone) {
+  const plannedStart = getDateKey(milestone.plannedStartDate);
+  const actualStart = getDateKey(milestone.actualStartDate);
+  return Boolean(plannedStart && actualStart && actualStart > plannedStart);
+}
+
+function isActualRangeEndLate(milestone: ProjectMilestone) {
+  const plannedEnd = getDateKey(getMilestonePlannedEnd(milestone));
+  const actualEnd = getDateKey(getMilestoneActualEnd(milestone));
+  return Boolean(plannedEnd && actualEnd && actualEnd > plannedEnd);
+}
+
+function CompactRowDetails({ milestone }: { milestone: ProjectMilestone }) {
+  const isRange = isRangePlan(milestone);
+  const plannedRange = getPlannedRange(milestone);
+  const actualRange = getActualRange(milestone);
+  const actualPointDate = getActualPointDate(milestone);
+  const hasActualRange = Boolean(actualRange.start || actualRange.end);
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(milestone)}
+    <div
       style={{
-        width: "100%",
-        minHeight: 54,
+        margin: "0 6px 5px 30px",
         padding: "6px 8px",
-        border: `1px solid ${signal.isNext ? "var(--accent-blue)" : signal.isRisk ? TONE_STYLE.risk.border : "var(--border-secondary)"}`,
-        borderRadius: 8,
-        background: signal.isNext ? tone.background : signal.isRisk ? "color-mix(in srgb, var(--accent-red-light) 45%, var(--bg-primary))" : "var(--bg-primary)",
-        color: "var(--text-primary)",
-        textAlign: "left",
-        cursor: "pointer",
+        borderLeft: "2px solid var(--border-secondary)",
         display: "grid",
         gap: 4,
-        boxShadow: signal.isNext ? "0 0 0 1px color-mix(in srgb, var(--accent-blue) 18%, transparent)" : "none",
+        color: "var(--text-secondary)",
+        fontSize: 12,
+        lineHeight: 1.45,
       }}
-      title={milestone.description || milestone.title}
     >
-      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-        <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{milestone.title}</strong>
-        {signal.isNext && <span style={{ color: "var(--accent-blue)", fontSize: 11, fontWeight: 700, flex: "0 0 auto" }}>下一节点</span>}
-      </span>
-      <StatusMark signal={signal} />
-    </button>
+      {isRange ? (
+        <>
+          <span>
+            计划周期: <DateRangeValue start={plannedRange.start} end={plannedRange.end} />
+          </span>
+          <span>
+            实际周期:{" "}
+            {hasActualRange ? (
+              <DateRangeValue
+                start={actualRange.start}
+                end={actualRange.end}
+                startDelayed={isActualRangeStartLate(milestone)}
+                endDelayed={isActualRangeEndLate(milestone)}
+              />
+            ) : (
+              <span style={{ color: "var(--text-tertiary)" }}>待补</span>
+            )}
+          </span>
+        </>
+      ) : (
+        <>
+          <span>
+            计划日期: <DateValue value={getPlannedPointDate(milestone)} />
+          </span>
+          <span>
+            实际日期:{" "}
+            {actualPointDate ? (
+              <DateValue value={actualPointDate} delayed={isActualPointLate(milestone)} />
+            ) : (
+              <span style={{ color: "var(--text-tertiary)" }}>待补</span>
+            )}
+          </span>
+        </>
+      )}
+      {milestone.owner && <span>负责人: {milestone.owner}</span>}
+      {milestone.description && (
+        <span style={{ overflowWrap: "anywhere" }}>
+          说明: {milestone.description}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -953,69 +1047,169 @@ function CompactPlanMatrix({
   groups,
   today,
   nextMilestoneId,
+  selectedMilestoneId,
+  showAllMatched,
   onSelect,
 }: {
   groups: StageGroup[];
   today: string;
   nextMilestoneId?: string | null;
+  selectedMilestoneId?: string | null;
+  showAllMatched?: boolean;
   onSelect: (milestone: ProjectMilestone) => void;
 }) {
-  return (
-    <div className="card" style={{ padding: 12, overflowX: "auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(210px, 1fr))", gap: 10, minWidth: 900 }}>
-        {groups.map((group) => (
-          <div key={group.key} style={{ display: "grid", alignContent: "start", gap: 8, minWidth: 0 }}>
-            <div style={{ padding: "6px 8px", borderRadius: 8, background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 750 }}>
-              {group.label} · {group.milestones.length}
-            </div>
-            {group.milestones.length === 0 ? (
-              <div style={{ minHeight: 78, borderRadius: 8, border: "1px dashed var(--border-primary)", color: "var(--text-tertiary)", fontSize: 12, display: "grid", placeItems: "center" }}>
-                暂无节点
-              </div>
-            ) : (
-              group.milestones.map((milestone) => {
-                const signal = getMilestoneSignal(milestone, today, nextMilestoneId);
-                const isRange = isRangePlan(milestone);
-                const plannedRange = getPlannedRange(milestone);
-                const actualRange = getActualRange(milestone);
-                const actualPointDate = getActualPointDate(milestone);
-                const hasActualRange = Boolean(actualRange.start || actualRange.end);
+  const [expandedStageKeys, setExpandedStageKeys] = useState<Set<string>>(new Set());
+  const mainGroups = groups.filter((group) => group.key !== UNSET_MILESTONE_STAGE_KEY && MAIN_STAGE_KEYS.has(group.key));
+  const unsetGroup = groups.find((group) => group.key === UNSET_MILESTONE_STAGE_KEY);
 
-                return (
-                  <div key={milestone.id} style={{ display: "grid", gap: 5, padding: 8, borderRadius: 8, border: "1px solid var(--border-secondary)", background: "var(--bg-primary)" }}>
-                    <MatrixNodeHeader milestone={milestone} signal={signal} onSelect={onSelect} />
-                    <div style={{ display: "grid", gap: 3, color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.45 }}>
-                      {isRange ? (
-                        <>
-                          <span>
-                            计划周期: <DateRangeValue start={plannedRange.start} end={plannedRange.end} />
-                          </span>
-                          {hasActualRange && (
-                            <span>
-                              实际周期: <DateRangeValue start={actualRange.start} end={actualRange.end} startDelayed={isRangeStartDelayed(milestone, today)} endDelayed={isRangeEndDelayed(milestone, today)} />
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <span>
-                            计划日期: <DateValue value={getPlannedPointDate(milestone)} />
-                          </span>
-                          {actualPointDate && (
-                            <span>
-                              实际日期: <DateValue value={actualPointDate} delayed={isPointDelayed(milestone, today)} />
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        ))}
+  const toggleStage = (stageKey: string) => {
+    setExpandedStageKeys((current) => {
+      const next = new Set(current);
+      if (next.has(stageKey)) {
+        next.delete(stageKey);
+      } else {
+        next.add(stageKey);
+      }
+      return next;
+    });
+  };
+
+  const renderStageColumn = (group: StageGroup, muted = false) => {
+    const orderedMilestones = sortCompactStageMilestones(group.milestones, nextMilestoneId);
+    const expandedStage = expandedStageKeys.has(group.key);
+    const limited = !showAllMatched && !expandedStage && orderedMilestones.length > COMPACT_STAGE_LIMIT;
+    const selectedInStage = selectedMilestoneId
+      ? orderedMilestones.find((milestone) => milestone.id === selectedMilestoneId)
+      : null;
+    const baseVisibleMilestones = limited ? orderedMilestones.slice(0, COMPACT_STAGE_LIMIT) : orderedMilestones;
+    const visibleMilestones = limited && selectedInStage && !baseVisibleMilestones.some((milestone) => milestone.id === selectedInStage.id)
+      ? [...baseVisibleMilestones, selectedInStage]
+      : baseVisibleMilestones;
+
+    return (
+      <div
+        key={group.key}
+        style={{
+          minWidth: 0,
+          display: "grid",
+          alignContent: "start",
+          gap: 2,
+          padding: "8px 7px",
+          borderRadius: 8,
+          border: muted ? "1px dashed var(--border-secondary)" : "1px solid var(--border-secondary)",
+          background: muted ? "color-mix(in srgb, var(--bg-secondary) 42%, transparent)" : "var(--bg-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            padding: "0 3px 5px",
+            color: muted ? "var(--text-tertiary)" : "var(--text-secondary)",
+            fontSize: 12,
+            fontWeight: 750,
+          }}
+        >
+          <span>{group.label} · {group.milestones.length}</span>
+        </div>
+
+        {visibleMilestones.map((milestone) => {
+          const signal = getMilestoneSignal(milestone, today, nextMilestoneId);
+          const tone = TONE_STYLE[signal.tone];
+          const selected = selectedMilestoneId === milestone.id;
+          const isRange = isRangePlan(milestone);
+          const statusText = getCompactStatusText(signal);
+          const symbol = isRange ? "▰" : "●";
+          const scheduleText = getCompactScheduleText(milestone);
+
+          return (
+            <div key={milestone.id} style={{ display: "grid", gap: 1, minWidth: 0 }}>
+              <button
+                type="button"
+                onClick={() => onSelect(milestone)}
+                title={milestone.title}
+                aria-label={`${milestone.title} ${scheduleText} ${statusText}`}
+                style={{
+                  width: "100%",
+                  minHeight: 30,
+                  padding: "0 5px",
+                  border: `1px solid ${selected ? tone.border : "transparent"}`,
+                  borderRadius: 6,
+                  background: selected ? "var(--bg-secondary)" : signal.isNext ? "color-mix(in srgb, var(--accent-blue-light) 34%, var(--bg-primary))" : "transparent",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns: "14px minmax(0, 1fr) minmax(54px, auto) minmax(42px, auto)",
+                  gap: 5,
+                  alignItems: "center",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{ color: isRange ? "var(--accent-blue)" : tone.color, fontSize: isRange ? 11 : 12, lineHeight: 1, textAlign: "center" }}>
+                  {symbol}
+                </span>
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: selected || signal.isNext ? 700 : 560 }}>
+                  {milestone.title}
+                </span>
+                <span style={{ color: scheduleText === "未排期" ? "var(--text-tertiary)" : "var(--text-secondary)", fontSize: 11, whiteSpace: "nowrap", justifySelf: "end" }}>
+                  {scheduleText}
+                </span>
+                <span style={{ color: signal.isRisk ? "var(--accent-red)" : signal.isNext ? "var(--accent-blue)" : tone.color, fontSize: 11, fontWeight: signal.isRisk || signal.isNext ? 700 : 600, whiteSpace: "nowrap", justifySelf: "end" }}>
+                  {statusText}
+                </span>
+              </button>
+              {selected && <CompactRowDetails milestone={milestone} />}
+            </div>
+          );
+        })}
+
+        {!showAllMatched && group.milestones.length > COMPACT_STAGE_LIMIT && (
+          <button
+            type="button"
+            onClick={() => toggleStage(group.key)}
+            className="btn btn-secondary"
+            style={{ ...VIEW_BUTTON_STYLE, width: "max-content", height: 28, minHeight: 28, margin: "4px 0 0 22px", padding: "0 9px", fontSize: 12 }}
+          >
+            {expandedStage ? "收起" : `展开全部 ${group.milestones.length} 条`}
+          </button>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="card" style={{ padding: 10, display: "grid", gap: 10 }}>
+      <style jsx>{`
+        .compact-stage-grid {
+          display: grid;
+          grid-template-columns: repeat(1, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        @media (min-width: 900px) {
+          .compact-stage-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (min-width: 1280px) {
+          .compact-stage-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
+      `}</style>
+      {mainGroups.length > 0 && (
+        <div className="compact-stage-grid">
+          {mainGroups.map((group) => renderStageColumn(group))}
+        </div>
+      )}
+      {unsetGroup && (
+        <div style={{ display: "grid", gap: 6 }}>
+          {renderStageColumn(unsetGroup, true)}
+        </div>
+      )}
     </div>
   );
 }
@@ -1070,7 +1264,7 @@ function DetailPanel({
             <Icon name="edit" size={13} />
             编辑
           </button>
-          <button type="button" className="btn btn-secondary" style={{ ...VIEW_BUTTON_STYLE, height: 30, minHeight: 30, padding: "0 9px", color: "var(--accent-red)" }} disabled={deleting} onClick={() => onDelete(milestone.id)}>
+          <button type="button" className="btn btn-danger" style={{ ...VIEW_BUTTON_STYLE, height: 30, minHeight: 30, padding: "0 9px" }} disabled={deleting} onClick={() => onDelete(milestone.id)}>
             <Icon name="trash" size={13} />
             {deleting ? "删除中" : "删除"}
           </button>
@@ -1178,11 +1372,10 @@ function TimelineView({
                 pointItemsByTick.set(tick, [...(pointItemsByTick.get(tick) || []), item]);
               });
               const maxPointStack = Math.max(1, ...Array.from(pointItemsByTick.values()).map((tickItems) => tickItems.length));
-              const expandedInLane = items.some((item) => item.milestone.id === selectedMilestoneId);
               const rowCount = isPointLane ? 1 : Math.max(1, items.length);
-              const rowHeight = !isPointLane && expandedInLane ? 86 : 26;
+              const rowHeight = 26;
               const laneMinHeight = isPointLane
-                ? Math.max(52, Math.min(92, maxPointStack * 26 + 16)) + (expandedInLane ? 62 : 0)
+                ? Math.max(52, Math.min(92, maxPointStack * 26 + 16))
                 : Math.max(58, rowCount * rowHeight + 16);
 
               return (
@@ -1261,7 +1454,7 @@ function TimelineView({
                                 : "var(--bg-primary)";
 
                           return (
-                            <div key={item.milestone.id} style={{ display: "grid", gap: 4, justifyItems: "center", maxWidth: "100%" }}>
+                            <div key={item.milestone.id} style={{ position: "relative", height: 23, display: "block", maxWidth: "100%", zIndex: expanded ? 5 : 2 }}>
                               <button
                                 type="button"
                                 onClick={() => onSelect(item.milestone)}
@@ -1289,7 +1482,18 @@ function TimelineView({
                                 </span>
                               </button>
                               {expanded && (
-                                <div style={{ width: 190, maxWidth: "calc(100vw - 64px)" }}>
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "calc(100% + 4px)",
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    width: 190,
+                                    maxWidth: "calc(100vw - 64px)",
+                                    zIndex: 10,
+                                    pointerEvents: "auto",
+                                  }}
+                                >
                                   <TimelineItemDetails item={item} today={today} />
                                 </div>
                               )}
@@ -1315,7 +1519,8 @@ function TimelineView({
                             justifySelf: "stretch",
                             display: "grid",
                             gap: 4,
-                            zIndex: 2,
+                            position: "relative",
+                            zIndex: expanded ? 5 : 2,
                           }}
                         >
                           <button
@@ -1349,7 +1554,17 @@ function TimelineView({
                             )}
                           </button>
                           {expanded && (
-                            <div style={{ maxWidth: 260 }}>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "calc(100% + 4px)",
+                                left: 0,
+                                width: 260,
+                                maxWidth: "calc(100vw - 64px)",
+                                zIndex: 10,
+                                pointerEvents: "auto",
+                              }}
+                            >
                               <TimelineItemDetails item={item} today={today} />
                             </div>
                           )}
@@ -1709,6 +1924,7 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
   const selectedMilestone = selectedMilestoneId ? milestones.find((milestone) => milestone.id === selectedMilestoneId) ?? null : null;
   const scheduleSignalCounts = useMemo(() => getScheduleSignalCounts(milestones, today), [milestones, today]);
   const nextMilestoneSignal = nextKeyMilestone ? getMilestoneSignal(nextKeyMilestone, today, nextKeyMilestone.id) : null;
+  const showAllMatchedMilestones = Boolean(normalizedKeyword) || selectedPlanType !== "all" || selectedStatus !== "all";
 
   return (
     <section className="cockpit-section">
@@ -1879,6 +2095,8 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
           groups={populatedStageGroups}
           today={today}
           nextMilestoneId={nextKeyMilestone?.id}
+          selectedMilestoneId={selectedMilestoneId}
+          showAllMatched={showAllMatchedMilestones}
           onSelect={handleMilestoneSelect}
         />
       )}

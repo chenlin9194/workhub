@@ -42,10 +42,6 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
   const [editForm, setEditForm] = useState<LinkFormState>(EMPTY_LINK_FORM);
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
 
-  const projectLinkCategoryLabels: Record<string, string> = Object.fromEntries(
-    PROJECT_LINK_CATEGORIES.map((category) => [category.value, category.label])
-  );
-
   const validateLinkForm = useCallback((form: LinkFormState) => {
     const title = form.title.trim();
     const url = form.url.trim();
@@ -371,31 +367,6 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
         </div>
       )}
 
-      {!linksLoading && !linksError && links.length > 0 && (
-        <div
-          className="card entity-card entity-card--compact project-support-summary"
-          style={{
-            border: primaryLinks.length === 0
-              ? "1px solid color-mix(in srgb, var(--accent-orange) 20%, var(--border-primary))"
-              : "1px solid color-mix(in srgb, var(--accent-blue) 18%, var(--border-primary))",
-          }}
-        >
-          <div className="project-support-summary__title">
-            <div className="project-support-summary__headline">
-              {primaryLinks.length > 0 ? `主链接 ${primaryLinks.length} 个` : "尚未设置主链接"}
-            </div>
-            <div className="project-support-summary__hint">
-              链接总数 {links.length}，优先保留最常用的外部资料入口。
-            </div>
-          </div>
-          {primaryLinks.length === 0 && (
-            <span className="project-support-summary__chip" style={{ background: "var(--accent-orange-light)", color: "var(--accent-orange)", border: "1px solid color-mix(in srgb, var(--accent-orange) 18%, transparent)" }}>
-              建议设置主链接
-            </span>
-          )}
-        </div>
-      )}
-
       {linksLoading ? (
         <div className="card empty-state empty-state--loading">
           <div className="empty-icon">…</div>
@@ -420,14 +391,30 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
           <p>可补充主链接，便于快速回到外部资料。</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="card entity-card entity-card--compact" style={{ padding: 10, display: "grid", gap: 6 }}>
+          <style jsx>{`
+            .project-link-index-row {
+              display: grid;
+              grid-template-columns: minmax(220px, 1.1fr) minmax(280px, 1.6fr) auto;
+              gap: 10px;
+              align-items: center;
+            }
+
+            @media (max-width: 900px) {
+              .project-link-index-row {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 6px;
+                align-items: start;
+              }
+            }
+          `}</style>
           {displayedLinks.map((link) => {
             const isEditing = editingLinkId === link.id;
             const isDeleting = deletingLinkId === link.id;
 
             if (isEditing) {
               return (
-                <form key={link.id} onSubmit={(e) => handleEditSubmit(e, link.id)} className="card" style={{ padding: 16 }}>
+                <form key={link.id} onSubmit={(e) => handleEditSubmit(e, link.id)} className="card" style={{ padding: 14 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
                       <div>
@@ -528,57 +515,67 @@ export default function ProjectLinkSection({ projectId }: ProjectLinkSectionProp
             return (
               <div
                 key={link.id}
-                className={`card project-support-card ${link.isPrimary ? "project-support-card--highlight" : ""}`}
+                className="project-link-index-row"
+                style={{
+                  minWidth: 0,
+                  padding: "7px 8px",
+                  borderRadius: 8,
+                  border: `1px solid ${link.isPrimary ? "color-mix(in srgb, var(--accent-blue) 26%, var(--border-secondary))" : "var(--border-secondary)"}`,
+                  background: link.isPrimary ? "color-mix(in srgb, var(--accent-blue-light) 28%, var(--bg-primary))" : "var(--bg-primary)",
+                }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
-                    <div className="project-support-card__title-row">
-                      <strong className="project-support-card__title">{link.title}</strong>
-                      {link.isPrimary && (
-                        <span className="entity-pill entity-pill--blue">主链接</span>
-                      )}
-                      <span className="entity-pill entity-pill--muted">
-                        {projectLinkCategoryLabels[link.category] || link.category}
-                      </span>
-                    </div>
-                    {link.description && (
-                      <p className="project-support-card__description" style={{ margin: 0 }}>
-                        {link.description}
-                      </p>
-                    )}
-                  </div>
-
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() => openEditForm(link)}
-                      className="btn btn-secondary"
-                      disabled={isDeleting}
-                    >
-                      <Icon name="edit" size={14} />
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(link.id)}
-                      className="btn btn-secondary"
-                      disabled={isDeleting}
-                      style={{ color: "var(--accent-red)" }}
-                    >
-                      <Icon name="trash-2" size={14} />
-                      {isDeleting ? "删除中..." : "删除"}
-                    </button>
-                  </div>
+                <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                  <strong style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)", fontSize: 13 }}>
+                    {link.title}
+                  </strong>
                 </div>
 
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="project-support-card__url"
+                <div
+                  style={{
+                    minWidth: 0,
+                    color: link.description ? "var(--text-secondary)" : "var(--text-tertiary)",
+                    fontSize: 12,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={link.description || ""}
                 >
-                  {link.url}
-                </a>
+                  {link.description || "—"}
+                </div>
+
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.url}
+                    className="btn btn-secondary"
+                    style={{ height: 30, minHeight: 30, padding: "0 9px", textDecoration: "none" }}
+                  >
+                    打开
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => openEditForm(link)}
+                    className="btn btn-secondary"
+                    disabled={isDeleting}
+                    style={{ height: 30, minHeight: 30, padding: "0 9px" }}
+                  >
+                    <Icon name="edit" size={13} />
+                    编辑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(link.id)}
+                    className="btn btn-danger"
+                    disabled={isDeleting}
+                    style={{ height: 30, minHeight: 30, padding: "0 9px" }}
+                  >
+                    <Icon name="trash-2" size={13} />
+                    {isDeleting ? "删除中" : "删除"}
+                  </button>
+                </div>
               </div>
             );
           })}

@@ -492,14 +492,14 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                      <div style={{ fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.6 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, alignItems: "flex-start" }}>
+                      <div style={{ minWidth: 0, fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.6, overflowWrap: "anywhere" }}>
                         关联：
                         {item.workItemId && <span> 事项</span>}
                         {item.workLogId && <span> 日志</span>}
                         {item.projectId && <span> 项目</span>}
                       </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", flexShrink: 0 }}>
                         <button
                           type="button"
                           onClick={() => void saveActionItem(item.id)}
@@ -521,8 +521,8 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
                         <button
                           type="button"
                           onClick={() => void deleteActionItem(item.id)}
-                          className="btn btn-secondary"
-                          style={{ fontSize: 12, color: "var(--accent-red)" }}
+                          className="btn btn-danger"
+                          style={{ fontSize: 12 }}
                           disabled={busy}
                         >
                           {busy ? "删除中..." : "删除"}
@@ -532,9 +532,9 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
                   </div>
                 ) : (
                   <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, alignItems: "flex-start" }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, wordBreak: "break-word" }}>
+                        <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, wordBreak: "break-word", overflowWrap: "anywhere", lineHeight: 1.5 }}>
                           {item.title}
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, fontSize: 12, color: "var(--text-tertiary)" }}>
@@ -543,12 +543,12 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
                           {item.doneAt && <span>完成：{new Date(item.doneAt).toLocaleDateString("zh-CN")}</span>}
                         </div>
                         {item.doneNote && (
-                          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55 }}>
+                          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, overflowWrap: "anywhere" }}>
                             <strong style={{ color: "var(--text-primary)" }}>完成记录：</strong>{item.doneNote}
                           </div>
                         )}
                       </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", flexShrink: 0 }}>
                         <button
                           type="button"
                           onClick={() => beginEdit(item)}
@@ -561,8 +561,8 @@ export default function ActionItemSection({ workItemId, workLogId, projectId }: 
                         <button
                           type="button"
                           onClick={() => void deleteActionItem(item.id)}
-                          className="btn btn-secondary"
-                          style={{ fontSize: 12, color: "var(--accent-red)" }}
+                          className="btn btn-danger"
+                          style={{ fontSize: 12 }}
                           disabled={busy}
                         >
                           {busy ? "删除中..." : "删除"}

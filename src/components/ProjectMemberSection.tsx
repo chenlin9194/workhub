@@ -257,12 +257,12 @@ function MemberDetailPanel({
             <Icon name="edit" size={13} />
             编辑
           </button>
-          <button type="button" className="btn btn-secondary" disabled={deleting} onClick={() => onDelete(member.id)} style={{ height: 32, padding: "0 10px", color: "var(--accent-red)" }}>
+          <button type="button" className="btn btn-danger" disabled={deleting} onClick={() => onDelete(member.id)} style={{ height: 32, padding: "0 10px" }}>
             <Icon name="trash" size={13} />
             {deleting ? "删除中" : "删除"}
           </button>
-          <button type="button" className="btn btn-secondary" onClick={onClose} title="关闭" style={{ width: 30, height: 32, padding: 0 }}>
-            <Icon name="x" size={13} />
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ height: 32, padding: "0 10px" }}>
+            关闭
           </button>
         </div>
       </div>
@@ -512,9 +512,6 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
     return sortedMembers.filter((member) => getMemberSearchText(member).includes(normalizedKeyword));
   }, [normalizedKeyword, sortedMembers]);
 
-  const coreMemberCount = members.filter((member) => member.isCore).length;
-  const missingResponsibilityCount = members.filter((member) => !member.responsibility?.trim()).length;
-  const missingContactCount = members.filter((member) => !member.contact?.trim()).length;
   const displayedCoreMembers = displayedMembers.filter((member) => member.isCore);
   const displayedOtherMembers = displayedMembers.filter((member) => !member.isCore);
   const groupedOtherMembers = useMemo(() => groupMembersByRole(displayedOtherMembers), [displayedOtherMembers]);
@@ -522,38 +519,13 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
 
   return (
     <section className="cockpit-section">
-      <div className="dashboard-section-title">
-        <div>
+      <div className="dashboard-section-title" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: "0 0 auto" }}>
           <span className="section-eyebrow">MEMBERS</span>
           <h2>项目成员</h2>
         </div>
-        {!showCreateForm && (
-          <button
-            type="button"
-            onClick={() => {
-              closeEditForm();
-              openCreateForm();
-            }}
-            className="btn btn-secondary"
-          >
-            <Icon name="plus" size={14} />
-            新增成员
-          </button>
-        )}
-      </div>
-
-      <div
-        className="card entity-card entity-card--compact"
-        style={{ padding: 12, marginBottom: 12, display: "grid", gap: 10 }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", color: "var(--text-secondary)", fontSize: 13 }}>
-            <span className="entity-pill entity-pill--muted">总数 {members.length}</span>
-            <span className="entity-pill entity-pill--success">核心 {coreMemberCount}</span>
-            {missingResponsibilityCount > 0 && <span className="entity-pill entity-pill--muted">职责未填 {missingResponsibilityCount}</span>}
-            {missingContactCount > 0 && <span className="entity-pill entity-pill--muted">联系方式未填 {missingContactCount}</span>}
-          </div>
-          <div style={{ minWidth: 240, maxWidth: 360, flex: "1 1 260px", position: "relative" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center", minWidth: 0, flex: "1 1 420px" }}>
+          <div style={{ width: 360, maxWidth: "100%", minWidth: 260, position: "relative", flex: "0 1 420px" }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-tertiary)", display: "inline-flex" }}>
               <Icon name="search" size={14} />
             </span>
@@ -562,9 +534,22 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="查询姓名、角色、团队、职责、联系方式"
-              style={{ ...INPUT_STYLE, paddingLeft: 30 }}
+              style={{ ...INPUT_STYLE, paddingLeft: 30, height: 36 }}
             />
           </div>
+          {!showCreateForm && (
+            <button
+              type="button"
+              onClick={() => {
+                closeEditForm();
+                openCreateForm();
+              }}
+              className="btn btn-secondary"
+            >
+              <Icon name="plus" size={14} />
+              新增成员
+            </button>
+          )}
         </div>
       </div>
 
@@ -632,7 +617,6 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                   <strong style={{ color: "var(--text-primary)", fontSize: 13 }}>核心成员</strong>
-                  <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>{displayedCoreMembers.length}</span>
                 </div>
                 {displayedCoreMembers.length > 0 ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8 }}>
@@ -651,7 +635,6 @@ export default function ProjectMemberSection({ projectId }: ProjectMemberSection
                       <div key={group.label} style={{ display: "grid", gap: 8 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <strong style={{ color: "var(--text-secondary)", fontSize: 13 }}>{group.label}</strong>
-                          <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>{group.members.length}</span>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8 }}>
                           {group.members.map((member) => (

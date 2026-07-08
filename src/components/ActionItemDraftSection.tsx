@@ -134,7 +134,7 @@ export default function ActionItemDraftSection({
 
                   <div className="field-actions">
                     <span className="field-note">保存父记录后批量创建。</span>
-                    <button type="button" onClick={() => removeDraft(index)} className="btn btn-secondary btn-sm">
+                    <button type="button" onClick={() => removeDraft(index)} className="btn btn-danger btn-sm">
                       删除本条
                     </button>
                   </div>

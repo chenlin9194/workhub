@@ -121,9 +121,8 @@ export default function ProjectHeaderSection({ project }: ProjectHeaderSectionPr
             <button
               type="button"
               onClick={handleDelete}
-              className="btn btn-secondary"
+              className="btn btn-danger"
               disabled={deleting}
-              style={{ color: "var(--accent-red)" }}
             >
               {deleting ? (
                 "删除中..."

@@ -62,7 +62,7 @@ function ToolLinkRow({
         <button className="btn btn-secondary btn-sm" onClick={() => onToggleEnabled(tool)}>
           {tool.enabled ? "停用" : "启用"}
         </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => onDelete(tool)}>
+        <button className="btn btn-danger btn-sm" onClick={() => onDelete(tool)}>
           删除
         </button>
         <label className="tool-sort-control">
