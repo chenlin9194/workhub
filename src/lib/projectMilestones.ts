@@ -65,7 +65,7 @@ export function getMilestoneStageKey(milestone: {
   title?: string | null;
   description?: string | null;
 }) {
-  return normalizeStage(milestone.stage, milestone);
+  return normalizeStage(milestone.stage);
 }
 
 export function getMilestoneDateMode(milestone: { dateMode?: string | null; planType?: string | null }) {

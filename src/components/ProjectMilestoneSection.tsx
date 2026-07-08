@@ -64,6 +64,18 @@ type MilestoneSignal = {
   showDeviation: boolean;
 };
 
+type TimelineScheduleKind = "point" | "range" | "start-only" | "end-only";
+
+type TimelineScheduledItem = {
+  milestone: ProjectMilestone;
+  dateMode: string;
+  planType: string;
+  start: string;
+  end: string;
+  scheduleKind: TimelineScheduleKind;
+  scheduleNote?: string;
+};
+
 const EMPTY_MILESTONE_FORM: MilestoneFormState = {
   title: "",
   description: "",
@@ -229,6 +241,67 @@ function getActualDateText(milestone: ProjectMilestone) {
   }
 
   return formatShortDate(getMilestoneActualEnd(milestone));
+}
+
+function getTimelineSchedule(milestone: ProjectMilestone): TimelineScheduledItem | null {
+  const dateMode = getMilestoneDateMode(milestone);
+  const plannedStart = getDateKey(milestone.plannedStartDate);
+  const plannedEnd = getDateKey(getMilestonePlannedEnd(milestone));
+  const planType = milestone.planType || "milestone";
+
+  if (dateMode === "point") {
+    if (!plannedEnd) return null;
+
+    return {
+      milestone,
+      dateMode,
+      planType,
+      start: plannedEnd,
+      end: plannedEnd,
+      scheduleKind: "point",
+    };
+  }
+
+  if (plannedStart && plannedEnd) {
+    return {
+      milestone,
+      dateMode,
+      planType,
+      start: plannedStart,
+      end: plannedEnd,
+      scheduleKind: "range",
+    };
+  }
+
+  if (plannedStart) {
+    return {
+      milestone,
+      dateMode,
+      planType,
+      start: plannedStart,
+      end: plannedStart,
+      scheduleKind: "start-only",
+      scheduleNote: "待补结束",
+    };
+  }
+
+  if (plannedEnd) {
+    return {
+      milestone,
+      dateMode,
+      planType,
+      start: plannedEnd,
+      end: plannedEnd,
+      scheduleKind: "end-only",
+      scheduleNote: "待补开始",
+    };
+  }
+
+  return null;
+}
+
+function getUnscheduledReason(milestone: ProjectMilestone) {
+  return getMilestoneDateMode(milestone) === "range" ? "缺计划开始/结束" : "缺计划日期";
 }
 
 function isMilestoneClosed(milestone: ProjectMilestone) {
@@ -862,30 +935,8 @@ function TimelineView({
 }) {
   const milestones = groups.flatMap((group) => group.milestones);
   const scheduledItems = milestones
-    .map((milestone) => {
-      const dateMode = getMilestoneDateMode(milestone);
-      const plannedEnd = getDateKey(getMilestonePlannedEnd(milestone));
-      const plannedStart = dateMode === "range" ? getDateKey(milestone.plannedStartDate) : plannedEnd;
-
-      if (!plannedEnd || !plannedStart) return null;
-
-      return {
-        milestone,
-        dateMode,
-        stage: getMilestoneStageKey(milestone),
-        planType: milestone.planType || "milestone",
-        start: plannedStart,
-        end: plannedEnd,
-      };
-    })
-    .filter(Boolean) as Array<{
-      milestone: ProjectMilestone;
-      dateMode: string;
-      stage: string;
-      planType: string;
-      start: string;
-      end: string;
-    }>;
+    .map(getTimelineSchedule)
+    .filter(Boolean) as TimelineScheduledItem[];
   const scheduledIds = new Set(scheduledItems.map((item) => item.milestone.id));
   const unscheduledItems = milestones.filter((milestone) => !scheduledIds.has(milestone.id));
   const dateValues = scheduledItems.flatMap((item) => [item.start, item.end]);
@@ -906,7 +957,19 @@ function TimelineView({
       <div style={{ minWidth: 920, display: "grid", gap: 12 }}>
         <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
           {groups.map((group) => (
-            <div key={group.key} style={{ padding: "7px 8px", borderRadius: 8, background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 750 }}>
+            <div
+              key={group.key}
+              style={{
+                padding: "7px 8px",
+                borderRadius: 8,
+                background: group.milestones.length > 0 ? "var(--bg-secondary)" : "transparent",
+                border: group.milestones.length > 0 ? "1px solid var(--border-secondary)" : "1px dashed color-mix(in srgb, var(--border-secondary) 55%, transparent)",
+                color: group.milestones.length > 0 ? "var(--text-secondary)" : "var(--text-tertiary)",
+                opacity: group.milestones.length > 0 ? 1 : 0.45,
+                fontSize: 12,
+                fontWeight: 750,
+              }}
+            >
               {group.label} · {group.milestones.length}
             </div>
           ))}
@@ -937,7 +1000,7 @@ function TimelineView({
             </div>
 
             {scheduledLanes.map(({ planType, items }) => {
-              const rowCount = items.length;
+              const rowCount = Math.min(3, Math.max(1, items.length));
 
               return (
                 <div key={planType} style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, alignItems: "stretch" }}>
@@ -949,13 +1012,13 @@ function TimelineView({
                     position: "relative",
                     display: "grid",
                     gridTemplateColumns,
-                    gridTemplateRows: `repeat(${rowCount}, 34px)`,
-                    minHeight: Math.max(42, rowCount * 34 + 10),
+                    gridTemplateRows: `repeat(${rowCount}, 24px)`,
+                    minHeight: Math.max(72, rowCount * 24 + 16),
                     padding: "8px 0",
                     borderRadius: 8,
-                    background: "var(--bg-secondary)",
+                    background: `repeating-linear-gradient(to right, transparent 0, transparent calc((100% / ${Math.max(1, ticks.length)}) - 1px), var(--border-secondary) calc((100% / ${Math.max(1, ticks.length)}) - 1px), var(--border-secondary) calc(100% / ${Math.max(1, ticks.length)}))`,
                     border: "1px solid var(--border-secondary)",
-                    overflow: "hidden",
+                    overflow: "visible",
                   }}
                 >
                   {ticks.map((tick, index) => (
@@ -964,8 +1027,9 @@ function TimelineView({
                       style={{
                         gridColumn: index + 1,
                         gridRow: `1 / ${rowCount + 1}`,
-                        borderLeft: index === 0 ? "none" : "1px solid var(--border-secondary)",
+                        borderLeft: index === 0 ? "none" : "1px solid color-mix(in srgb, var(--border-secondary) 70%, transparent)",
                         pointerEvents: "none",
+                        zIndex: 0,
                       }}
                     />
                   ))}
@@ -983,9 +1047,17 @@ function TimelineView({
                   {items.map((item, index) => {
                       const signal = getMilestoneSignal(item.milestone, today, nextMilestoneId);
                       const tone = TONE_STYLE[signal.tone];
-                      const isPoint = item.dateMode === "point";
+                      const isPoint = item.scheduleKind !== "range";
                       const startIndex = tickIndexByKey.get(getHalfMonthStart(item.start)) ?? 0;
                       const endIndex = tickIndexByKey.get(getHalfMonthStart(item.end)) ?? startIndex;
+                      const stackRow = (index % rowCount) + 1;
+                      const chipBackground = signal.isNext
+                        ? "color-mix(in srgb, var(--accent-blue-light) 76%, var(--bg-primary))"
+                        : signal.isRisk
+                          ? "color-mix(in srgb, var(--accent-red-light) 72%, var(--bg-primary))"
+                          : signal.isDone
+                            ? "color-mix(in srgb, var(--accent-green-light) 72%, var(--bg-primary))"
+                            : "var(--bg-primary)";
 
                       return (
                         <button
@@ -995,31 +1067,34 @@ function TimelineView({
                           title={item.milestone.description || item.milestone.title}
                           style={{
                             gridColumn: isPoint ? `${startIndex + 1} / span 1` : `${startIndex + 1} / ${endIndex + 2}`,
-                            gridRow: index + 1,
+                            gridRow: stackRow,
                             alignSelf: "center",
                             justifySelf: isPoint ? "center" : "stretch",
-                            width: isPoint ? 22 : "auto",
-                            minWidth: isPoint ? 22 : 72,
-                            height: 26,
-                            borderRadius: isPoint ? 999 : 7,
+                            width: isPoint ? "max-content" : "auto",
+                            maxWidth: isPoint ? 156 : "none",
+                            minWidth: isPoint ? 0 : 72,
+                            height: 23,
+                            borderRadius: 999,
                             border: `1px solid ${signal.isNext ? "var(--accent-blue)" : tone.border}`,
-                            background: signal.isRisk ? "var(--accent-red-light)" : signal.isDone ? "var(--accent-green-light)" : "var(--bg-primary)",
+                            background: chipBackground,
                             color: "var(--text-primary)",
                             cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: isPoint ? "center" : "flex-start",
-                            padding: isPoint ? 0 : "0 8px",
+                            justifyContent: "flex-start",
+                            gap: 5,
+                            padding: "0 8px",
                             zIndex: 2,
-                            boxShadow: signal.isNext ? "0 0 0 1px color-mix(in srgb, var(--accent-blue) 18%, transparent)" : "none",
+                            boxShadow: signal.isNext ? "0 0 0 1px color-mix(in srgb, var(--accent-blue) 22%, transparent)" : "0 1px 0 color-mix(in srgb, var(--border-secondary) 70%, transparent)",
                           }}
                         >
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 650 }}>
-                            {isPoint ? "●" : item.milestone.title}
+                          {isPoint && <span style={{ color: signal.isNext ? "var(--accent-blue)" : tone.color, fontSize: 10, lineHeight: 1 }}>●</span>}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: signal.isNext ? 750 : 650 }}>
+                            {item.milestone.title}
                           </span>
-                          {isPoint && (
-                            <span style={{ position: "absolute", left: "calc(50% + 15px)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 650, whiteSpace: "nowrap" }}>
-                              {item.milestone.title}
+                          {item.scheduleNote && (
+                            <span style={{ color: "var(--text-tertiary)", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+                              {item.scheduleNote}
                             </span>
                           )}
                         </button>
@@ -1061,6 +1136,7 @@ function TimelineView({
                   >
                     <StatusMark signal={signal} />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>{milestone.title}</span>
+                    <span style={{ color: "var(--text-tertiary)", fontSize: 11, whiteSpace: "nowrap" }}>{getUnscheduledReason(milestone)}</span>
                   </button>
                 );
               })}
