@@ -29,6 +29,15 @@ type DashboardActionItem = Awaited<ReturnType<typeof prisma.actionItem.findMany>
 };
 
 type FocusKey = "open" | "following" | "blocked" | "overdue" | "p0" | "p1" | "todayLogs" | "todayClosed";
+type StatConfig = {
+  label: string;
+  meta: string;
+  value: number;
+  icon: string;
+  tone: string;
+  focus: FocusKey;
+  group: "risk" | "flow";
+};
 
 type FocusView =
   | {
@@ -209,6 +218,12 @@ function DashboardActionRow({ action, today }: { action: DashboardActionItem; to
       : undefined;
   const isOverdue = Boolean(action.dueDate && action.dueDate < today);
   const parentTitle = action.workItem?.title || action.workLog?.title;
+  const parentType = action.workItem ? "事项" : action.workLog ? "日志" : null;
+  const sourceParts = [
+    action.owner ? `负责人：${action.owner}` : null,
+    action.project ? `项目：${action.project.code || action.project.name}` : null,
+    parentTitle && parentType ? `来源${parentType}：${parentTitle}` : null,
+  ].filter(Boolean);
 
   const content = (
     <>
@@ -217,18 +232,20 @@ function DashboardActionRow({ action, today }: { action: DashboardActionItem; to
       </span>
       <div className="dashboard-action-main">
         <strong>{action.title}</strong>
-        <span>
-          {action.dueDate ? `截止 ${action.dueDate}` : "无截止日期"}
-          {action.owner ? ` · ${action.owner}` : ""}
-          {action.project ? ` · ${action.project.code || action.project.name}` : ""}
-          {parentTitle ? ` · 来源：${parentTitle}` : ""}
-        </span>
+        <span>{sourceParts.length > 0 ? sourceParts.join(" · ") : "未关联事项或日志"}</span>
       </div>
-      <Icon name="chevron-right" size={13} />
+      <span className={`dashboard-action-due${isOverdue ? " is-overdue" : ""}`}>
+        {action.dueDate ? action.dueDate : "未设截止"}
+      </span>
+      {href && (
+        <span className="dashboard-action-arrow" aria-hidden="true">
+          <Icon name="chevron-right" size={13} />
+        </span>
+      )}
     </>
   );
 
-  const rowClassName = `dashboard-action-row dashboard-action-row--${isOverdue ? "overdue" : action.status}`;
+  const rowClassName = `dashboard-action-row dashboard-action-row--${isOverdue ? "overdue" : action.status}${href ? " is-clickable" : ""}`;
 
   return href ? (
     <Link href={href} className={rowClassName}>
@@ -236,6 +253,38 @@ function DashboardActionRow({ action, today }: { action: DashboardActionItem; to
     </Link>
   ) : (
     <div className={rowClassName}>{content}</div>
+  );
+}
+
+function DashboardStatCard({ stat, active }: { stat: StatConfig; active: boolean }) {
+  const statTone = stat.value > 0 ? stat.tone : "neutral";
+  const className = `stat-card stat-card-${statTone}${active ? " stat-card-active" : ""}${stat.value === 0 ? " stat-card-empty" : ""}`;
+  const content = (
+    <>
+      <div className="stat-topline">
+        <span className="stat-icon">
+          <Icon name={stat.icon} size={18} />
+        </span>
+        <span className="stat-meta">{stat.meta}</span>
+      </div>
+      <div className="stat-value">{stat.value}</div>
+      <div className="stat-label">{stat.label}</div>
+    </>
+  );
+
+  if (stat.value === 0 && !active) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <Link
+      href={getDashboardFocusHref(stat.focus)}
+      scroll={false}
+      className={`${className} stat-card-clickable`}
+      aria-current={active ? "page" : undefined}
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -467,15 +516,18 @@ export default async function Dashboard({ searchParams }: PageProps) {
     actionItemCount: openActionItemCount,
   });
 
-  const stats = [
-    { label: "待处理", meta: "OPEN", value: openCount, icon: "inbox", tone: "blue", focus: "open" as const },
-    { label: "跟进中", meta: "FOLLOWING", value: followingCount, icon: "activity", tone: "cyan", focus: "following" as const },
-    { label: "已阻塞", meta: "BLOCKED", value: blockedCount, icon: "shield-off", tone: "danger", focus: "blocked" as const },
-    { label: "P0 紧急", meta: "P0", value: p0Count, icon: "zap", tone: "critical", focus: "p0" as const },
-    { label: "P1 高优", meta: "P1", value: p1Count, icon: "alert-triangle", tone: "warning", focus: "p1" as const },
-    { label: "今日日志", meta: "TODAY", value: todayLogsCount, icon: "file-text", tone: "purple", focus: "todayLogs" as const },
-    { label: "今日关闭", meta: "DONE", value: todayClosedCount, icon: "check-circle", tone: "success", focus: "todayClosed" as const },
+  const stats: StatConfig[] = [
+    { label: "已阻塞", meta: "BLOCKED", value: blockedCount, icon: "shield-off", tone: "danger", focus: "blocked", group: "risk" },
+    { label: "P0 紧急", meta: "P0", value: p0Count, icon: "zap", tone: "critical", focus: "p0", group: "risk" },
+    { label: "P1 高优", meta: "P1", value: p1Count, icon: "alert-triangle", tone: "warning", focus: "p1", group: "risk" },
+    { label: "已逾期", meta: "OVERDUE", value: overdueItems.length, icon: "clock", tone: "danger", focus: "overdue", group: "risk" },
+    { label: "待处理", meta: "OPEN", value: openCount, icon: "inbox", tone: "blue", focus: "open", group: "flow" },
+    { label: "跟进中", meta: "FOLLOWING", value: followingCount, icon: "activity", tone: "cyan", focus: "following", group: "flow" },
+    { label: "今日日志", meta: "TODAY", value: todayLogsCount, icon: "file-text", tone: "purple", focus: "todayLogs", group: "flow" },
+    { label: "今日关闭", meta: "DONE", value: todayClosedCount, icon: "check-circle", tone: "success", focus: "todayClosed", group: "flow" },
   ];
+  const riskStats = stats.filter((stat) => stat.group === "risk");
+  const flowStats = stats.filter((stat) => stat.group === "flow");
 
   return (
     <div className="dashboard-shell">
@@ -534,21 +586,25 @@ export default async function Dashboard({ searchParams }: PageProps) {
                   LOCAL WORK HUB
                 </div>
                 <h1>今日工作台</h1>
-                <p className="hero-subtitle">{formatTodayStr()} · 今日执行入口</p>
+                <p className="hero-subtitle">今日执行入口</p>
               </div>
               <div className="hero-summary-stack">
                 <p className="banner-judgement">{bannerJudgement}</p>
                 <div className="hero-signal-chips" aria-label="交付风险信号">
-                  <span className={`hero-signal-chip${blockedCount > 0 ? " is-risk" : " is-muted"}`}>阻塞 {blockedCount}</span>
-                  <span className={`hero-signal-chip${p0Count > 0 ? " is-risk" : " is-muted"}`}>P0 {p0Count}</span>
-                  <span className={`hero-signal-chip${p1Count > 0 ? " is-warning" : " is-muted"}`}>P1 {p1Count}</span>
-                  <span className={`hero-signal-chip${overdueItems.length > 0 ? " is-risk" : " is-muted"}`}>逾期 {overdueItems.length}</span>
+                  {blockedCount > 0 && <span className="hero-signal-chip is-risk">阻塞 {blockedCount}</span>}
+                  {p0Count > 0 && <span className="hero-signal-chip is-risk">P0 {p0Count}</span>}
+                  {p1Count > 0 && <span className="hero-signal-chip is-warning">P1 {p1Count}</span>}
+                  {overdueItems.length > 0 && <span className="hero-signal-chip is-risk">逾期 {overdueItems.length}</span>}
                 </div>
               </div>
               <div className="hero-actions">
                 <Link href="/logs/new" className="btn hero-btn-primary">
                   <Icon name="edit" size={15} />
                   记录今日日志
+                </Link>
+                <Link href="/items/new?actionItems=1" className="btn hero-btn-secondary">
+                  <Icon name="clipboard-list" size={15} />
+                  新增行动项
                 </Link>
                 <Link href="/items/new" className="btn hero-btn-secondary">
                   <Icon name="plus" size={15} />
@@ -568,6 +624,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
                 <div>
                   <span className="section-eyebrow">Action Items</span>
                   <h2>今日行动项</h2>
+                  <p className="section-brief">今天需要处理、确认、推进的具体动作。</p>
                 </div>
                 <div className="section-head-actions">
                   <span className="section-count">{openActionItemCount} 项</span>
@@ -600,30 +657,23 @@ export default async function Dashboard({ searchParams }: PageProps) {
                   实时数据
                 </span>
               </div>
-              <div className="situation-grid cockpit-metrics">
-                {stats.map((stat) => {
-                  const isActive = focus === stat.focus;
-                  const statTone = stat.value > 0 ? stat.tone : "neutral";
-
-                  return (
-                    <Link
-                      key={stat.meta}
-                      href={getDashboardFocusHref(stat.focus)}
-                      scroll={false}
-                      className={`stat-card stat-card-${statTone}${isActive ? " stat-card-active" : ""}`}
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      <div className="stat-topline">
-                        <span className="stat-icon">
-                          <Icon name={stat.icon} size={18} />
-                        </span>
-                        <span className="stat-meta">{stat.meta}</span>
-                      </div>
-                      <div className="stat-value">{stat.value}</div>
-                      <div className="stat-label">{stat.label}</div>
-                    </Link>
-                  );
-                })}
+              <div className="dashboard-stat-groups">
+                <div className="dashboard-stat-group dashboard-stat-group--risk">
+                  <span className="dashboard-stat-group-label">风险态势</span>
+                  <div className="situation-grid cockpit-metrics">
+                    {riskStats.map((stat) => (
+                      <DashboardStatCard key={stat.meta} stat={stat} active={focus === stat.focus} />
+                    ))}
+                  </div>
+                </div>
+                <div className="dashboard-stat-group dashboard-stat-group--flow">
+                  <span className="dashboard-stat-group-label">流转态势</span>
+                  <div className="situation-grid cockpit-metrics">
+                    {flowStats.map((stat) => (
+                      <DashboardStatCard key={stat.meta} stat={stat} active={focus === stat.focus} />
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -664,8 +714,9 @@ export default async function Dashboard({ searchParams }: PageProps) {
             <section className="card cockpit-card">
               <div className="cockpit-card-head">
                 <div>
-                  <span className="section-eyebrow">Today Queue</span>
-                  <h2>今日事项</h2>
+                  <span className="section-eyebrow">Tracking Queue</span>
+                  <h2>事项队列</h2>
+                  <p className="section-brief">需要持续关注的事项状态。</p>
                 </div>
                 <Link href="/items" className="section-link">
                   查看全部 <Icon name="chevron-right" size={14} />

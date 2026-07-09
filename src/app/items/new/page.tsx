@@ -12,7 +12,7 @@ import {
   REPORT_LEVEL_OPTIONS,
   SOURCE_SYSTEM_OPTIONS,
 } from "@/lib/constants";
-import ActionItemDraftSection from "@/components/ActionItemDraftSection";
+import ActionItemDraftSection, { createActionItemDraft } from "@/components/ActionItemDraftSection";
 import type { ActionItemDraft } from "@/lib/types";
 
 interface ProjectOption {
@@ -25,13 +25,16 @@ function NewItemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialProjectId = searchParams.get("projectId") || "";
+  const initialActionItemsEnabled = searchParams.get("actionItems") === "1";
 
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [actionItemsEnabled, setActionItemsEnabled] = useState(false);
-  const [actionItemDrafts, setActionItemDrafts] = useState<ActionItemDraft[]>([]);
+  const [actionItemsEnabled, setActionItemsEnabled] = useState(initialActionItemsEnabled);
+  const [actionItemDrafts, setActionItemDrafts] = useState<ActionItemDraft[]>(() =>
+    initialActionItemsEnabled ? [createActionItemDraft()] : []
+  );
   const [form, setForm] = useState({
     title: "",
     description: "",

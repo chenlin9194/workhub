@@ -9422,6 +9422,204 @@ html body .app-main .cockpit-side-column .portfolio-quiet-empty {
   }
 }
 
+/* ===== Home PM Cockpit Scanning Pass ===== */
+html body .dashboard-shell .section-brief {
+  margin: 3px 0 0 !important;
+  color: var(--text-tertiary) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 450 !important;
+}
+
+html body .dashboard-shell .daily-command-banner .hero-signal-chips:empty {
+  display: none !important;
+}
+
+html body .dashboard-shell .daily-command-banner .hero-actions {
+  grid-template-columns: minmax(132px, auto) minmax(112px, auto) minmax(104px, auto) minmax(104px, auto) !important;
+  white-space: nowrap !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-list {
+  gap: 4px !important;
+  padding: 6px !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-row {
+  grid-template-columns: auto minmax(0, 1fr) max-content auto !important;
+  min-height: 34px !important;
+  gap: 8px !important;
+  padding: 6px 8px 6px 11px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, #ffffff 92%, var(--bg-secondary)) !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-row.is-clickable {
+  cursor: pointer !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-row:not(.is-clickable):hover {
+  border-color: color-mix(in srgb, var(--border-primary) 82%, transparent) !important;
+  background: color-mix(in srgb, #ffffff 92%, var(--bg-secondary)) !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-status {
+  min-width: 40px !important;
+  min-height: 20px !important;
+  padding: 1px 7px !important;
+  font-size: 10px !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-main {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-main strong {
+  display: block !important;
+  overflow: hidden !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 720 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-main span {
+  overflow: hidden !important;
+  color: var(--text-tertiary) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-due {
+  justify-self: end !important;
+  color: var(--text-tertiary) !important;
+  font-size: 11px !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-due.is-overdue {
+  color: var(--accent-red) !important;
+  font-weight: 680 !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-arrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.28 !important;
+  transition: opacity 0.16s ease, transform 0.16s ease !important;
+}
+
+html body .dashboard-shell .dashboard-action-card .dashboard-action-row:hover .dashboard-action-arrow {
+  opacity: 0.62 !important;
+  transform: translateX(1px) !important;
+}
+
+html body .dashboard-shell .dashboard-stat-groups {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+html body .dashboard-shell .dashboard-stat-group {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+html body .dashboard-shell .dashboard-stat-group-label {
+  color: var(--text-tertiary) !important;
+  font-size: 10px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+html body .dashboard-shell .dashboard-stat-group .cockpit-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html body .dashboard-shell .dashboard-stat-group--flow .stat-card {
+  min-height: 76px !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-clickable {
+  cursor: pointer !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-empty {
+  cursor: default !important;
+  opacity: 0.62 !important;
+  background: color-mix(in srgb, #ffffff 88%, var(--bg-secondary)) !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-empty:hover {
+  border-color: var(--border-primary) !important;
+  background: color-mix(in srgb, #ffffff 88%, var(--bg-secondary)) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-empty::before {
+  opacity: 0.2 !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-empty .stat-icon,
+html body .dashboard-shell .cockpit-metrics .stat-card-empty .stat-meta,
+html body .dashboard-shell .cockpit-metrics .stat-card-empty .stat-value,
+html body .dashboard-shell .cockpit-metrics .stat-card-empty .stat-label {
+  color: var(--text-tertiary) !important;
+}
+
+html body .dashboard-shell .cockpit-metrics .stat-card-danger:not(.stat-card-empty),
+html body .dashboard-shell .cockpit-metrics .stat-card-critical:not(.stat-card-empty),
+html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-empty) {
+  border-color: color-mix(in srgb, currentColor 24%, var(--border-primary)) !important;
+}
+
+@media (max-width: 1180px) {
+  html body .dashboard-shell .daily-command-banner .hero-actions {
+    grid-template-columns: repeat(4, max-content) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body .dashboard-shell .dashboard-stat-group .cockpit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html body .dashboard-shell .dashboard-action-card .dashboard-action-row {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+  }
+
+  html body .dashboard-shell .dashboard-action-card .dashboard-action-status {
+    grid-row: 1 / 3 !important;
+    align-self: start !important;
+  }
+
+  html body .dashboard-shell .dashboard-action-card .dashboard-action-main {
+    grid-column: 2 / 3 !important;
+  }
+
+  html body .dashboard-shell .dashboard-action-card .dashboard-action-due {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 / 3 !important;
+    justify-self: start !important;
+  }
+
+  html body .dashboard-shell .dashboard-action-card .dashboard-action-arrow {
+    grid-column: 3 / 4 !important;
+    grid-row: 1 / 3 !important;
+  }
+}
+
 /* ===== Project Module Portfolio & Cockpit IA Pass ===== */
 .project-list-page .command-page-header {
   align-items: flex-start !important;
