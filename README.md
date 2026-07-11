@@ -1,5 +1,17 @@
 # WorkHub
 
+## Hermes + Feishu Deployment
+
+WorkHub includes a Hermes MCP V1 integration for using a Feishu/Hermes agent as a natural-language entrance and exit for structured WorkHub records.
+
+Before deploying this integration on a new company computer, read these documents in order:
+
+1. [`AGENTS.md`](AGENTS.md): product boundary and repository rules.
+2. [`docs/company-deployment.md`](docs/company-deployment.md): company deployment, secrets, Hermes registration, Feishu acceptance, upgrade, and rollback.
+3. [`docs/hermes-workhub-v1.md`](docs/hermes-workhub-v1.md): MCP capabilities, agent rules, and example user flows.
+
+Do not commit `.env`, database files, Hermes configuration, Feishu credentials, or real tokens. The deployment document is written so a new AI agent can deploy the integration without the original implementation conversation.
+
 WorkHub 是一个面向个人的软件项目经理的关键事实管理控制台，也可以理解为“个人项目管理控制台 / 关键事实导航系统”。
 
 它只服务于你真正需要持续跟踪、快速定位、可以汇报的内容，不是完整项目管理系统，也不是 Jira、ALM、飞书或团队协同平台的替代品。
@@ -138,4 +150,3 @@ npx prisma db push
 - 不要引入复杂状态管理
 - 不要把列表页改成搜索中心或保存视图中心
 - 不要把信号映射和筛选构造逻辑分散到各个页面
-

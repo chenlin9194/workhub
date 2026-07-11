@@ -64,6 +64,20 @@ Important areas:
 - `src/lib/constants.ts`: option lists and labels
 - `src/lib/types.ts`: shared TypeScript types
 
+## Hermes + Feishu MCP deployment
+
+WorkHub has a Hermes MCP V1 integration. Before deploying, modifying, or diagnosing the Feishu/Hermes path, read:
+
+- `docs/company-deployment.md`
+- `docs/hermes-workhub-v1.md`
+
+The authoritative MCP files are:
+
+- `src/app/api/integrations/hermes/workhub/route.ts`
+- `scripts/hermes-workhub-mcp.mjs`
+
+Keep `HERMES_WORKHUB_TOKEN` out of Git. The token must match between WorkHub and Hermes. Do not add delete MCP tools. Preserve the current log boundary: tracked work-item updates create system change logs; other CRUD actions do not create automatic logs unless the web API already does.
+
 Use Windows-compatible npm commands when giving user-side commands:
 
 ```bash

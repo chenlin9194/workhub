@@ -16,15 +16,18 @@
     "report:today:claude": "bash scripts/daily-claude.sh",
     "report:today:codex": "bash scripts/daily-codex.sh",
     "report:week:claude": "bash scripts/weekly-claude.sh",
-    "report:week:codex": "bash scripts/weekly-codex.sh"
+    "report:week:codex": "bash scripts/weekly-codex.sh",
+    "hermes:mcp": "node scripts/hermes-workhub-mcp.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^6.9.0",
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.7",
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
@@ -33,7 +36,6 @@
     "postcss": "^8.5.4",
     "prisma": "^6.9.0",
     "tailwindcss": "^4.1.7",
-    "typescript": "^5.8.3",
-    "@tailwindcss/postcss": "^4.1.7"
+    "typescript": "^5.8.3"
   }
 }
