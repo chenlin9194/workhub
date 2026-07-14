@@ -1,16 +1,10 @@
 # WorkHub
 
-## Hermes + Feishu Deployment
+## Hermes + Feishu Integration
 
-WorkHub includes a Hermes MCP V1 integration for using a Feishu/Hermes agent as a natural-language entrance and exit for structured WorkHub records.
+WorkHub provides the authenticated HTTP endpoint and business rules for Hermes MCP. The Hermes stdio server, WSL installation scripts, deployment runbook, skill, and Feishu acceptance prompts live in the separate [WorkHub Hermes Bridge repository](https://github.com/chenlin9194/workhub-hermes-bridge).
 
-Before deploying this integration on a new company computer, read these documents in order:
-
-1. [`AGENTS.md`](AGENTS.md): product boundary and repository rules.
-2. [`docs/company-deployment.md`](docs/company-deployment.md): company deployment, secrets, Hermes registration, Feishu acceptance, upgrade, and rollback.
-3. [`docs/hermes-workhub-v1.md`](docs/hermes-workhub-v1.md): MCP capabilities, agent rules, and example user flows.
-
-Do not commit `.env`, database files, Hermes configuration, Feishu credentials, or real tokens. The deployment document is written so a new AI agent can deploy the integration without the original implementation conversation.
+Before changing this integration, read [`AGENTS.md`](AGENTS.md), [`docs/hermes-workhub-v1.md`](docs/hermes-workhub-v1.md), then the [Bridge deployment runbook](https://github.com/chenlin9194/workhub-hermes-bridge/blob/main/docs/company-deployment.md). Do not commit `.env`, database files, Hermes configuration, Feishu credentials, or real tokens.
 
 WorkHub 是一个面向个人的软件项目经理的关键事实管理控制台，也可以理解为“个人项目管理控制台 / 关键事实导航系统”。
 

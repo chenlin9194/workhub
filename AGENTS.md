@@ -64,19 +64,21 @@ Important areas:
 - `src/lib/constants.ts`: option lists and labels
 - `src/lib/types.ts`: shared TypeScript types
 
-## Hermes + Feishu MCP deployment
+## Hermes + Feishu MCP integration
 
-WorkHub has a Hermes MCP V1 integration. Before deploying, modifying, or diagnosing the Feishu/Hermes path, read:
+WorkHub owns the authenticated HTTP tool endpoint and its business rules. The Hermes stdio server, WSL installation scripts, deployment runbook, skill, and Feishu acceptance prompts live in the separate [WorkHub Hermes Bridge repository](https://github.com/chenlin9194/workhub-hermes-bridge).
 
-- `docs/company-deployment.md`
+Before modifying or diagnosing the Feishu/Hermes path, read:
+
 - `docs/hermes-workhub-v1.md`
+- Bridge repository: `docs/company-deployment.md` and `docs/hermes-skill.md`
 
-The authoritative MCP files are:
+The authoritative WorkHub MCP files are:
 
 - `src/app/api/integrations/hermes/workhub/route.ts`
-- `scripts/hermes-workhub-mcp.mjs`
+- `src/lib/workItemChangeLog.ts`
 
-Keep `HERMES_WORKHUB_TOKEN` out of Git. The token must match between WorkHub and Hermes. Do not add delete MCP tools. Preserve the current log boundary: tracked work-item updates create system change logs; other CRUD actions do not create automatic logs unless the web API already does.
+Keep `HERMES_WORKHUB_TOKEN` out of Git. The token must match between WorkHub and the Bridge configuration. Do not add delete MCP tools. Preserve the current log boundary: tracked work-item updates create system change logs; other CRUD actions do not create automatic logs unless the web API already does.
 
 Use Windows-compatible npm commands when giving user-side commands:
 

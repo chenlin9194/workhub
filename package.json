@@ -16,11 +16,9 @@
     "report:today:claude": "bash scripts/daily-claude.sh",
     "report:today:codex": "bash scripts/daily-codex.sh",
     "report:week:claude": "bash scripts/weekly-claude.sh",
-    "report:week:codex": "bash scripts/weekly-codex.sh",
-    "hermes:mcp": "node scripts/hermes-workhub-mcp.mjs"
+    "report:week:codex": "bash scripts/weekly-codex.sh"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^6.9.0",
     "next": "^15.3.3",
     "react": "^19.1.0",
