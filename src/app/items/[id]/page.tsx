@@ -8,6 +8,7 @@ import Timeline from "@/components/Timeline";
 import PageLoadingState from "@/components/PageLoadingState";
 import {
   WORK_ITEM_TYPE_LABELS,
+  PRIORITIES,
   PRIORITY_LABELS,
   STATUS_LABELS,
   HEALTH_LABELS,
@@ -117,6 +118,30 @@ export default function ItemDetailPage() {
     }
   };
 
+  const handlePriorityChange = async (newPriority: string) => {
+    if (!item || actionInFlightRef.current || newPriority === item.priority) return;
+
+    actionInFlightRef.current = true;
+    try {
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority: newPriority }),
+      });
+
+      if (res.ok) {
+        await fetchItem();
+      } else {
+        alert("更新优先级失败");
+      }
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      alert("更新优先级失败");
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!item || actionInFlightRef.current) return;
     if (!confirm("确定删除此事项？关联日志不会被删除。")) return;
@@ -199,6 +224,18 @@ export default function ItemDetailPage() {
           </div>
         </div>
         <div className="detail-actions">
+          <select
+            className="item-status-compact-select"
+            value={item.priority}
+            onChange={(event) => handlePriorityChange(event.target.value)}
+            aria-label="更新事项优先级"
+          >
+            {PRIORITIES.map((priority) => (
+              <option key={priority.value} value={priority.value}>
+                {priority.label}
+              </option>
+            ))}
+          </select>
           <select
             className="item-status-compact-select"
             value={item.status}
