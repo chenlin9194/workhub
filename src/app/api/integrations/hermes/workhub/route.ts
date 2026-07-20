@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
-import { collectWorkItemChanges, createWorkItemChangeLog } from "@/lib/workItemChangeLog";
+import { updateWorkItemWithChangeLog } from "@/lib/workItemChangeLog";
+import {
+  ACTION_ITEM_STATUS_VALUES,
+  enumOrDefault,
+  HEALTH_VALUES,
+  LOG_SOURCE_VALUES,
+  PRIORITY_VALUES,
+  REPORT_LEVEL_VALUES,
+  WORK_ITEM_TYPE_VALUES,
+  WORK_LOG_TYPE_VALUES,
+} from "@/lib/inputValidation";
 import {
   PROJECT_MILESTONE_STAGE_VALUES,
   normalizeDateMode,
@@ -575,6 +585,16 @@ async function handleCreateWorkItemWithActions(input: Record<string, unknown>) {
   const dueDate = normalizeYmd(input.dueDate, "dueDate");
   const nextCheckpoint = normalizeYmd(input.nextCheckpoint, "nextCheckpoint");
   const actionInputs = normalizeActionInputs(input.actionItems || input.actions || input.todos);
+  const typeResult = enumOrDefault(input.type, WORK_ITEM_TYPE_VALUES, "type", "action");
+  const priorityResult = enumOrDefault(input.priority, PRIORITY_VALUES, "priority", "P2");
+  const statusResult = enumOrDefault(input.status, new Set(["open", "following", "blocked", "closed"]), "status", "open");
+  const healthResult = enumOrDefault(input.health, HEALTH_VALUES, "health", "unknown");
+  const reportLevelResult = enumOrDefault(input.reportLevel, REPORT_LEVEL_VALUES, "reportLevel", "none");
+  const actionError = actionInputs.find((action) => !ACTION_ITEM_STATUS_VALUES.has(action.status));
+  const validationError = [typeResult, priorityResult, statusResult, healthResult, reportLevelResult]
+    .find((result) => result.error)?.error;
+  if (validationError) return jsonError(validationError);
+  if (actionError) return jsonError("actionItems.status is invalid");
 
   const item = await prisma.workItem.create({
     data: {
@@ -583,9 +603,9 @@ async function handleCreateWorkItemWithActions(input: Record<string, unknown>) {
       project: resolved.project.name,
       projectId: resolved.project.id,
       module: optionalString(input.module),
-      type: trimString(input.type) || "action",
-      priority: trimString(input.priority) || "P2",
-      status: trimString(input.status) || "open",
+      type: typeResult.value,
+      priority: priorityResult.value,
+      status: statusResult.value,
       owner: optionalString(input.owner),
       dueDate,
       nextAction: optionalString(input.nextAction),
@@ -593,10 +613,10 @@ async function handleCreateWorkItemWithActions(input: Record<string, unknown>) {
       sourceSystem: optionalString(input.sourceSystem) || "feishu-hermes",
       sourceId: optionalString(input.sourceId),
       sourceUrl: optionalString(input.sourceUrl),
-      health: trimString(input.health) || "unknown",
+      health: healthResult.value,
       currentSummary: optionalString(input.currentSummary),
       nextCheckpoint,
-      reportLevel: trimString(input.reportLevel) || "none",
+      reportLevel: reportLevelResult.value,
       tags: optionalString(input.tags),
     },
   });
@@ -633,8 +653,14 @@ async function handleCreateProjectLog(input: Record<string, unknown>) {
   if (!title || !content) return jsonError("log title and content are required");
 
   const type = trimString(input.type) || "note";
+  if (!WORK_LOG_TYPE_VALUES.has(type)) return jsonError("type is invalid");
+  const source = trimString(input.source) || "feishu";
+  if (!LOG_SOURCE_VALUES.has(source)) return jsonError("source is invalid");
   const reportable = optionalBoolean(input.reportable, REPORTABLE_LOG_TYPES.has(type));
   const actionInputs = normalizeActionInputs(input.actionItems || input.actions || input.followups);
+  if (actionInputs.some((action) => !ACTION_ITEM_STATUS_VALUES.has(action.status))) {
+    return jsonError("actionItems.status is invalid");
+  }
   const itemId = optionalString(input.itemId);
 
   const log = await prisma.workLog.create({
@@ -643,7 +669,7 @@ async function handleCreateProjectLog(input: Record<string, unknown>) {
       title,
       content,
       type,
-      source: trimString(input.source) || "feishu",
+      source,
       project: resolved.project.name,
       projectId: resolved.project.id,
       module: optionalString(input.module),
@@ -987,10 +1013,18 @@ async function handleUpdateWorkItem(input: Record<string, unknown>) {
   for (const field of ["description", "module", "owner", "nextAction", "trackingReason", "sourceSystem", "sourceId", "sourceUrl", "currentSummary", "tags"]) {
     if (field in patch) data[field] = optionalString(patch[field]);
   }
-  for (const field of ["type", "priority", "status", "health", "reportLevel"]) {
+  const enumFields = [
+    ["type", WORK_ITEM_TYPE_VALUES],
+    ["priority", PRIORITY_VALUES],
+    ["status", new Set(["open", "following", "blocked", "closed"])],
+    ["health", HEALTH_VALUES],
+    ["reportLevel", REPORT_LEVEL_VALUES],
+  ] as const;
+  for (const [field, values] of enumFields) {
     if (field in patch) {
       const value = trimString(patch[field]);
       if (!value) return jsonError(`${field} cannot be empty`);
+      if (!values.has(value)) return jsonError(`${field} is invalid`);
       data[field] = value;
     }
   }
@@ -1001,15 +1035,7 @@ async function handleUpdateWorkItem(input: Record<string, unknown>) {
   if (nextStatus === "closed" && current.status !== "closed") data.closedAt = new Date();
   if (nextStatus !== "closed" && current.status === "closed") data.closedAt = null;
 
-  const changes = collectWorkItemChanges(current, patch, data);
-  const item = await prisma.workItem.update({ where: { id: current.id }, data });
-  if (changes.length > 0) {
-    try {
-      await createWorkItemChangeLog(item, changes);
-    } catch (logError) {
-      console.error("Error creating Hermes work item change log:", logError);
-    }
-  }
+  const item = await updateWorkItemWithChangeLog(current, patch, data);
   revalidateWorkHubPaths({ itemId: item.id, projectId: item.projectId || undefined });
   return jsonOk({ item });
 }

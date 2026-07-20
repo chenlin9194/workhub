@@ -285,6 +285,10 @@ export default function ProjectSnapshotPage() {
   const coreMembers = members.filter((member) => member.isCore);
   const highlightedMembers = coreMembers.length > 0 ? coreMembers : members.slice(0, 6);
   const delayedMilestones = timeline?.delayedMilestones ?? [];
+  const structuredMilestones = timeline?.milestones ?? snapshot?.milestones ?? [];
+  const needsMilestoneReminder = Boolean(
+    summary && ["active", "planning", "paused"].includes(summary.status) && structuredMilestones.length === 0
+  );
   const nextOpenMilestone = timeline?.nextOpenMilestone ?? null;
   const signalSummary = snapshot ? buildSignalSummary(snapshot, healthBuckets, delayedMilestones.length) : null;
   const projectStatus = PROJECT_STATUS_LABELS[summary?.status || ""] || summary?.status || "-";
@@ -376,7 +380,7 @@ export default function ProjectSnapshotPage() {
           <p>项目快照事实包 / 可复制给外部工具继续整理成汇报材料</p>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <CopyButton text={markdown} label="复制项目快照事实包" />
+          <CopyButton text={markdown} label={needsMilestoneReminder ? "复制项目快照事实包（需确认）" : "复制项目快照事实包"} />
           <Link href={`/projects/${projectId}`} className="btn btn-secondary">
             <Icon name="arrow-left" size={14} />
             返回项目详情
@@ -398,11 +402,12 @@ export default function ProjectSnapshotPage() {
             <div>重点事项会检查责任人、下一步和外部来源，里程碑会检查目标日期和负责人是否齐全。</div>
             <div>待确认信息不是错误，而是提醒你哪些事实还需要人工补齐。</div>
             <div>外部工具只能整理表达，不得补写事实或把待确认项自动补成结论。</div>
+            {needsMilestoneReminder && <div>管理提醒：项目尚无结构化里程碑或计划节点，请补充可跟踪的管理节点。</div>}
           </div>
         </div>
         <span className="export-ready-tag">
           <i />
-          可复制事实材料
+          {needsMilestoneReminder ? "可复制，需确认" : "可复制事实材料"}
         </span>
       </div>
 

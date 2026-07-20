@@ -1,4 +1,4 @@
-import type { WorkItem } from "@prisma/client";
+import { Prisma, type WorkItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString } from "@/lib/utils";
 
@@ -24,6 +24,8 @@ type WorkItemChange = {
   before: WorkItem[TrackedField];
   after: unknown;
 };
+
+type WorkItemChangeLogClient = Pick<Prisma.TransactionClient, "workLog">;
 
 const TRACKED_FIELD_LABELS: Record<TrackedField, string> = {
   status: "状态",
@@ -69,7 +71,11 @@ export function collectWorkItemChanges(
   });
 }
 
-export async function createWorkItemChangeLog(item: WorkItem, changes: WorkItemChange[]) {
+export async function createWorkItemChangeLog(
+  client: WorkItemChangeLogClient,
+  item: WorkItem,
+  changes: WorkItemChange[]
+) {
   if (changes.length === 0) return;
 
   let logType = "update";
@@ -80,7 +86,7 @@ export async function createWorkItemChangeLog(item: WorkItem, changes: WorkItemC
     logType = "blocker";
   }
 
-  await prisma.workLog.create({
+  await client.workLog.create({
     data: {
       workDate: getLocalDateString(),
       title: `事项变化：${item.title}`,
@@ -93,11 +99,33 @@ export async function createWorkItemChangeLog(item: WorkItem, changes: WorkItemC
       type: logType,
       source: "manual",
       project: item.project,
+      projectId: item.projectId,
       module: item.module,
       tags: item.tags,
       itemId: item.id,
       reportable: changes.some(({ field }) => REPORTABLE_FIELDS.has(field)),
       sourceUrl: item.sourceUrl,
     },
+  });
+}
+
+export async function updateWorkItemWithChangeLog(
+  currentItem: WorkItem,
+  patch: Record<string, unknown>,
+  data: Record<string, unknown>
+) {
+  const changes = collectWorkItemChanges(currentItem, patch, data);
+
+  return prisma.$transaction(async (transaction) => {
+    const item = await transaction.workItem.update({
+      where: { id: currentItem.id },
+      data: data as Prisma.WorkItemUpdateInput,
+    });
+
+    if (changes.length > 0) {
+      await createWorkItemChangeLog(transaction, item, changes);
+    }
+
+    return item;
   });
 }

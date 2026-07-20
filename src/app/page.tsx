@@ -3,6 +3,7 @@ import Icon from "@/components/Icon";
 import WorkItemCard from "@/components/WorkItemCard";
 import WorkLogCard from "@/components/WorkLogCard";
 import HomeTopbarActions from "@/components/HomeTopbarActions";
+import MobilePrimaryNav from "@/components/MobilePrimaryNav";
 import { prisma } from "@/lib/prisma";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
 import {
@@ -530,7 +531,8 @@ export default async function Dashboard({ searchParams }: PageProps) {
   const flowStats = stats.filter((stat) => stat.group === "flow");
 
   return (
-    <div className="dashboard-shell">
+    <>
+      <div className="dashboard-shell">
       <aside className="cockpit-sidebar" aria-label="首页导航">
         <Link href="/" className="cockpit-brand">
           <span className="cockpit-brand-mark">
@@ -787,6 +789,8 @@ export default async function Dashboard({ searchParams }: PageProps) {
           </aside>
         </main>
       </div>
-    </div>
+      </div>
+      <MobilePrimaryNav />
+    </>
   );
 }

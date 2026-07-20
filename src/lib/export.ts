@@ -50,7 +50,7 @@ interface LogEntry {
   content: string;
   reportable?: boolean;
   sourceUrl?: string | null;
-  item?: { title: string } | null;
+  item?: { id?: string; title: string } | null;
 }
 
 interface ItemEntry {
@@ -129,6 +129,14 @@ function renderTodayQualitySection(data: TodayExportData) {
   const itemsWithNextAction = activeAttentionItems.filter((item) => hasText(item.nextAction)).length;
   const itemsWithDueDate = activeAttentionItems.filter((item) => hasText(item.dueDate)).length;
   const missing: string[] = [];
+  const followUpReminders = openHighPriorityItems
+    .filter(
+      (item) =>
+        !workLogs.some(
+          (log) => log.item && ((item.id && log.item.id === item.id) || log.item.title === item.title)
+        )
+    )
+    .map((item) => `P0/P1 事项「${item.title}」当日无日志，请确认是否需要跟进记录`);
 
   workLogs.forEach((log, index) => {
     const gaps: string[] = [];
@@ -151,7 +159,11 @@ function renderTodayQualitySection(data: TodayExportData) {
   md += `- 可追溯性: 日志关联事项 ${percentText(logsWithItem, workLogs.length)} | 日志来源链接 ${percentText(logsWithSourceUrl, workLogs.length)} | 日志项目/模块 ${percentText(logsWithProjectOrModule, workLogs.length)}\n`;
   md += `- 重点事项完整性: 责任人 ${percentText(itemsWithOwner, activeAttentionItems.length)} | 下一步 ${percentText(itemsWithNextAction, activeAttentionItems.length)} | 截止日期 ${percentText(itemsWithDueDate, activeAttentionItems.length)} | 去重后重点事项 ${uniqueItemCount(activeAttentionItems)} 项\n\n`;
   md += `### 待确认信息\n\n`;
-  md += missing.length > 0 ? `${missing.slice(0, 12).map((item) => `- ${item}`).join("\n")}\n\n` : `- 暂无明显缺口\n\n`;
+  md += missing.length > 0 ? `${missing.slice(0, 12).map((item) => `- ${item}`).join("\n")}\n\n` : `- 字段完整，未发现必填字段缺口\n\n`;
+  md += `### 跟进提醒\n\n`;
+  md += followUpReminders.length > 0
+    ? `${followUpReminders.slice(0, 12).map((item) => `- ${item}`).join("\n")}\n\n`
+    : `- 当前 P0/P1 事项均有当日关联日志\n\n`;
 
   return md;
 }
@@ -351,7 +363,7 @@ function renderRangeQualitySection(data: RangeExportData) {
   md += `- 可追溯性: 日志关联事项 ${percentText(logsWithItem, workLogs.length)} | 日志来源链接 ${percentText(logsWithSourceUrl, workLogs.length)} | 日志项目/模块 ${percentText(logsWithProjectOrModule, workLogs.length)}\n`;
   md += `- 事项完整性: 关闭事项责任人 ${percentText(closedWithOwner, closedItems.length)} | 更新事项下一步 ${percentText(updatedWithNextAction, updatedItems.length)}\n\n`;
   md += `### 待确认信息\n\n`;
-  md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 暂无明显缺口\n\n`;
+  md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 字段完整，未发现必填字段缺口\n\n`;
 
   return md;
 }
@@ -650,6 +662,11 @@ function renderProjectSnapshotQualitySection(snapshot: ProjectSnapshotData) {
     (item) => item.priority === "P0" || item.priority === "P1" || item.status === "blocked" || item.health === "red"
   );
   const missing: string[] = [];
+  const managementReminders: string[] = [];
+
+  if (["active", "planning", "paused"].includes(project?.status || "") && milestones.length === 0) {
+    managementReminders.push("项目尚无结构化里程碑或计划节点，请补充可跟踪的管理节点");
+  }
 
   if (!hasText(summary?.currentSummary ?? project?.currentSummary)) missing.push("项目当前摘要待确认");
   if (!hasText(summary?.nextMilestone ?? project?.nextMilestone)) missing.push("项目下一里程碑待确认");
@@ -676,7 +693,11 @@ function renderProjectSnapshotQualitySection(snapshot: ProjectSnapshotData) {
   md += `- 重点事项完整性: 责任人 ${percentText(importantItems.filter((item) => hasText(item.owner)).length, importantItems.length)} | 下一步/摘要 ${percentText(importantItems.filter((item) => hasText(item.nextAction) || hasText(item.currentSummary)).length, importantItems.length)} | 外部来源 ${percentText(importantItems.filter((item) => hasText(item.sourceUrl) || hasText(item.sourceId)).length, importantItems.length)}\n`;
   md += `- 里程碑完整性: 计划日期 ${percentText(milestones.filter((milestone) => hasText(getMilestonePlannedEnd(milestone))).length, milestones.length)} | 负责人 ${percentText(milestones.filter((milestone) => hasText(milestone.owner)).length, milestones.length)}\n\n`;
   md += `### 待确认信息\n\n`;
-  md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 暂无明显缺口\n\n`;
+  md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 字段完整，未发现必填字段缺口\n\n`;
+  md += `### 管理提醒\n\n`;
+  md += managementReminders.length > 0
+    ? `${managementReminders.map((item) => `- ${item}`).join("\n")}\n\n`
+    : `- 当前未发现需要补充的项目结构化节点提醒\n\n`;
 
   return md;
 }

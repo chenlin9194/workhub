@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ACTION_ITEM_STATUSES } from "@/lib/constants";
-import { isValidYmdDateString, toNullableString } from "@/lib/utils";
+import { toNullableString } from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
+import { ACTION_ITEM_STATUS_VALUES, optionalYmdDate, requireText } from "@/lib/inputValidation";
 
-const VALID_STATUSES = new Set<string>(ACTION_ITEM_STATUSES.map((status) => status.value));
+const VALID_STATUSES = ACTION_ITEM_STATUS_VALUES;
 
 function parseOptionalSortOrder(value: unknown) {
   if (value === undefined || value === null || value === "") {
@@ -13,18 +13,6 @@ function parseOptionalSortOrder(value: unknown) {
 
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function normalizeOptionalDueDate(value: unknown) {
-  if (value === undefined || value === null || value === "") {
-    return { value: null as string | null };
-  }
-
-  if (typeof value !== "string" || !isValidYmdDateString(value)) {
-    return { value: null as string | null, error: "dueDate must be a valid YYYY-MM-DD date" };
-  }
-
-  return { value };
 }
 
 function normalizeStatus(value: unknown) {
@@ -85,11 +73,9 @@ export async function PUT(
     let nextStatus = currentActionItem.status;
 
     if ("title" in body) {
-      const title = typeof body.title === "string" ? body.title.trim() : "";
-      if (!title) {
-        return NextResponse.json({ error: "Action Item 标题不能为空" }, { status: 400 });
-      }
-      data.title = title;
+      const titleResult = requireText(body.title, "Action Item 标题");
+      if (titleResult.error) return NextResponse.json({ error: titleResult.error }, { status: 400 });
+      data.title = titleResult.value;
     }
 
     if ("owner" in body) {
@@ -97,7 +83,7 @@ export async function PUT(
     }
 
     if ("dueDate" in body) {
-      const dueDateResult = normalizeOptionalDueDate(body.dueDate);
+      const dueDateResult = optionalYmdDate(body.dueDate, "dueDate");
       if (dueDateResult.error) {
         return NextResponse.json({ error: dueDateResult.error }, { status: 400 });
       }

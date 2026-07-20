@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 import { toNullableString } from "@/lib/utils";
+import {
+  LOG_SOURCE_VALUES,
+  optionalYmdDate,
+  requireEnum,
+  requireText,
+  WORK_LOG_TYPE_VALUES,
+} from "@/lib/inputValidation";
 
 function toBoolean(value: unknown) {
   return value === true || value === "true" || value === 1 || value === "1";
@@ -45,11 +52,32 @@ export async function PUT(
     // Build update data - only include fields that are provided
     const data: Record<string, unknown> = {};
 
-    if ("workDate" in body) data.workDate = body.workDate;
-    if ("title" in body) data.title = body.title;
-    if ("content" in body) data.content = body.content;
-    if ("type" in body) data.type = body.type;
-    if ("source" in body) data.source = body.source;
+    if ("workDate" in body) {
+      const result = optionalYmdDate(body.workDate, "工作日期");
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      if (!result.value) return NextResponse.json({ error: "工作日期不能为空" }, { status: 400 });
+      data.workDate = result.value;
+    }
+    if ("title" in body) {
+      const result = requireText(body.title, "标题");
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      data.title = result.value;
+    }
+    if ("content" in body) {
+      const result = requireText(body.content, "内容");
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      data.content = result.value;
+    }
+    if ("type" in body) {
+      const result = requireEnum(body.type, WORK_LOG_TYPE_VALUES, "日志类型");
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      data.type = result.value;
+    }
+    if ("source" in body) {
+      const result = requireEnum(body.source, LOG_SOURCE_VALUES, "日志来源");
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      data.source = result.value;
+    }
     if ("project" in body) data.project = toNullableString(body.project);
     if ("module" in body) data.module = toNullableString(body.module);
     if ("tags" in body) data.tags = toNullableString(body.tags);

@@ -41,4 +41,7 @@ dev.db-journal
 # AI exports and reports
 .local-ai/
 
+# WorkHub local database backups
+.workhub/
+
 screenshot/

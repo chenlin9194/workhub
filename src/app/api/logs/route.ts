@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString, toNullableString } from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
+import {
+  enumOrDefault,
+  LOG_SOURCE_VALUES,
+  normalizePage,
+  optionalYmdDate,
+  requireText,
+  WORK_LOG_TYPE_VALUES,
+} from "@/lib/inputValidation";
 
 function toBoolean(value: unknown) {
   return value === true || value === "true" || value === 1 || value === "1";
@@ -22,16 +30,23 @@ export async function GET(request: NextRequest) {
     const reportable = searchParams.get("reportable");
     const view = searchParams.get("view");
     const keyword = searchParams.get("keyword");
-    const page = parseInt(searchParams.get("page") || "1");
-    const pageSize = parseInt(searchParams.get("pageSize") || "20");
+    const page = normalizePage(searchParams.get("page"));
+    const pageSize = normalizePage(searchParams.get("pageSize"), 20, 100);
+    const startDateResult = optionalYmdDate(startDate, "开始日期");
+    const endDateResult = optionalYmdDate(endDate, "结束日期");
+    const dateError = startDateResult.error || endDateResult.error;
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
+    if (startDateResult.value && endDateResult.value && startDateResult.value > endDateResult.value) {
+      return NextResponse.json({ error: "开始日期不能晚于结束日期" }, { status: 400 });
+    }
 
     const where: Record<string, unknown> = {};
     const andClauses: Record<string, unknown>[] = [];
 
-    if (startDate || endDate) {
+    if (startDateResult.value || endDateResult.value) {
       where.workDate = {};
-      if (startDate) (where.workDate as Record<string, string>).gte = startDate;
-      if (endDate) (where.workDate as Record<string, string>).lte = endDate;
+      if (startDateResult.value) (where.workDate as Record<string, string>).gte = startDateResult.value;
+      if (endDateResult.value) (where.workDate as Record<string, string>).lte = endDateResult.value;
     }
     if (projectId) {
       andClauses.push({
@@ -105,9 +120,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { workDate, title, content, type, source, project, projectId, module: mod, tags, itemId, reportable, sourceUrl } = body;
 
-    if (!title || !content) {
-      return NextResponse.json({ error: "标题和内容不能为空" }, { status: 400 });
-    }
+    const titleResult = requireText(title, "标题");
+    const contentResult = requireText(content, "内容");
+    const workDateResult = workDate === undefined
+      ? { value: getLocalDateString() }
+      : optionalYmdDate(workDate, "工作日期");
+    const typeResult = enumOrDefault(type, WORK_LOG_TYPE_VALUES, "日志类型", "note");
+    const sourceResult = enumOrDefault(source, LOG_SOURCE_VALUES, "日志来源", "manual");
+    const validationError = [titleResult, contentResult, workDateResult, typeResult, sourceResult]
+      .find((result) => result.error)?.error;
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    if (!workDateResult.value) return NextResponse.json({ error: "工作日期不能为空" }, { status: 400 });
 
     // Resolve project name from projectId if provided
     let projectName = toNullableString(project);
@@ -124,11 +147,11 @@ export async function POST(request: NextRequest) {
 
     const log = await prisma.workLog.create({
       data: {
-        workDate: workDate || getLocalDateString(),
-        title,
-        content,
-        type: type || "note",
-        source: source || "manual",
+        workDate: workDateResult.value,
+        title: titleResult.value,
+        content: contentResult.value,
+        type: typeResult.value,
+        source: sourceResult.value,
         project: projectName,
         projectId: projectId || null,
         module: toNullableString(mod),

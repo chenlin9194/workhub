@@ -97,18 +97,18 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Unlink WorkItem and WorkLog before deleting project
-    await prisma.workItem.updateMany({
-      where: { projectId: id },
-      data: { projectId: null },
-    });
-
-    await prisma.workLog.updateMany({
-      where: { projectId: id },
-      data: { projectId: null },
-    });
-
-    await prisma.project.delete({ where: { id } });
+    // Unlink dependent records and delete the project as one all-or-nothing operation.
+    await prisma.$transaction([
+      prisma.workItem.updateMany({
+        where: { projectId: id },
+        data: { projectId: null },
+      }),
+      prisma.workLog.updateMany({
+        where: { projectId: id },
+        data: { projectId: null },
+      }),
+      prisma.project.delete({ where: { id } }),
+    ]);
 
     revalidatePath("/");
     revalidatePath("/projects");

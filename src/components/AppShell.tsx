@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "./Icon";
+import MobilePrimaryNav from "./MobilePrimaryNav";
 import { useTheme } from "./ThemeProvider";
 
 interface NavItem {
@@ -161,8 +162,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="dashboard-shell">
-      <aside className="cockpit-sidebar" aria-label="主导航">
+    <>
+      <div className="dashboard-shell">
+        <aside className="cockpit-sidebar" aria-label="主导航">
         <Link href="/" className="cockpit-brand">
           <span className="cockpit-brand-mark">
             <Icon name="clipboard-list" size={18} />
@@ -200,9 +202,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </div>
-      </aside>
+        </aside>
 
-      <div className="cockpit-content">
+        <div className="cockpit-content">
         <header className="cockpit-topbar app-shell-topbar">
           <div className="cockpit-topbar-context">
             <span className="cockpit-path" title={shellTitle.title}>
@@ -278,7 +280,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <main className="app-main app-shell-main page-enter">
           {children}
         </main>
+        </div>
       </div>
-    </div>
+      <MobilePrimaryNav />
+    </>
   );
 }

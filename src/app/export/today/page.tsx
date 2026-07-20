@@ -79,13 +79,16 @@ export default async function ExportTodayPage() {
   const missingNextActionCount = trackedItems.filter((item) => !item.nextAction?.trim()).length;
   const logsWithTraceCount = workLogs.filter((log) => log.item || log.sourceUrl || log.project || log.module).length;
   const traceRate = workLogs.length > 0 ? Math.round((logsWithTraceCount / workLogs.length) * 100) : 100;
-  const pendingCheckCount = missingOwnerCount + missingNextActionCount;
-  const copyState = pendingCheckCount > 0 ? "建议先补齐" : "可复制";
+  const highPriorityWithoutTodayLog = openHighPriorityItems.filter(
+    (item) => !workLogs.some((log) => log.item?.id === item.id || log.item?.title === item.title)
+  );
+  const pendingCheckCount = missingOwnerCount + missingNextActionCount + highPriorityWithoutTodayLog.length;
+  const copyState = pendingCheckCount > 0 ? "可复制，需确认" : "可复制";
 
   const exportChecks = [
     { label: "事实规模", value: factsCount, note: `日志 ${workLogs.length} / 事项 ${trackedItems.length}`, icon: "file-text", tone: "neutral" },
     { label: "风险信号", value: riskSignalCount, note: riskSignalCount > 0 ? "复制前先确认表达" : "今日压力较低", icon: "alert-triangle", tone: riskSignalCount > 0 ? "warning" : "neutral" },
-    { label: "待确认", value: pendingCheckCount, note: `责任人 ${missingOwnerCount} / 下一步 ${missingNextActionCount}`, icon: "flag", tone: pendingCheckCount > 0 ? "warning" : "success" },
+    { label: "待确认", value: pendingCheckCount, note: `责任人 ${missingOwnerCount} / 下一步 ${missingNextActionCount} / P0-P1 无当日日志 ${highPriorityWithoutTodayLog.length}`, icon: "flag", tone: pendingCheckCount > 0 ? "warning" : "success" },
     { label: "证据完整", value: `${traceRate}%`, note: "日志关联覆盖", icon: "target", tone: "neutral" },
   ];
 

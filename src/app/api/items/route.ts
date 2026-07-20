@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   getLocalDateString,
-  normalizeOptionalYmdDateString,
   toNullableString,
 } from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
+import {
+  enumOrDefault,
+  HEALTH_VALUES,
+  normalizePage,
+  optionalYmdDate,
+  PRIORITY_VALUES,
+  REPORT_LEVEL_VALUES,
+  requireText,
+  STATUS_VALUES,
+  WORK_ITEM_TYPE_VALUES,
+} from "@/lib/inputValidation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,8 +33,8 @@ export async function GET(request: NextRequest) {
     const sourceSystem = searchParams.get("sourceSystem");
     const keyword = searchParams.get("keyword");
     const overdue = searchParams.get("overdue");
-    const page = parseInt(searchParams.get("page") || "1");
-    const pageSize = parseInt(searchParams.get("pageSize") || "20");
+    const page = normalizePage(searchParams.get("page"));
+    const pageSize = normalizePage(searchParams.get("pageSize"), 20, 100);
 
     const where: Record<string, unknown> = {};
     // AND clauses accumulated across multiple optional filters
@@ -119,14 +129,25 @@ export async function POST(request: NextRequest) {
       reportLevel,
     } = body;
 
-    if (!title) {
-      return NextResponse.json({ error: "标题不能为空" }, { status: 400 });
-    }
-
-    const nextCheckpointResult = normalizeOptionalYmdDateString(nextCheckpoint);
-    if (nextCheckpointResult.error) {
-      return NextResponse.json({ error: nextCheckpointResult.error }, { status: 400 });
-    }
+    const titleResult = requireText(title, "标题");
+    const typeResult = enumOrDefault(type, WORK_ITEM_TYPE_VALUES, "事项类型", "action");
+    const priorityResult = enumOrDefault(priority, PRIORITY_VALUES, "优先级", "P2");
+    const statusResult = enumOrDefault(status, STATUS_VALUES, "状态", "open");
+    const healthResult = enumOrDefault(health, HEALTH_VALUES, "健康度", "unknown");
+    const reportLevelResult = enumOrDefault(reportLevel, REPORT_LEVEL_VALUES, "汇报层级", "none");
+    const dueDateResult = optionalYmdDate(dueDate, "截止日期");
+    const nextCheckpointResult = optionalYmdDate(nextCheckpoint, "下次检查");
+    const validationError = [
+      titleResult,
+      typeResult,
+      priorityResult,
+      statusResult,
+      healthResult,
+      reportLevelResult,
+      dueDateResult,
+      nextCheckpointResult,
+    ].find((result) => result.error)?.error;
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
 
     // Resolve project name from projectId if provided
     let projectName = toNullableString(project);
@@ -143,26 +164,26 @@ export async function POST(request: NextRequest) {
 
     const item = await prisma.workItem.create({
       data: {
-        title,
+        title: titleResult.value,
         description: toNullableString(description),
         project: projectName,
         projectId: projectId || null,
         module: toNullableString(mod),
-        type: type || "action",
-        priority: priority || "P2",
-        status: status || "open",
+        type: typeResult.value,
+        priority: priorityResult.value,
+        status: statusResult.value,
         owner: toNullableString(owner),
-        dueDate: toNullableString(dueDate),
+        dueDate: dueDateResult.value,
         nextAction: toNullableString(nextAction),
         tags: toNullableString(tags),
         trackingReason: toNullableString(trackingReason),
         sourceSystem: toNullableString(sourceSystem),
         sourceId: toNullableString(sourceId),
         sourceUrl: toNullableString(sourceUrl),
-        health: health == null || health === "" ? "unknown" : health,
+        health: healthResult.value,
         currentSummary: toNullableString(currentSummary),
         nextCheckpoint: nextCheckpointResult.value,
-        reportLevel: reportLevel == null || reportLevel === "" ? "none" : reportLevel,
+        reportLevel: reportLevelResult.value,
       },
     });
 

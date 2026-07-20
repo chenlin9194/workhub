@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 127.0.0.1",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "lint": "eslint src/ --ext .ts,.tsx",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "db:backup": "node scripts/backup-db.mjs",
+    "db:restore-check": "node scripts/restore-check-db.mjs",
     "postinstall": "prisma generate",
     "export:today": "node scripts/export-today.mjs",
     "export:week": "node scripts/export-week.mjs",
@@ -34,6 +37,7 @@
     "postcss": "^8.5.4",
     "prisma": "^6.9.0",
     "tailwindcss": "^4.1.7",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
   }
 }

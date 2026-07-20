@@ -149,7 +149,9 @@ export default async function ReportsPage() {
   const missingOwner = activeItemsForChecks.filter((item) => !item.owner?.trim());
   const missingNextAction = activeItemsForChecks.filter((item) => !item.nextAction?.trim());
   const missingProject = activeItemsForChecks.filter((item) => !item.projectId && !item.project?.trim());
-  const p1WithoutTodayLog = activeItemsForChecks.filter((item) => item.priority === "P1" && item.logs.length === 0);
+  const highPriorityWithoutTodayLog = activeItemsForChecks.filter(
+    (item) => (item.priority === "P0" || item.priority === "P1") && item.logs.length === 0
+  );
   const blockedWithoutRiskLog = activeItemsForChecks.filter((item) => (
     item.status === "blocked" &&
     !item.logs.some((log) => log.type === "risk" || log.type === "blocker")
@@ -158,7 +160,7 @@ export default async function ReportsPage() {
     { label: "缺少责任人", count: missingOwner.length, href: "/items?visibility=open", tone: missingOwner.length ? "warning" : "neutral" },
     { label: "缺少下一步", count: missingNextAction.length, href: "/items?visibility=open", tone: missingNextAction.length ? "warning" : "neutral" },
     { label: "缺少项目归属", count: missingProject.length, href: "/items?visibility=open", tone: missingProject.length ? "warning" : "neutral" },
-    { label: "P1 今日无日志", count: p1WithoutTodayLog.length, href: "/items?visibility=open&priority=P1", tone: p1WithoutTodayLog.length ? "warning" : "neutral" },
+    { label: "P0/P1 当日无日志", count: highPriorityWithoutTodayLog.length, href: "/items?visibility=open&priority=P0,P1", tone: highPriorityWithoutTodayLog.length ? "warning" : "neutral" },
     { label: "阻塞缺少风险说明", count: blockedWithoutRiskLog.length, href: "/items?visibility=open&status=blocked", tone: blockedWithoutRiskLog.length ? "warning" : "neutral" },
   ];
   const reportableManualLogs = reportableLogs.filter((log) => !isSystemLogTitle(log.title));

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ACTION_ITEM_STATUSES } from "@/lib/constants";
-import { isValidYmdDateString, toNullableString } from "@/lib/utils";
+import { toNullableString } from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
+import { ACTION_ITEM_STATUS_VALUES, optionalYmdDate, requireText } from "@/lib/inputValidation";
 
-const VALID_STATUSES = new Set<string>(ACTION_ITEM_STATUSES.map((status) => status.value));
+const VALID_STATUSES = ACTION_ITEM_STATUS_VALUES;
 
 function parseOptionalSortOrder(value: unknown) {
   if (value === undefined || value === null || value === "") {
@@ -13,18 +13,6 @@ function parseOptionalSortOrder(value: unknown) {
 
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function normalizeOptionalDueDate(value: unknown) {
-  if (value === undefined || value === null || value === "") {
-    return { value: null as string | null };
-  }
-
-  if (typeof value !== "string" || !isValidYmdDateString(value)) {
-    return { value: null as string | null, error: "dueDate must be a valid YYYY-MM-DD date" };
-  }
-
-  return { value };
 }
 
 function parseStatus(value: unknown, fallback: string) {
@@ -86,16 +74,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const titleResult = requireText(body.title, "Action Item 标题");
     const workItemId = toNullableString(body.workItemId);
     const workLogId = toNullableString(body.workLogId);
     const projectId = toNullableString(body.projectId);
     const statusResult = parseStatus(body.status, "pending");
-    const dueDateResult = normalizeOptionalDueDate(body.dueDate);
+    const dueDateResult = optionalYmdDate(body.dueDate, "dueDate");
 
-    if (!title) {
-      return NextResponse.json({ error: "Action Item 标题不能为空" }, { status: 400 });
-    }
+    if (titleResult.error) return NextResponse.json({ error: titleResult.error }, { status: 400 });
 
     if (statusResult.error) {
       return NextResponse.json({ error: statusResult.error }, { status: 400 });
@@ -146,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     const actionItem = await prisma.actionItem.create({
       data: {
-        title,
+        title: titleResult.value,
         status: statusResult.status,
         owner: toNullableString(body.owner),
         dueDate: dueDateResult.value,

@@ -101,7 +101,7 @@ export function buildLogsQueryString(filters: LogQuery, pagination?: Pagination)
   appendString(params, "type", filters.type);
   appendString(params, "source", filters.source);
   appendString(params, "hasItem", filters.hasItem);
-  if (typeof filters.reportable === "boolean") appendBoolean(params, "reportable", filters.reportable);
+  if (typeof filters.reportable === "boolean") params.set("reportable", String(filters.reportable));
   else appendString(params, "reportable", filters.reportable);
   appendString(params, "view", filters.view);
   appendString(params, "keyword", filters.keyword);

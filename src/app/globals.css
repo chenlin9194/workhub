@@ -9422,6 +9422,99 @@ html body .app-main .cockpit-side-column .portfolio-quiet-empty {
   }
 }
 
+/* ===== P0 mobile navigation and first-screen baseline ===== */
+.mobile-primary-nav {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  body .dashboard-shell {
+    display: block !important;
+    min-height: auto !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  body .dashboard-shell > .cockpit-sidebar {
+    display: none !important;
+  }
+
+  body .dashboard-shell > .cockpit-content {
+    min-width: 0;
+    padding: 0 0 76px !important;
+  }
+
+  body .dashboard-shell .app-shell-main {
+    min-width: 0;
+    padding: 0 14px 76px !important;
+  }
+
+  body .dashboard-shell .cockpit-grid {
+    min-width: 0;
+    padding-bottom: 76px;
+  }
+
+  body .dashboard-shell .cockpit-topbar {
+    position: sticky;
+    z-index: 20;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body .dashboard-shell .cockpit-search {
+    display: none;
+  }
+
+  .mobile-primary-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 64px;
+    padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    border-top: 1px solid var(--border-primary);
+    background: color-mix(in srgb, var(--bg-secondary) 94%, transparent);
+    box-shadow: 0 -8px 22px color-mix(in srgb, #000 10%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-primary-nav__item {
+    display: grid;
+    place-items: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 48px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1.1;
+    text-decoration: none;
+  }
+
+  .mobile-primary-nav__item span {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-primary-nav__item.is-active {
+    color: var(--accent-blue);
+    font-weight: 700;
+  }
+
+  .mobile-primary-nav__item:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
 /* ===== Home PM Cockpit Scanning Pass ===== */
 html body .dashboard-shell .section-brief {
   margin: 3px 0 0 !important;
@@ -12424,4 +12517,32 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
   min-width: 0 !important;
   overflow-wrap: anywhere !important;
   word-break: normal !important;
+}
+
+/* Keep these P0 mobile rules last: older responsive passes use the same selectors. */
+@media (max-width: 860px) {
+  body .dashboard-shell {
+    display: block !important;
+    min-height: auto !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  body .dashboard-shell > .cockpit-sidebar {
+    display: none !important;
+  }
+
+  body .dashboard-shell > .cockpit-content {
+    min-width: 0;
+    padding: 0 0 76px !important;
+  }
+
+  body .dashboard-shell .app-shell-main {
+    min-width: 0;
+    padding: 0 14px 76px !important;
+  }
+
+  body .dashboard-shell .cockpit-grid {
+    min-width: 0;
+    padding-bottom: 76px;
+  }
 }
