@@ -183,17 +183,16 @@ export default async function ReportsPage() {
           <h1>汇报入口</h1>
           <p>先检查今天有哪些可汇报事实和事实缺口，再复制 Markdown 给外部工具整理表达。WorkHub 只输出事实包，不自动生成管理结论。</p>
         </div>
-        <div className="page-header-actions">
-          <Link href="/export/today" className="btn btn-primary">
-            <Icon name="calendar" size={15} />
-            今日日报事实包
-          </Link>
-          <Link href="/stats" className="btn btn-secondary">
-            <Icon name="activity" size={15} />
-            交付健康监控
-          </Link>
-        </div>
       </header>
+
+      <section className="report-secondary-links report-secondary-links--header">
+        {secondaryLinks.map((link) => (
+          <Link key={link.href} href={link.href} className="btn btn-secondary">
+            <Icon name={link.icon} size={14} />
+            {link.label}
+          </Link>
+        ))}
+      </section>
 
       <section className="report-workbench-grid">
         <div className="card report-facts-panel">
@@ -290,15 +289,6 @@ export default async function ReportsPage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section className="report-secondary-links">
-        {secondaryLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="btn btn-secondary">
-            <Icon name={link.icon} size={14} />
-            {link.label}
-          </Link>
-        ))}
       </section>
 
       <div className="export-rule-note report-boundary-note">

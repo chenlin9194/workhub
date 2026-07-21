@@ -6,13 +6,8 @@ import { usePathname } from "next/navigation";
 import Icon from "./Icon";
 import MobilePrimaryNav from "./MobilePrimaryNav";
 import { useTheme } from "./ThemeProvider";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: string;
-  exact?: boolean;
-}
+import SidebarNavigation from "./SidebarNavigation";
+import { SidebarCountsProvider, type SidebarCounts } from "./SidebarCountsContext";
 
 interface ToolLink {
   id: string;
@@ -20,39 +15,6 @@ interface ToolLink {
   url: string;
   enabled: boolean;
   sortOrder: number;
-}
-
-const navItems: NavItem[] = [
-  { href: "/", label: "工作台", icon: "home", exact: true },
-  { href: "/projects", label: "项目", icon: "folder" },
-  { href: "/items", label: "事项", icon: "list" },
-  { href: "/logs", label: "日志", icon: "file-text" },
-  { href: "/reports", label: "汇报", icon: "chart", exact: true },
-];
-
-const toolLinks = [
-  { href: "/today", label: "今日视图", icon: "calendar" },
-  { href: "/export/today", label: "导出日报", icon: "download" },
-  { href: "/stats", label: "统计概览", icon: "activity" },
-  { href: "/settings/tools", label: "工具入口", icon: "settings" },
-];
-
-function getActiveHref(pathname: string, items: NavItem[]): string | null {
-  for (const item of items) {
-    if (pathname === item.href) return item.href;
-  }
-
-  let bestMatch: string | null = null;
-  for (const item of items) {
-    if (item.exact) continue;
-    if (pathname.startsWith(item.href + "/")) {
-      if (!bestMatch || item.href.length > bestMatch.length) {
-        bestMatch = item.href;
-      }
-    }
-  }
-
-  return bestMatch;
 }
 
 function getShellTitle(pathname: string) {
@@ -90,7 +52,13 @@ function getShellTitle(pathname: string) {
   return { path: pathname, title: pathname };
 }
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({
+  children,
+  counts,
+}: {
+  children: React.ReactNode;
+  counts: SidebarCounts;
+}) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const [toolMenuOpen, setToolMenuOpen] = useState(false);
@@ -98,7 +66,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [toolLinksData, setToolLinksData] = useState<ToolLink[]>([]);
   const toolMenuRef = useRef<HTMLDivElement>(null);
 
-  const activeHref = useMemo(() => getActiveHref(pathname, navItems), [pathname]);
   const shellTitle = useMemo(() => getShellTitle(pathname), [pathname]);
   const availableToolLinks = toolLinksData.filter((tool) => tool.enabled && tool.url.trim());
 
@@ -157,52 +124,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [toolMenuOpen]);
 
-  if (pathname === "/") {
-    return <>{children}</>;
-  }
-
   return (
-    <>
+    <SidebarCountsProvider counts={counts}>
+      {pathname === "/" ? (
+        <>
+          {children}
+          <MobilePrimaryNav />
+        </>
+      ) : (
       <div className="dashboard-shell">
-        <aside className="cockpit-sidebar" aria-label="主导航">
-        <Link href="/" className="cockpit-brand">
-          <span className="cockpit-brand-mark">
-            <Icon name="clipboard-list" size={18} />
-          </span>
-          <span>
-            <strong>Work Hub</strong>
-            <small>Local Console</small>
-          </span>
-        </Link>
-
-        <div className="cockpit-nav-group">
-          <span className="cockpit-nav-label">PRIMARY</span>
-          {navItems.map((item) => {
-            const isActive = activeHref === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`cockpit-nav-item${isActive ? " is-active" : ""}`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon name={item.icon} size={15} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="cockpit-nav-group">
-          <span className="cockpit-nav-label">TOOLS</span>
-          {toolLinks.map((item) => (
-            <Link key={item.href} href={item.href} className="cockpit-nav-item">
-              <Icon name={item.icon} size={15} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </div>
-        </aside>
+        <SidebarNavigation />
 
         <div className="cockpit-content">
         <header className="cockpit-topbar app-shell-topbar">
@@ -282,7 +213,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         </div>
       </div>
-      <MobilePrimaryNav />
-    </>
+      )}
+      {pathname !== "/" && <MobilePrimaryNav />}
+    </SidebarCountsProvider>
   );
 }

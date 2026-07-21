@@ -1987,35 +1987,41 @@ export default function ProjectMilestoneSection({ projectId }: ProjectMilestoneS
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border-secondary)" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setSelectedPlanType("all")}
-                className={`btn ${selectedPlanType === "all" ? "btn-primary" : "btn-secondary"}`}
-                style={VIEW_BUTTON_STYLE}
-              >
-                全部
-              </button>
-              {PROJECT_PLAN_TYPES.map((planType) => (
+            <div className="project-plan-toolbar-group">
+              <span className="project-plan-toolbar-label">内容类型（节点 / 计划）</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 <button
-                  key={planType.value}
                   type="button"
-                  onClick={() => setSelectedPlanType(planType.value)}
-                  className={`btn ${selectedPlanType === planType.value ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setSelectedPlanType("all")}
+                  className={`btn ${selectedPlanType === "all" ? "btn-primary" : "btn-secondary"}`}
                   style={VIEW_BUTTON_STYLE}
                 >
-                  {PROJECT_PLAN_TYPE_LABELS[planType.value] || planType.label}
+                  全部
                 </button>
-              ))}
+                {PROJECT_PLAN_TYPES.map((planType) => (
+                  <button
+                    key={planType.value}
+                    type="button"
+                    onClick={() => setSelectedPlanType(planType.value)}
+                    className={`btn ${selectedPlanType === planType.value ? "btn-primary" : "btn-secondary"}`}
+                    style={VIEW_BUTTON_STYLE}
+                  >
+                    {PROJECT_PLAN_TYPE_LABELS[planType.value] || planType.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 8, flex: "1 1 360px", justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button type="button" className={`btn ${viewMode === "list" ? "btn-primary" : "btn-secondary"}`} style={VIEW_BUTTON_STYLE} onClick={() => setViewMode("list")}>
-                  列表
-                </button>
-                <button type="button" className={`btn ${viewMode === "timeline" ? "btn-primary" : "btn-secondary"}`} style={VIEW_BUTTON_STYLE} onClick={() => setViewMode("timeline")}>
-                  时间轴
-                </button>
+              <div className="project-plan-toolbar-group project-plan-view-group">
+                <span className="project-plan-toolbar-label">展示方式</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" className={`btn ${viewMode === "list" ? "btn-primary" : "btn-secondary"}`} style={VIEW_BUTTON_STYLE} onClick={() => setViewMode("list")}>
+                    列表
+                  </button>
+                  <button type="button" className={`btn ${viewMode === "timeline" ? "btn-primary" : "btn-secondary"}`} style={VIEW_BUTTON_STYLE} onClick={() => setViewMode("timeline")}>
+                    时间轴
+                  </button>
+                </div>
               </div>
               <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)} style={{ ...INPUT_STYLE, width: 128, height: 36, padding: "0 9px" }} title="状态筛选">
                 <option value="all">全部状态</option>

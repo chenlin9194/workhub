@@ -1,183 +1,115 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useParams, useSearchParams } from "next/navigation";
 import Icon from "@/components/Icon";
 import PageLoadingState from "@/components/PageLoadingState";
-import ProjectHeaderSection from "@/components/ProjectHeaderSection";
-import ProjectOverviewSection from "@/components/ProjectOverviewSection";
-import ProjectSignalSection from "@/components/ProjectSignalSection";
-import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
 import ProjectMemberSection from "@/components/ProjectMemberSection";
-import { PRIORITY_LABELS, STATUS_LABELS, WORK_LOG_TYPE_LABELS } from "@/lib/constants";
-import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
+import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
+import {
+  HEALTH_LABELS,
+  PRIORITY_LABELS,
+  PROJECT_MILESTONE_STATUS_LABELS,
+  PROJECT_MILESTONE_STAGE_LABELS,
+  PROJECT_PLAN_TYPE_LABELS,
+  PROJECT_STAGE_LABELS,
+  PROJECT_STATUS_LABELS,
+  WORK_LOG_TYPE_LABELS,
+} from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
-import type { Project, WorkItem, WorkLog } from "@/lib/types";
-
-const KEY_LOG_TYPES = new Set(["risk", "blocker", "decision", "update", "issue"]);
+import type { Project, ProjectLink, ProjectMember, ProjectMilestone, WorkItem, WorkLog } from "@/lib/types";
 
 function toTime(value?: Date | string | null) {
-  if (!value) return 0;
-  const time = new Date(value).getTime();
+  const time = value ? new Date(value).getTime() : 0;
   return Number.isFinite(time) ? time : 0;
 }
 
-function isOpenItem(item: WorkItem) {
-  return item.status !== "closed";
-}
-
-function isItemOverdue(item: WorkItem, today: string) {
-  return Boolean(item.dueDate && item.dueDate < today && isOpenItem(item));
-}
-
-function getItemEvidenceRank(item: WorkItem, today: string) {
-  if (!isOpenItem(item)) return 6;
-  if (item.status === "blocked") return 0;
-  if (isItemOverdue(item, today)) return 1;
-  if (item.priority === "P0" || item.priority === "P1") return 2;
-  if (item.health === "red" || item.health === "yellow") return 3;
-  return 4;
-}
-
-function getItemEvidenceLabel(item: WorkItem, today: string) {
-  if (item.status === "blocked") return "阻塞依据";
-  if (isItemOverdue(item, today)) return "逾期依据";
-  if (item.priority === "P0" || item.priority === "P1") return "高优先级";
-  if (item.health === "red" || item.health === "yellow") return "风险关注";
-  return undefined;
-}
-
-function getLogEvidenceRank(log: WorkLog) {
-  if (log.reportable) return 0;
-  if (log.type === "risk" || log.type === "blocker") return 1;
-  if (log.type === "decision") return 2;
-  if (log.type === "update" || log.type === "issue") return 3;
-  return 4;
-}
-
-function getLogEvidenceLabel(log: WorkLog) {
-  if (log.type === "risk" || log.type === "blocker") return "风险/阻塞";
-  if (log.type === "decision") return "关键决策";
-  if (log.type === "update" || log.type === "issue") return "关键变化";
-  return undefined;
-}
-
-function isSystemLog(log: WorkLog) {
-  return log.type === "update" && (
-    log.title.startsWith("事项变化：") ||
-    log.title.startsWith("浜嬮」鍙樺寲")
-  );
-}
-
-function getProjectLogRank(log: WorkLog) {
-  const systemRank = isSystemLog(log) ? 1 : 0;
-  return systemRank * 10 + getLogEvidenceRank(log);
-}
-
-const ATTENTION_CHIP_STYLES = {
-  danger: {
-    color: "var(--accent-red)",
-    background: "color-mix(in srgb, var(--accent-red-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-red) 20%, var(--border-primary))",
-  },
-  warning: {
-    color: "var(--accent-orange)",
-    background: "color-mix(in srgb, var(--accent-orange-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-orange) 20%, var(--border-primary))",
-  },
-  success: {
-    color: "var(--accent-green)",
-    background: "color-mix(in srgb, var(--accent-green-light) 70%, var(--bg-secondary))",
-    border: "color-mix(in srgb, var(--accent-green) 20%, var(--border-primary))",
-  },
-  neutral: {
-    color: "var(--text-secondary)",
-    background: "var(--bg-secondary)",
-    border: "var(--border-primary)",
-  },
-} as const;
-
-function getShortDate(value?: Date | string | null) {
-  if (!value) return "未设日期";
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+function dateLabel(value?: Date | string | null) {
+  if (!value) return "—";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.replaceAll("-", "/");
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "未设日期";
-  return date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replaceAll("-", "/") : "—";
 }
 
-function getItemSupportText(item: WorkItem) {
-  return item.nextAction || item.currentSummary || item.trackingReason || item.description || "暂无下一步或进展说明";
+function logTime(log: WorkLog, today: string) {
+  const created = new Date(log.createdAt);
+  const time = Number.isFinite(created.getTime())
+    ? created.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
+    : "";
+  return log.workDate === today ? time : `昨 ${time}`.trim();
 }
 
-function ProjectItemEvidenceRow({ item, today }: { item: WorkItem; today: string }) {
-  const evidenceLabel = getItemEvidenceLabel(item, today);
-  const overdue = isItemOverdue(item, today);
-  const supportText = getItemSupportText(item);
-
-  return (
-    <Link
-      href={`/items/${item.id}`}
-      className={`project-evidence-row project-evidence-row--item${overdue ? " is-overdue" : ""}${item.status === "blocked" ? " is-blocked" : ""}`}
-    >
-      <div className="project-evidence-badges">
-        {evidenceLabel && <span className="entity-pill entity-pill--warning">{evidenceLabel}</span>}
-        <span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority] || item.priority}</span>
-        <span className={`badge badge-${item.status}`}>{STATUS_LABELS[item.status] || item.status}</span>
-      </div>
-      <div className="project-evidence-title">
-        <strong>{item.title}</strong>
-        <span>{item.owner || item.module || item.type}</span>
-      </div>
-      <div className="project-evidence-support">{supportText}</div>
-      <div className={`project-evidence-date${overdue ? " is-danger" : ""}`}>{item.dueDate || getShortDate(item.updatedAt)}</div>
-      <Icon name="chevron-right" size={14} />
-    </Link>
-  );
+function milestonePhase(milestone: ProjectMilestone, today: string) {
+  if (milestone.status === "done") return "past";
+  if (milestone.status === "in_progress" || milestone.status === "delayed") return "current";
+  const start = milestone.actualStartDate || milestone.plannedStartDate;
+  const end = milestone.actualEndDate || milestone.actualDate || milestone.plannedEndDate || milestone.targetDate;
+  const startKey = start ? new Date(start).toISOString().slice(0, 10) : null;
+  const endKey = end ? new Date(end).toISOString().slice(0, 10) : null;
+  if (startKey && startKey <= today && (!endKey || endKey >= today)) return "current";
+  if (endKey && endKey < today) return "past";
+  return "future";
 }
 
-function ProjectLogEvidenceRow({ log }: { log: WorkLog }) {
-  const evidenceLabel = getLogEvidenceLabel(log);
-  const summary = log.content || log.item?.title || "暂无日志正文";
+function isRangeMilestone(milestone: ProjectMilestone) {
+  return milestone.dateMode === "range" || Boolean(milestone.plannedStartDate && (milestone.plannedEndDate || milestone.targetDate));
+}
 
-  return (
-    <Link href={`/logs/${log.id}`} className={`project-evidence-row project-evidence-row--log${log.reportable ? " is-reportable" : ""}`}>
-      <div className="project-evidence-badges">
-        {evidenceLabel && <span className="entity-pill entity-pill--warning">{evidenceLabel}</span>}
-        {log.reportable && <span className="entity-pill entity-pill--success">可汇报</span>}
-        <span className="entity-pill entity-pill--muted">{WORK_LOG_TYPE_LABELS[log.type] || log.type}</span>
-      </div>
-      <div className="project-evidence-title">
-        <strong>{log.title}</strong>
-        <span>{log.item?.title ? `关联事项：${log.item.title}` : log.module || log.source}</span>
-      </div>
-      <div className="project-evidence-support">{summary}</div>
-      <div className="project-evidence-date">{log.workDate}</div>
-      <Icon name="chevron-right" size={14} />
-    </Link>
-  );
+function milestoneScheduleLabel(milestone: ProjectMilestone) {
+  if (!isRangeMilestone(milestone)) return dateLabel(milestone.actualDate || milestone.targetDate);
+  const start = milestone.actualStartDate || milestone.plannedStartDate;
+  const end = milestone.actualEndDate || milestone.plannedEndDate || milestone.actualDate || milestone.targetDate;
+  return `${dateLabel(start)} — ${dateLabel(end)}`;
+}
+
+function factKind(log: WorkLog) {
+  if (log.type === "blocker" || log.type === "risk" || log.type === "issue") return "风险";
+  if (log.type === "decision") return "决策";
+  if (log.type === "update") return "变更";
+  return WORK_LOG_TYPE_LABELS[log.type] || "记录";
 }
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
-
+  const manageModule = searchParams.get("manage");
   const [project, setProject] = useState<Project | null>(null);
+  const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
+  const [links, setLinks] = useState<ProjectLink[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showClosedItems, setShowClosedItems] = useState(false);
-  const [showSystemLogs, setShowSystemLogs] = useState(false);
-  const [showClosedItemLogs, setShowClosedItemLogs] = useState(false);
+  const [panelsLoading, setPanelsLoading] = useState(true);
+  const [milestoneView, setMilestoneView] = useState<"timeline" | "list">("timeline");
 
   const fetchProject = useCallback(async () => {
+    setLoading(true);
+    setPanelsLoading(true);
     try {
-      const res = await fetch(`/api/projects/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProject(data);
-      }
+      const projectRes = await fetch(`/api/projects/${id}`);
+      if (!projectRes.ok) return;
+
+      setProject(await projectRes.json());
+      setLoading(false);
+
+      void Promise.all([
+        fetch(`/api/projects/${id}/milestones`),
+        fetch(`/api/projects/${id}/links`),
+        fetch(`/api/projects/${id}/members`),
+      ]).then(async ([milestoneRes, linkRes, memberRes]) => {
+        const [nextMilestones, nextLinks, nextMembers] = await Promise.all([
+          milestoneRes.ok ? milestoneRes.json() : [],
+          linkRes.ok ? linkRes.json() : [],
+          memberRes.ok ? memberRes.json() : [],
+        ]);
+        setMilestones(nextMilestones);
+        setLinks(nextLinks);
+        setMembers(nextMembers);
+      }).catch((error) => console.error("Error fetching project cockpit panels:", error)).finally(() => setPanelsLoading(false));
     } catch (error) {
-      console.error("Error fetching project:", error);
+      console.error("Error fetching project cockpit:", error);
     } finally {
       setLoading(false);
     }
@@ -187,310 +119,154 @@ export default function ProjectDetailPage() {
     fetchProject();
   }, [fetchProject]);
 
-  if (loading) {
-    return (
-      <div className="page-shell">
-        <PageLoadingState
-          title="加载项目详情..."
-          description="正在读取项目主体、风险信号和相关记录。"
-          rows={5}
-        />
-      </div>
-    );
-  }
+  if (loading) return <PageLoadingState title="加载项目驾驶舱..." description="正在读取项目态势、节点和事实记录。" rows={5} />;
+  if (!project) return <div className="page-shell"><div className="card empty-state"><p>项目不存在</p><Link href="/projects" className="btn btn-secondary">返回项目列表</Link></div></div>;
 
-  if (!project) {
+  if (manageModule === "milestones" || manageModule === "links" || manageModule === "members") {
+    const moduleTitle = manageModule === "milestones" ? "里程碑与计划" : manageModule === "links" ? "关键链接" : "项目成员";
     return (
-      <div className="page-shell">
-        <div className="card empty-state">
-          <div className="empty-icon">
-            <Icon name="folder" size={28} />
+      <main className="page-shell project-module-management-page">
+        <div className="project-module-management-head">
+          <div>
+            <span className="section-eyebrow">PROJECT MANAGEMENT</span>
+            <h1>{project.name} · {moduleTitle}</h1>
           </div>
-          <p>项目不存在</p>
-          <Link href="/projects" className="btn btn-secondary">
-            返回项目列表
-          </Link>
+          <div className="project-module-management-actions">
+            <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary">编辑项目基本信息</Link>
+            <Link href={`/projects/${project.id}`} className="btn btn-primary">返回驾驶舱</Link>
+          </div>
         </div>
-      </div>
+        {manageModule === "milestones" && <ProjectMilestoneSection projectId={project.id} />}
+        {manageModule === "links" && <ProjectLinkSection projectId={project.id} />}
+        {manageModule === "members" && <ProjectMemberSection projectId={project.id} />}
+      </main>
     );
   }
 
-  const items = project.items || [];
-  const openItems = items.filter((item) => item.status !== "closed");
-  const closedItems = items.filter((item) => item.status === "closed");
-  const closedItemIds = new Set(closedItems.map((item) => item.id));
-  const logs = project.logs || [];
-  const p0p1Count = openItems.filter((i) => i.priority === "P0" || i.priority === "P1").length;
-  const blockedCount = openItems.filter((i) => i.status === "blocked").length;
-  const redYellowCount = openItems.filter((i) => i.health === "red" || i.health === "yellow").length;
   const today = getLocalDateString();
-  const overdueCount = openItems.filter((i) => i.dueDate && i.dueDate < today).length;
-  const attentionItems = openItems.filter((item) => getItemEvidenceRank(item, today) <= 3);
-  const sortedItems = [...openItems].sort((a, b) => {
-    const rankDiff = getItemEvidenceRank(a, today) - getItemEvidenceRank(b, today);
-    if (rankDiff !== 0) return rankDiff;
-
-    const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
+  const items = (project.items || []).filter((item) => item.status !== "closed");
+  const logs = [...(project.logs || [])].sort((a, b) => toTime(b.createdAt) - toTime(a.createdAt));
+  const p0Count = items.filter((item) => item.priority === "P0").length;
+  const p1Count = items.filter((item) => item.priority === "P1").length;
+  const blockedCount = items.filter((item) => item.status === "blocked").length;
+  const overdueCount = items.filter((item) => Boolean(item.dueDate && item.dueDate < today)).length;
+  const riskCount = items.filter((item) => item.health === "red" || item.health === "yellow").length;
+  const reportableCount = logs.filter((log) => log.reportable).length;
+  const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
+  const cockpitItems = [...items].sort((a, b) => {
     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
     if (priorityDiff !== 0) return priorityDiff;
-
+    if (a.status === "blocked" && b.status !== "blocked") return -1;
+    if (a.status !== "blocked" && b.status === "blocked") return 1;
     return toTime(b.updatedAt) - toTime(a.updatedAt);
-  });
-  const sortedClosedItems = [...closedItems].sort((a, b) => toTime(b.updatedAt) - toTime(a.updatedAt));
-  const visibleProjectItems = showClosedItems ? [...sortedItems, ...sortedClosedItems] : sortedItems;
-  const keyLogCount = logs.filter((log) => KEY_LOG_TYPES.has(log.type)).length;
-  const riskLogCount = logs.filter((log) => log.type === "risk").length;
-  const reportableLogCount = logs.filter((log) => log.reportable).length;
-  const systemLogCount = logs.filter(isSystemLog).length;
-  const closedItemLogCount = logs.filter((log) => log.itemId && closedItemIds.has(log.itemId)).length;
-  const sortedLogs = [...logs].sort((a, b) => {
-    const rankDiff = getProjectLogRank(a) - getProjectLogRank(b);
-    if (rankDiff !== 0) return rankDiff;
-
-    const workDateDiff = b.workDate.localeCompare(a.workDate);
-    if (workDateDiff !== 0) return workDateDiff;
-
-    return toTime(b.createdAt) - toTime(a.createdAt);
-  });
-  const visibleProjectLogs = sortedLogs.filter((log) => {
-    if (!showSystemLogs && isSystemLog(log)) return false;
-    if (!showClosedItemLogs && log.itemId && closedItemIds.has(log.itemId) && isSystemLog(log) && !log.reportable) return false;
-    return true;
-  });
+  }).slice(0, 5);
+  const orderedMilestones = [...milestones].sort((a, b) => (a.sortOrder - b.sortOrder) || (toTime(a.targetDate) - toTime(b.targetDate)));
+  const stageMilestones = project.stage ? orderedMilestones.filter((milestone) => milestone.stage === project.stage) : [];
+  const activeStageMilestones = stageMilestones.length > 0 ? stageMilestones : orderedMilestones;
+  const cockpitMilestones = activeStageMilestones.slice(0, 6);
+  const extraMilestones = Math.max(0, activeStageMilestones.length - cockpitMilestones.length);
+  const milestonePhaseCounts = activeStageMilestones.reduce((counts, milestone) => {
+    counts[milestonePhase(milestone, today)] += 1;
+    return counts;
+  }, { past: 0, current: 0, future: 0 });
+  const stageLabel = project.stage && stageMilestones.length > 0
+    ? PROJECT_MILESTONE_STAGE_LABELS[project.stage] || PROJECT_STAGE_LABELS[project.stage] || project.stage
+    : PROJECT_STAGE_LABELS[project.stage || ""] || "当前阶段";
+  const coreMembers = members.filter((member) => member.isCore).length;
+  const todayLogCount = logs.filter((log) => log.workDate === today).length;
+  const yesterday = new Date(`${today}T00:00:00`);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+  const yesterdayLogCount = logs.filter((log) => log.workDate === yesterdayKey).length;
 
   return (
-    <div className="page-shell cockpit-page detail-page project-detail-page">
-      <div id="project-overview" style={{ scrollMarginTop: 12 }}>
-        <ProjectHeaderSection project={project} />
-        <ProjectOverviewSection project={project} />
-      </div>
-      <div id="project-signals" style={{ scrollMarginTop: 12 }}>
-        <ProjectSignalSection
-          projectId={project.id}
-          items={openItems}
-          logs={logs}
-          today={today}
-          itemCount={project._count?.items || 0}
-          logCount={project._count?.logs || 0}
-          p0p1Count={p0p1Count}
-          blockedCount={blockedCount}
-          redYellowCount={redYellowCount}
-          overdueCount={overdueCount}
-        />
-      </div>
-
-      <section className="cockpit-section project-quick-actions-section">
-        <div className="card project-support-summary project-support-summary--compact">
-          <div className="project-support-summary__title">
-            <div className="project-support-summary__headline">补充事实记录</div>
-            <div className="project-support-summary__hint">新增关联事项或日志，让项目状态由事实对象持续支撑。</div>
+    <main className="project-cockpit-v2">
+      <section className="project-cockpit-hero">
+        <div className="project-cockpit-hero-main">
+          <Link href="/projects" className="project-cockpit-back">← 项目列表</Link>
+          <div className="project-cockpit-kicker">{project.code || "PROJECT"} · {PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</div>
+          <div className="project-cockpit-title-row"><h1>{project.name}</h1><Link href={`/projects/${project.id}/edit`} className="project-cockpit-edit-link"><Icon name="edit" size={13} /> 编辑项目资料</Link></div>
+          <div className="project-cockpit-pills">
+            <span className={`project-cockpit-pill is-${project.health}`}>健康 · {HEALTH_LABELS[project.health] || project.health}</span>
+            <span className="project-cockpit-pill">{PROJECT_STATUS_LABELS[project.status] || project.status}</span>
+            <span className="project-cockpit-pill">{PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</span>
+            <span className="project-cockpit-signal is-critical">P0 {p0Count}</span>
+            <span className="project-cockpit-signal is-warning">阻塞 {blockedCount}</span>
+            <span className="project-cockpit-signal is-critical">逾期 {overdueCount}</span>
+            <span className="project-cockpit-signal">P1 {p1Count}</span>
+            <span className="project-cockpit-signal is-positive">可汇报 {reportableCount}</span>
           </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link href={`/items/new?projectId=${project.id}`} className="btn btn-primary">
-              <Icon name="plus" size={15} />
-              新建关联事项
-            </Link>
-            <Link href={`/logs/new?projectId=${project.id}`} className="btn btn-secondary">
-              <Icon name="edit" size={15} />
-              新建关联日志
-            </Link>
-          </div>
+          <p className="project-cockpit-summary">{project.currentSummary || project.description || project.nextAction || "暂未补充项目进展摘要。"}</p>
+        </div>
+        <div className="project-cockpit-meta" aria-label="项目元信息">
+          <div><span>PM</span><strong>{project.pm || "—"}</strong></div>
+          <div><span>OWNER</span><strong>{project.owner || "—"}</strong></div>
+          <div><span>START</span><strong>{dateLabel(project.startDate)}</strong></div>
+          <div><span>TARGET</span><strong>{dateLabel(project.targetDate)}</strong></div>
+          <div><span>STAGE</span><strong>{PROJECT_STAGE_LABELS[project.stage || ""] || "—"}</strong></div>
+          <div><span>RELEASE</span><strong>{dateLabel(project.releaseDate)}</strong></div>
+          <div><span>ITEMS</span><strong>{items.length} open</strong></div>
+          <div><span>MEMBERS</span><strong>{panelsLoading ? "加载中" : `${coreMembers} core · ${members.length} total`}</strong></div>
         </div>
       </section>
 
-      <div id="project-milestones" style={{ scrollMarginTop: 12 }}>
-        <ProjectMilestoneSection projectId={project.id} />
-      </div>
-      <div id="project-members" style={{ scrollMarginTop: 12 }}>
-        <ProjectMemberSection projectId={project.id} />
-      </div>
-      <div id="project-resources" style={{ scrollMarginTop: 12 }}>
-        <ProjectLinkSection projectId={project.id} />
-        <div className="card project-resource-source">
-          <span className="section-eyebrow">REFERENCE</span>
-          <div>
-            {project.sourceSystem && <span>来源：{project.sourceSystem}</span>}
-            {project.sourceId && <span>编号：{project.sourceId}</span>}
-            {project.sourceUrl && (
-              <a href={project.sourceUrl} target="_blank" rel="noopener noreferrer">
-                打开来源链接 <Icon name="external-link" size={12} />
-              </a>
-            )}
-            {!project.sourceSystem && !project.sourceId && !project.sourceUrl && <span>暂无来源资料</span>}
-          </div>
-        </div>
-      </div>
-
-      <section className="cockpit-section" id="project-items" style={{ scrollMarginTop: 12 }}>
-        <div className="dashboard-section-title">
-          <div>
-            <span className="section-eyebrow">ITEMS</span>
-            <h2>关联事项</h2>
-          </div>
-          <Link href={signalToItemsHref("projectItems", project.id)} className="section-link">
-            查看全部 <Icon name="chevron-right" size={14} />
-          </Link>
-        </div>
-        {items.length === 0 ? (
-          <div className="card empty-state project-compact-empty">
-            <p>暂无关联事项，可新增事项作为项目状态支撑。</p>
-            <div className="empty-actions">
-              <Link href={`/items/new?projectId=${project.id}`} className="btn btn-secondary">
-                <Icon name="plus" size={14} />
-                新建关联事项
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div
-              className="card"
-              style={{
-                padding: 14,
-                marginBottom: 12,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-                border: attentionItems.length > 0
-                  ? "1px solid color-mix(in srgb, var(--accent-orange) 28%, var(--border-primary))"
-                  : "1px solid var(--border-primary)",
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)", marginBottom: 4 }}>
-                  重点事项 {attentionItems.length} 项
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                  这些事项用于解释项目阻塞、风险、逾期和高优先级状态。
-                </div>
+      <section className="project-cockpit-panel project-cockpit-milestones">
+        <div className="project-cockpit-panel-head"><div><span>PLANS & NODES</span><h2>{stageLabel}阶段计划</h2></div><div className="project-cockpit-view-switch"><button type="button" className={milestoneView === "timeline" ? "is-active" : ""} onClick={() => setMilestoneView("timeline")}>时间轴</button><button type="button" className={milestoneView === "list" ? "is-active" : ""} onClick={() => setMilestoneView("list")}>列表</button><Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-action-link">维护计划</Link></div></div>
+        {panelsLoading ? <div className="project-cockpit-panel-loading">正在读取当前阶段的里程碑与计划…</div> : <>
+        <div className="project-cockpit-phase-legend"><span className="is-past">已完成 {milestonePhaseCounts.past}</span><span className="is-current">当前推进 {milestonePhaseCounts.current}</span><span className="is-future">后续计划 {milestonePhaseCounts.future}</span></div>
+        {milestoneView === "timeline" ? (
+          <div className="project-cockpit-axis" aria-label="里程碑时间轴">
+            {cockpitMilestones.length === 0 ? <p className="project-cockpit-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => (
+              <div key={milestone.id} className={`project-cockpit-axis-node is-${milestonePhase(milestone, today)}${isRangeMilestone(milestone) ? " is-range" : " is-point"}`}>
+                <i /><small>{milestoneScheduleLabel(milestone)}</small><strong>{milestone.title}</strong><em><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em>
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <Link
-                  href={signalToItemsHref("blocked", project.id)}
-                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: ATTENTION_CHIP_STYLES.danger.background, color: ATTENTION_CHIP_STYLES.danger.color, border: `1px solid ${ATTENTION_CHIP_STYLES.danger.border}`, textDecoration: "none" }}
-                >
-                  阻塞 {blockedCount}
-                </Link>
-                <Link
-                  href={signalToItemsHref("p0p1", project.id)}
-                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: ATTENTION_CHIP_STYLES.warning.background, color: ATTENTION_CHIP_STYLES.warning.color, border: `1px solid ${ATTENTION_CHIP_STYLES.warning.border}`, textDecoration: "none" }}
-                >
-                  P0/P1 {p0p1Count}
-                </Link>
-                <Link
-                  href={signalToItemsHref("overdue", project.id)}
-                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: ATTENTION_CHIP_STYLES.danger.background, color: ATTENTION_CHIP_STYLES.danger.color, border: `1px solid ${ATTENTION_CHIP_STYLES.danger.border}`, textDecoration: "none" }}
-                >
-                  逾期 {overdueCount}
-                </Link>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>红黄 {redYellowCount}</span>
-              </div>
-            </div>
-            {closedItems.length > 0 && (
-              <div className="project-section-controls">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowClosedItems((value) => !value)}
-                >
-                  {showClosedItems ? "隐藏已关闭" : "显示已关闭"}（{closedItems.length}）
-                </button>
-              </div>
-            )}
-            <div className="project-evidence-list">
-              {visibleProjectItems.slice(0, 20).map((item) => (
-                <ProjectItemEvidenceRow key={item.id} item={item} today={today} />
-              ))}
-            </div>
-          </>
-        )}
+            ))}
+            {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看本阶段其余 {extraMilestones} 项 →</Link>}
+          </div>
+        ) : <div className="project-cockpit-timeline">
+          {cockpitMilestones.length === 0 ? <p className="project-cockpit-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => (
+            <div key={milestone.id} className={`project-cockpit-node is-${milestonePhase(milestone, today)}${isRangeMilestone(milestone) ? " is-range" : " is-point"}`}><i /><div><small><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{milestoneScheduleLabel(milestone)} · {milestonePhase(milestone, today) === "past" ? "已完成" : milestonePhase(milestone, today) === "current" ? "当前推进" : "后续计划"}</small><strong>{milestone.title}</strong><em>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em></div></div>
+          ))}
+          {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看本阶段其余 {extraMilestones} 项 →</Link>}
+        </div>}</>}
       </section>
 
-      <section className="cockpit-section" id="project-logs" style={{ scrollMarginTop: 12 }}>
-        <div className="dashboard-section-title">
-          <div>
-            <span className="section-eyebrow">LOGS</span>
-            <h2>最近日志</h2>
-          </div>
-          <Link href={signalToLogsHref("projectLogs", project.id)} className="section-link">
-            查看全部 <Icon name="chevron-right" size={14} />
-          </Link>
+      <section className="project-cockpit-panel project-cockpit-signals">
+        <div className="project-cockpit-panel-head"><div><span>SIGNALS</span><h2>当前风险信号</h2></div></div>
+        <div className="project-cockpit-signal-list">
+          <div><span className="is-critical">P0 / P1</span><strong>{p0Count + p1Count}</strong><small>需优先关注事项</small></div>
+          <div><span className="is-critical">阻塞</span><strong>{blockedCount}</strong><small>等待外部条件或决策</small></div>
+          <div><span className="is-critical">逾期</span><strong>{overdueCount}</strong><small>超过截止日期的开放事项</small></div>
+          <div><span className="is-warning">红黄风险</span><strong>{riskCount}</strong><small>健康度需跟踪</small></div>
+          <div><span className="is-positive">可汇报</span><strong>{reportableCount}</strong><small>可进入项目汇报的事实</small></div>
         </div>
-        {logs.length === 0 ? (
-          <div className="card empty-state project-compact-empty">
-            <p>暂无关联日志，可补充事实记录支撑项目判断。</p>
-            <div className="empty-actions">
-              <Link href={`/logs/new?projectId=${project.id}`} className="btn btn-secondary">
-                <Icon name="edit" size={14} />
-                新建关联日志
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div
-              className="card"
-              style={{
-                padding: 14,
-                marginBottom: 12,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)", marginBottom: 4 }}>
-                  关键变化 {keyLogCount} 条
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                  最近日志用于支撑当前摘要、风险判断和项目汇报事实。
-                </div>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <Link href={signalToLogsHref("risk", project.id)} style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: ATTENTION_CHIP_STYLES.danger.background, color: ATTENTION_CHIP_STYLES.danger.color, border: `1px solid ${ATTENTION_CHIP_STYLES.danger.border}`, textDecoration: "none" }}>
-                  风险 {riskLogCount}
-                </Link>
-                <Link
-                  href={signalToLogsHref("reportable", project.id)}
-                  style={{ display: "inline-flex", alignItems: "center", fontSize: 12, padding: "2px 8px", borderRadius: 999, background: ATTENTION_CHIP_STYLES.success.background, color: ATTENTION_CHIP_STYLES.success.color, border: `1px solid ${ATTENTION_CHIP_STYLES.success.border}`, textDecoration: "none" }}
-                >
-                  可汇报 {reportableLogCount}
-                </Link>
-                <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>最近 {logs.length}</span>
-              </div>
-            </div>
-            <div className="project-section-controls">
-              {systemLogCount > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowSystemLogs((value) => !value)}
-                >
-                  {showSystemLogs ? "隐藏系统动态" : "显示系统动态"}（{systemLogCount}）
-                </button>
-              )}
-              {closedItemLogCount > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowClosedItemLogs((value) => !value)}
-                >
-                  {showClosedItemLogs ? "收起已关闭事项日志" : "显示已关闭事项日志"}（{closedItemLogCount}）
-                </button>
-              )}
-            </div>
-            <div className="project-evidence-list">
-              {visibleProjectLogs.slice(0, 20).map((log) => (
-                <ProjectLogEvidenceRow key={log.id} log={log} />
-              ))}
-            </div>
-          </>
-        )}
       </section>
-    </div>
+
+      <div className="project-cockpit-right-stack">
+        <section className="project-cockpit-panel project-cockpit-links">
+          <div className="project-cockpit-panel-head"><div><span>KEY LINKS</span><h2>关键链接</h2></div><Link href={`/projects/${project.id}?manage=links`} className="project-cockpit-action-link">打开链接库</Link></div>
+          <div className="project-cockpit-module-summary"><strong>{panelsLoading ? "正在读取链接…" : `${links.length || (project.sourceUrl ? 1 : 0)} 个已收录链接`}</strong><span>统一查看项目计划、规格和协作入口。</span></div>
+        </section>
+        <section className="project-cockpit-panel project-cockpit-members">
+          <div className="project-cockpit-panel-head"><div><span>MEMBERS</span><h2>项目成员</h2></div><Link href={`/projects/${project.id}?manage=members`} className="project-cockpit-action-link">查看全体成员</Link></div>
+          <div className="project-cockpit-module-summary"><strong>{panelsLoading ? "正在读取成员…" : `${coreMembers} 名核心成员 · ${members.length} 名成员`}</strong><span>在成员页查看角色、职责和联系方式。</span></div>
+        </section>
+      </div>
+
+      <section className="project-cockpit-panel project-cockpit-items">
+        <div className="project-cockpit-panel-head"><div><span>ITEMS</span><h2>本项目事项 · {items.length} open</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
+        <div className="project-cockpit-item-list">
+          {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>)}
+        </div>
+      </section>
+
+      <section className="project-cockpit-panel project-cockpit-facts">
+        <div className="project-cockpit-panel-head"><div><span>FACTS</span><h2>最近事实（本项目）</h2></div><small>今日 {todayLogCount} · 昨日 {yesterdayLogCount}</small></div>
+        <div className="project-cockpit-fact-list">
+          {logs.slice(0, 5).map((log) => <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{logTime(log, today)}</time><span className={`project-cockpit-kind is-${log.type}`}>{factKind(log)}</span><div><strong>{log.title}</strong><em>{log.item?.title || log.module || log.source}</em></div></Link>)}
+          {logs.length === 0 && <p className="project-cockpit-empty">暂无项目事实记录</p>}
+        </div>
+      </section>
+    </main>
   );
 }

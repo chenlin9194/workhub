@@ -8,7 +8,6 @@ const navItems = [
   { href: "/", label: "工作台", icon: "home", exact: true },
   { href: "/projects", label: "项目", icon: "folder" },
   { href: "/items", label: "事项", icon: "list" },
-  { href: "/logs", label: "日志", icon: "file-text" },
   { href: "/reports", label: "汇报", icon: "chart", exact: true },
 ];
 

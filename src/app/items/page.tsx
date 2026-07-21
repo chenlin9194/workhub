@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import WorkItemCard from "@/components/WorkItemCard";
+import ItemsTable from "@/components/redesign/ItemsTable";
 import Icon from "@/components/Icon";
 import PageLoadingState from "@/components/PageLoadingState";
 import {
@@ -185,7 +185,7 @@ export default function ItemsPage() {
   const [loading, setLoading] = useState(true);
   const [urlFiltersInitialized, setUrlFiltersInitialized] = useState(false);
   const [filters, setFilters] = useState<ItemFilters>(DEFAULT_FILTERS);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters] = useState(true);
   const [hideLowActivity, setHideLowActivity] = useState(false);
 
   const fetchItems = useCallback(async () => {
@@ -302,20 +302,20 @@ export default function ItemsPage() {
         <div>
           <span className="section-eyebrow">EXECUTION QUEUE</span>
           <h1>工作事项</h1>
-          <p>跟踪风险、问题、待办与跨团队依赖的闭环状态。</p>
+          <p>EXECUTION QUEUE · {total} 条事项</p>
         </div>
         <div className="page-header-actions">
           <button onClick={copyMarkdown} className="btn btn-secondary list-action-button">
             <Icon name="copy" size={14} />复制 Markdown
           </button>
-          <Link href="/items/new" className="btn btn-primary"><Icon name="plus" size={14} />新建跟踪事项</Link>
+          <Link href="/items/new" className="btn btn-primary"><Icon name="plus" size={14} />新建事项</Link>
         </div>
       </div>
 
       <div className="card item-quick-view-panel">
         <div className="item-quick-view-head">
           <span>快速视图</span>
-          <strong>先看需要处理的事项</strong>
+          <strong>SORTED · UPDATED DESC</strong>
         </div>
         <div className="item-quick-view-actions">
           {quickViews.map((view) => (
@@ -328,12 +328,6 @@ export default function ItemsPage() {
               {view.label}
             </button>
           ))}
-          <button type="button" onClick={() => applyQuickView({ visibility: "open" })} className="btn btn-secondary">未关闭</button>
-          <button type="button" onClick={() => applyQuickView({ visibility: "open", priority: "P0" })} className="btn btn-secondary">P0 高优</button>
-          <button type="button" onClick={() => applyQuickView({ visibility: "open", status: "blocked" })} className="btn btn-secondary">阻塞</button>
-          <button type="button" onClick={() => applyQuickView({ visibility: "open", health: "red" })} className="btn btn-secondary">风险红</button>
-          <button type="button" onClick={() => applyQuickView({ visibility: "open", overdue: true })} className="btn btn-secondary">逾期</button>
-          <button type="button" onClick={() => applyQuickView({ visibility: "open", reportLevel: "daily" })} className="btn btn-secondary">进入日报</button>
         </div>
       </div>
 
@@ -357,13 +351,6 @@ export default function ItemsPage() {
             <option value="closed">仅已关闭</option>
             <option value="all">全部事项</option>
           </select>
-          <button
-            type="button"
-            className="btn btn-secondary item-filter-toggle"
-            onClick={() => setShowAdvancedFilters((prev) => !prev)}
-          >
-            {showAdvancedFilters ? "收起高级筛选" : "展开高级筛选"}
-          </button>
           {activeFilterLabels.length > 0 && (
             <button type="button" onClick={clearFilters} className="btn btn-ghost item-filter-clear">
               清除筛选
@@ -516,11 +503,7 @@ export default function ItemsPage() {
           </div>
         </div>
       ) : (
-        <div className="content-card-grid">
-          {visibleItems.map(({ item, lowActivity }) => (
-            <WorkItemCard key={item.id} item={item} lowActivity={lowActivity} />
-          ))}
-        </div>
+        <ItemsTable items={visibleItems} />
       )}
 
       {/* Pagination */}

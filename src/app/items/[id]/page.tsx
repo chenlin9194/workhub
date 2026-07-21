@@ -70,7 +70,8 @@ export default function ItemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showAllLogs, setShowAllLogs] = useState(false);
-  const [showSystemLogs, setShowSystemLogs] = useState(false);
+  const [timelineFilter, setTimelineFilter] = useState<"all" | "manual" | "system">("all");
+  const [relatedItems, setRelatedItems] = useState<Pick<WorkItem, "id" | "title" | "priority">[]>([]);
   const actionInFlightRef = useRef(false);
 
   const fetchItem = useCallback(async () => {
@@ -94,6 +95,22 @@ export default function ItemDetailPage() {
   useEffect(() => {
     fetchItem();
   }, [fetchItem]);
+
+  useEffect(() => {
+    if (!item?.projectId && !item?.project) {
+      setRelatedItems([]);
+      return;
+    }
+
+    const search = new URLSearchParams({ pageSize: "4" });
+    if (item.projectId) search.set("projectId", item.projectId);
+    else if (item.project) search.set("project", item.project);
+
+    fetch(`/api/items?${search.toString()}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setRelatedItems((data?.items || []).filter((candidate: WorkItem) => candidate.id !== item.id).slice(0, 3)))
+      .catch(() => setRelatedItems([]));
+  }, [item?.id, item?.project, item?.projectId]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!item || actionInFlightRef.current || newStatus === item.status) return;
@@ -192,7 +209,11 @@ export default function ItemDetailPage() {
   const overdue = isOverdue(item.dueDate, item.status);
   const addLogHref = itemToAddLogHref(item.id, item.projectId ?? undefined);
   const systemLogs = item.logs.filter(isSystemLog);
-  const visibleLogs = showSystemLogs ? item.logs : item.logs.filter((log) => !isSystemLog(log));
+  const visibleLogs = timelineFilter === "system"
+    ? item.logs.filter(isSystemLog)
+    : timelineFilter === "manual"
+      ? item.logs.filter((log) => !isSystemLog(log))
+      : item.logs;
   const timelineLogs = showAllLogs ? visibleLogs : visibleLogs.slice(0, 3);
 
   return (
@@ -281,35 +302,6 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {(item.nextAction || item.trackingReason || item.currentSummary) && (
-            <div className="detail-insight-grid">
-              {item.nextAction && (
-                <div className="detail-insight-panel detail-insight-panel--accent">
-                  <div className="detail-field-label">Next Action</div>
-                  <div className="detail-field-value detail-field-value--strong">
-                    <AutoLinkText text={item.nextAction} />
-                  </div>
-                </div>
-              )}
-              {item.trackingReason && (
-                <div className="detail-insight-panel">
-                  <div className="detail-field-label">跟踪原因</div>
-                  <div className="detail-field-value detail-field-value--body">
-                    <AutoLinkText text={item.trackingReason} />
-                  </div>
-                </div>
-              )}
-              {item.currentSummary && (
-                <div className="detail-insight-panel">
-                  <div className="detail-field-label">当前进展</div>
-                  <div className="detail-field-value detail-field-value--body">
-                    <AutoLinkText text={item.currentSummary} />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           <div className="detail-meta-grid">
             <div className="detail-meta-item">
               <span>健康度</span>
@@ -391,7 +383,63 @@ export default function ItemDetailPage() {
         </section>
 
         <aside className="item-action-items-column">
+          <section className="card detail-side-panel item-progress-panel">
+            <div className="detail-section-heading">
+              <div>
+                <span className="section-eyebrow">CURRENT PROGRESS</span>
+                <h2>当前进展</h2>
+              </div>
+            </div>
+            <div className="detail-side-panel-body">
+              <div className="detail-side-entry">
+                <span>进展摘要</span>
+                <strong>{item.currentSummary ? <AutoLinkText text={item.currentSummary} /> : "暂未补充进展摘要"}</strong>
+              </div>
+              <div className="detail-side-entry detail-side-entry--accent">
+                <span>下一行动</span>
+                <strong>{item.nextAction ? <AutoLinkText text={item.nextAction} /> : "暂未设置下一行动"}</strong>
+              </div>
+              {item.nextCheckpoint && (
+                <div className="detail-side-entry">
+                  <span>下一检查点</span>
+                  <strong className="mono">{item.nextCheckpoint}</strong>
+                </div>
+              )}
+              {item.trackingReason && (
+                <div className="detail-side-entry">
+                  <span>跟踪原因</span>
+                  <strong><AutoLinkText text={item.trackingReason} /></strong>
+                </div>
+              )}
+            </div>
+          </section>
           <ActionItemSection workItemId={item.id} projectId={item.projectId ?? undefined} />
+          <section className="card detail-side-panel item-relations-panel">
+            <div className="detail-section-heading">
+              <div>
+                <span className="section-eyebrow">RELATIONS</span>
+                <h2>关联</h2>
+              </div>
+            </div>
+            <div className="detail-side-panel-body item-relations-list">
+              {item.project && <span>项目：{item.project}</span>}
+              {item.module && <span>模块：{item.module}</span>}
+              {item.sourceSystem && <span>来源：{SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem}{item.sourceId ? ` · ${item.sourceId}` : ""}</span>}
+              {item.projectId && <Link href={`/items?project=${item.projectId}`}>查看同项目事项</Link>}
+              {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">打开来源链接</a>}
+              {relatedItems.length > 0 && (
+                <div className="item-related-items">
+                  <span>相关事项</span>
+                  {relatedItems.map((related) => (
+                    <Link key={related.id} href={`/items/${related.id}`}>
+                      <b>{PRIORITY_LABELS[related.priority] || related.priority}</b>{related.title}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {!item.project && !item.module && !item.sourceSystem && !item.sourceUrl && <span>暂无关联信息</span>}
+            </div>
+          </section>
         </aside>
       </div>
 
@@ -399,7 +447,7 @@ export default function ItemDetailPage() {
         <div className="detail-section-heading">
           <div>
             <span className="section-eyebrow">TIMELINE</span>
-            <h2>关联日志时间线</h2>
+            <h2>时间线 · 事实与进展</h2>
           </div>
           <Link href={itemToLogsHref(item.id)} className="section-link">
             查看全部 <Icon name="chevron-right" size={14} />
@@ -411,13 +459,15 @@ export default function ItemDetailPage() {
               {showAllLogs ? "收起日志" : "展开全部日志"}（{visibleLogs.length}）
             </button>
           )}
-          {systemLogs.length > 0 && (
-            <button type="button" className="btn btn-secondary" onClick={() => setShowSystemLogs((value) => !value)}>
-              {showSystemLogs ? "隐藏系统动态" : "显示系统动态"}（{systemLogs.length}）
-            </button>
-          )}
+          <button type="button" className={`btn ${timelineFilter === "all" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("all")}>全部（{item.logs.length}）</button>
+          <button type="button" className={`btn ${timelineFilter === "manual" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("manual")}>仅人工（{item.logs.length - systemLogs.length}）</button>
+          {systemLogs.length > 0 && <button type="button" className={`btn ${timelineFilter === "system" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("system")}>仅系统（{systemLogs.length}）</button>}
         </div>
         <Timeline logs={timelineLogs} />
+        <div className="item-static-composer" aria-label="追加事实输入区">
+          <textarea readOnly placeholder="追加一条事实…（请通过添加日志提交）" />
+          <Link href={addLogHref} className="btn btn-secondary">添加日志</Link>
+        </div>
       </section>
     </div>
   );
