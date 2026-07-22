@@ -8,20 +8,20 @@ datasource db {
 }
 
 model WorkItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
 
-  project     String?
-  module      String?
+  project String?
+  module  String?
 
-  type        String   @default("action")
-  priority    String   @default("P2")
-  status      String   @default("open")
+  type     String @default("action")
+  priority String @default("P2")
+  status   String @default("open")
 
-  owner       String?
-  dueDate     String?
-  nextAction  String?
+  owner      String?
+  dueDate    String?
+  nextAction String?
 
   trackingReason String?
   sourceSystem   String?
@@ -32,32 +32,38 @@ model WorkItem {
   nextCheckpoint String?
   reportLevel    String  @default("none")
 
-  tags        String?
+  tags String?
 
-  projectId   String?
-  projectRef  Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId  String?
+  projectRef Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  closedAt    DateTime?
+  executionMilestoneId String?           @unique
+  executionMilestone   ProjectMilestone? @relation("WbsExecutionMilestone", fields: [executionMilestoneId], references: [id], onDelete: SetNull)
+  originWbsNodeId      String?
+  originWbsNode        ProjectWbsNode?   @relation("WbsOriginWorkItems", fields: [originWbsNodeId], references: [id], onDelete: SetNull)
+  managedBy            String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
 
   logs        WorkLog[]
   actionItems ActionItem[]
 }
 
 model WorkLog {
-  id        String   @id @default(cuid())
-  workDate  String
-  title     String
-  content   String
+  id       String @id @default(cuid())
+  workDate String
+  title    String
+  content  String
 
-  type      String   @default("note")
-  source    String   @default("manual")
+  type   String @default("note")
+  source String @default("manual")
 
-  project   String?
-  module    String?
+  project String?
+  module  String?
 
-  tags      String?
+  tags String?
 
   reportable Boolean @default(false)
   sourceUrl  String?
@@ -65,8 +71,8 @@ model WorkLog {
   projectId  String?
   projectRef Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  itemId    String?
-  item      WorkItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemId String?
+  item   WorkItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,35 +81,35 @@ model WorkLog {
 }
 
 model Project {
-  id              String   @id @default(cuid())
-  name            String
-  code            String?
-  description     String?
+  id          String  @id @default(cuid())
+  name        String
+  code        String?
+  description String?
 
-  type            String   @default("project")
-  status          String   @default("active")
-  stage           String?
+  type   String  @default("project")
+  status String  @default("active")
+  stage  String?
 
-  health          String   @default("unknown")
-  owner           String?
-  pm              String?
+  health String  @default("unknown")
+  owner  String?
+  pm     String?
 
-  startDate       DateTime?
-  targetDate      DateTime?
-  releaseDate     DateTime?
+  startDate   DateTime?
+  targetDate  DateTime?
+  releaseDate DateTime?
 
-  currentSummary  String?
-  nextMilestone   String?
-  nextAction      String?
+  currentSummary String?
+  nextMilestone  String?
+  nextAction     String?
 
-  sourceSystem    String?
-  sourceId        String?
-  sourceUrl       String?
+  sourceSystem String?
+  sourceId     String?
+  sourceUrl    String?
 
-  tags            String?
+  tags String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items           WorkItem[]
   logs            WorkLog[]
@@ -111,26 +117,28 @@ model Project {
   milestones      ProjectMilestone[]
   members         ProjectMember[]
   actionItems     ActionItem[]
+  wbsPlan         ProjectWbsPlan?
+  projectWbsNodes ProjectWbsNode[]
 }
 
 model ActionItem {
-  id          String   @id @default(cuid())
-  title       String
-  status      String   @default("pending")
-  owner       String?
-  dueDate     String?
-  sortOrder   Int      @default(0)
-  workItemId  String?
-  workLogId   String?
-  projectId   String?
-  doneAt      DateTime?
-  doneNote    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  title      String
+  status     String    @default("pending")
+  owner      String?
+  dueDate    String?
+  sortOrder  Int       @default(0)
+  workItemId String?
+  workLogId  String?
+  projectId  String?
+  doneAt     DateTime?
+  doneNote   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  workItem    WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  workLog     WorkLog?  @relation(fields: [workLogId], references: [id], onDelete: Cascade)
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  workLog  WorkLog?  @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([workItemId])
   @@index([workLogId])
@@ -153,26 +161,32 @@ model ProjectLink {
 }
 
 model ProjectMilestone {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  stage       String?
-  planType    String   @default("milestone")
-  dateMode    String?
-  status      String   @default("planned")
-  targetDate  DateTime?
-  actualDate  DateTime?
+  id               String    @id @default(cuid())
+  projectId        String
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  stage            String?
+  planType         String    @default("milestone")
+  dateMode         String?
+  status           String    @default("planned")
+  targetDate       DateTime?
+  actualDate       DateTime?
   plannedStartDate DateTime?
   plannedEndDate   DateTime?
   actualStartDate  DateTime?
   actualEndDate    DateTime?
-  owner       String?
-  sourceUrl   String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  owner            String?
+  sourceUrl        String?
+  sortOrder        Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  gateKey           String?
+  executionWorkItem WorkItem?        @relation("WbsExecutionMilestone")
+  wbsNodes          ProjectWbsNode[]
+
+  @@unique([projectId, gateKey])
 }
 
 model ProjectMember {
@@ -188,6 +202,124 @@ model ProjectMember {
   sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  wbsNodes ProjectWbsNode[]
+}
+
+model WbsTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  version        String   @unique
+  sourceFileName String
+  sourceHash     String
+  status         String   @default("active")
+  importedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  nodes WbsTemplateNode[]
+  plans ProjectWbsPlan[]
+
+  @@index([status])
+}
+
+model WbsTemplateNode {
+  id              String            @id @default(cuid())
+  templateId      String
+  template        WbsTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  parentId        String?
+  parent          WbsTemplateNode?  @relation("WbsTemplateNodeTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        WbsTemplateNode[] @relation("WbsTemplateNodeTree")
+  kind            String
+  stage           String
+  gateKey         String
+  code            String
+  title           String
+  description     String?
+  role            String?
+  projectScope    String
+  processSupport  String?
+  deliverableSpec String?
+  sortOrder       Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  projectNodes ProjectWbsNode[]
+
+  @@unique([templateId, stage, gateKey, code])
+  @@index([templateId, gateKey])
+}
+
+model ProjectWbsPlan {
+  id            String      @id @default(cuid())
+  projectId     String      @unique
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId    String
+  template      WbsTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  profile       String
+  status        String      @default("draft")
+  initializedAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  nodes ProjectWbsNode[]
+}
+
+model ProjectWbsNode {
+  id                String           @id @default(cuid())
+  planId            String
+  plan              ProjectWbsPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  projectId         String
+  project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId       String
+  milestone         ProjectMilestone @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  templateNodeId    String?
+  templateNode      WbsTemplateNode? @relation(fields: [templateNodeId], references: [id], onDelete: SetNull)
+  parentId          String?
+  parent            ProjectWbsNode?  @relation("ProjectWbsNodeTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children          ProjectWbsNode[] @relation("ProjectWbsNodeTree")
+  kind              String
+  gateKey           String
+  code              String
+  title             String
+  description       String?
+  role              String?
+  ownerMemberId     String?
+  ownerMember       ProjectMember?   @relation(fields: [ownerMemberId], references: [id], onDelete: SetNull)
+  ownerName         String?
+  status            String?
+  internalCheckDate String?
+  blockedReason     String?
+  completionNote    String?
+  waiverReason      String?
+  completedAt       DateTime?
+  sortOrder         Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  deliverables    ProjectWbsDeliverable[]
+  originWorkItems WorkItem[]              @relation("WbsOriginWorkItems")
+
+  @@unique([planId, gateKey, code])
+  @@index([projectId, gateKey])
+  @@index([milestoneId])
+  @@index([ownerMemberId])
+}
+
+model ProjectWbsDeliverable {
+  id          String         @id @default(cuid())
+  nodeId      String
+  node        ProjectWbsNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  title       String
+  required    Boolean        @default(true)
+  status      String         @default("pending")
+  evidenceUrl String?
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([nodeId])
+  @@index([status])
 }
 
 model ToolLink {

@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getMilestonePlannedEnd } from "@/lib/projectMilestones";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString, isValidYmdDateString } from "@/lib/utils";
+import { deriveStrReadiness } from "@/lib/wbs/readiness";
 
 const HEALTH_GROUPS = ["red", "yellow", "green", "unknown"] as const;
 const ACTIVE_MILESTONE_STATUSES = new Set(["planned", "in_progress", "delayed"]);
@@ -159,6 +160,40 @@ function emptyTimeline() {
   };
 }
 
+function buildWbsFacts(plan: {
+  profile: string;
+  template: { version: string };
+  nodes: Array<{ gateKey: string; code: string; title: string; kind: string; status: string | null; role: string | null; waiverReason: string | null; deliverables: Array<{ required: boolean; status: string }> }>;
+}) {
+  const gateKeys = ["STR1", "STR2", "STR3", "STR4", "STR4A", "STR5"] as const;
+  const executionNodes = plan.nodes.filter((node) => node.kind === "task" || node.kind === "gate");
+  const gates = gateKeys.map((gateKey) => {
+    const nodes = executionNodes.filter((node) => node.gateKey === gateKey);
+    const readiness = deriveStrReadiness(gateKey, nodes.map((node) => ({
+      kind: node.kind as "task" | "gate",
+      status: node.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null,
+      requiredDeliverables: node.deliverables.map((deliverable) => ({ required: deliverable.required, status: deliverable.status as "pending" | "delivered" })),
+    })));
+    return { gateKey, status: readiness.status, completed: readiness.completedExecutionNodes, total: readiness.totalExecutionNodes };
+  });
+  const roles = new Set(executionNodes.map((node) => node.role?.trim()).filter(Boolean));
+  return {
+    profile: plan.profile,
+    templateVersion: plan.template.version,
+    currentGate: gates.find((gate) => gate.status !== "closed")?.gateKey ?? null,
+    roleTaskCount: executionNodes.filter((node) => node.role?.trim()).length,
+    roleCount: roles.size,
+    openTasks: executionNodes.filter((node) => node.status !== "done" && node.status !== "waived").length,
+    blockedTasks: executionNodes.filter((node) => node.status === "blocked").length,
+    pendingRequiredDeliverables: executionNodes.reduce((count, node) => count + node.deliverables.filter((deliverable) => deliverable.required && deliverable.status !== "delivered").length, 0),
+    waivedTasks: executionNodes.filter((node) => node.status === "waived").length,
+    waived: executionNodes
+      .filter((node) => node.status === "waived")
+      .map((node) => ({ gateKey: node.gateKey, code: node.code, title: node.title, reason: node.waiverReason || "未记录原因" })),
+    gates,
+  };
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -205,6 +240,7 @@ export async function GET(
         queriedItems,
         queriedRecentLogs,
         projectLogCount,
+        wbsPlan,
       ] =
         await Promise.all([
           prisma.projectMilestone.findMany({
@@ -288,6 +324,14 @@ export async function GET(
               OR: [{ projectId: project.id }, { item: { projectId: project.id } }],
             },
           }),
+          prisma.projectWbsPlan.findUnique({
+            where: { projectId: project.id },
+            select: {
+              profile: true,
+              template: { select: { version: true } },
+              nodes: { select: { gateKey: true, code: true, title: true, kind: true, status: true, role: true, waiverReason: true, deliverables: { select: { required: true, status: true } } } },
+            },
+          }),
         ]);
 
       items = queriedItems;
@@ -333,6 +377,7 @@ export async function GET(
         topRisks,
         recentLogs,
         nextCheckpointItem,
+        ...(wbsPlan ? { wbs: buildWbsFacts(wbsPlan) } : {}),
       });
     }
 

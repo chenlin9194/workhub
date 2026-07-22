@@ -293,6 +293,26 @@ export interface ProjectSnapshotData {
   topRisks?: ProjectSnapshotItem[];
   recentLogs?: ProjectSnapshotLog[];
   nextCheckpointItem?: ProjectSnapshotItem | null;
+  wbs?: ProjectSnapshotWbsFacts;
+}
+
+export interface ProjectSnapshotWbsFacts {
+  profile: string;
+  templateVersion: string;
+  currentGate: string | null;
+  roleTaskCount: number;
+  roleCount: number;
+  openTasks: number;
+  blockedTasks: number;
+  pendingRequiredDeliverables: number;
+  waivedTasks: number;
+  waived: Array<{ gateKey: string; code: string; title: string; reason: string }>;
+  gates: Array<{
+    gateKey: string;
+    status: string;
+    completed: number;
+    total: number;
+  }>;
 }
 
 export interface WorkItem {

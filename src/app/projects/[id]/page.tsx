@@ -8,6 +8,7 @@ import PageLoadingState from "@/components/PageLoadingState";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
 import ProjectMemberSection from "@/components/ProjectMemberSection";
 import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
+import ProjectWbsSummarySection from "@/components/ProjectWbsSummarySection";
 import {
   HEALTH_LABELS,
   PRIORITY_LABELS,
@@ -267,6 +268,8 @@ export default function ProjectDetailPage() {
           {logs.length === 0 && <p className="project-cockpit-empty">暂无项目事实记录</p>}
         </div>
       </section>
+
+      <ProjectWbsSummarySection projectId={project.id} />
     </main>
   );
 }

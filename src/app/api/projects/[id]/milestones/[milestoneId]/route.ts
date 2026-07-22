@@ -81,6 +81,10 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const wbsNodeCount = await prisma.projectWbsNode.count({ where: { milestoneId } });
+    if (wbsNodeCount > 0 && ("status" in body || "actualDate" in body || "actualStartDate" in body || "actualEndDate" in body)) {
+      return NextResponse.json({ error: "该 STR 里程碑状态由 WBS 执行节点派生，请在 WBS 执行页维护" }, { status: 409 });
+    }
     const data: Record<string, unknown> = {};
     const nextTitle = "title" in body ? normalizeRequiredString(body.title) : currentMilestone.title;
     const nextDescription = "description" in body ? normalizeOptionalString(body.description) : currentMilestone.description;
@@ -234,6 +238,11 @@ export async function DELETE(
 
     if (!currentMilestone) {
       return NextResponse.json({ error: "Project milestone not found" }, { status: 404 });
+    }
+
+    const wbsNodeCount = await prisma.projectWbsNode.count({ where: { milestoneId } });
+    if (wbsNodeCount > 0) {
+      return NextResponse.json({ error: "该 STR 里程碑已被 WBS 引用，请先处理 WBS 计划后再删除" }, { status: 409 });
     }
 
     await prisma.projectMilestone.delete({

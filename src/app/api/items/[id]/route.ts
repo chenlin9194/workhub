@@ -57,6 +57,10 @@ export async function PUT(
       return NextResponse.json({ error: "工作事项不存在" }, { status: 404 });
     }
 
+    if (currentItem.managedBy === "wbs") {
+      return NextResponse.json({ error: "WBS 系统事项状态由 WBS 执行节点派生，请在 WBS 页面维护" }, { status: 409 });
+    }
+
     // Build update data - only include fields that are provided
     const data: Record<string, unknown> = {};
 
@@ -170,6 +174,11 @@ export async function DELETE(
 
     if (!currentItem) {
       return NextResponse.json({ error: "工作事项不存在" }, { status: 404 });
+    }
+
+    const managedItem = await prisma.workItem.findUnique({ where: { id }, select: { managedBy: true } });
+    if (managedItem?.managedBy === "wbs") {
+      return NextResponse.json({ error: "WBS 系统事项不能通过普通事项接口删除" }, { status: 409 });
     }
 
     // First, unlink all associated work logs

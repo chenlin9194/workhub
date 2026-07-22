@@ -19,6 +19,7 @@ import { isOverdue, generateWorkItemMarkdown } from "@/lib/utils";
 import AutoLinkText from "@/components/AutoLinkText";
 import ActionItemSection from "@/components/ActionItemSection";
 import { itemToAddLogHref, itemToLogsHref } from "@/lib/signalMap";
+import WbsExecutionSummary from "@/components/WbsExecutionSummary";
 
 interface WorkItem {
   id: string;
@@ -37,6 +38,9 @@ interface WorkItem {
   trackingReason?: string | null;
   sourceSystem?: string | null;
   sourceId?: string | null;
+  executionMilestoneId?: string | null;
+  originWbsNodeId?: string | null;
+  managedBy?: string | null;
   sourceUrl?: string | null;
   health: string;
   currentSummary?: string | null;
@@ -469,6 +473,14 @@ export default function ItemDetailPage() {
           <Link href={addLogHref} className="btn btn-secondary">添加日志</Link>
         </div>
       </section>
+
+      {item.managedBy === "wbs" && item.projectId && (
+        <WbsExecutionSummary
+          projectId={item.projectId}
+          originWbsNodeId={item.originWbsNodeId}
+          executionMilestoneId={item.executionMilestoneId}
+        />
+      )}
     </div>
   );
 }

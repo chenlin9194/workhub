@@ -11,6 +11,7 @@ import {
   type ReportQuality,
   type ReportReadinessItem,
 } from "@/lib/reportReadiness";
+import WbsReportFacts from "@/components/WbsReportFacts";
 
 export const dynamic = "force-dynamic";
 
@@ -290,6 +291,8 @@ export default async function ReportsPage() {
           </div>
         )}
       </section>
+
+      <WbsReportFacts />
 
       <div className="export-rule-note report-boundary-note">
         <strong>边界：</strong>

@@ -13,6 +13,8 @@
     "db:studio": "prisma studio",
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore-check": "node scripts/restore-check-db.mjs",
+    "wbs:template:preview": "node --import tsx scripts/import-wbs-template.mjs --dry-run",
+    "wbs:template:import": "node --import tsx scripts/import-wbs-template.mjs --apply",
     "postinstall": "prisma generate",
     "export:today": "node scripts/export-today.mjs",
     "export:week": "node scripts/export-week.mjs",
@@ -35,7 +37,9 @@
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.3",
     "postcss": "^8.5.4",
+    "exceljs": "^4.4.0",
     "prisma": "^6.9.0",
+    "tsx": "^4.23.1",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
     "vitest": "^4.1.10"

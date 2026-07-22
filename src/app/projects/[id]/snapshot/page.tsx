@@ -491,6 +491,18 @@ export default function ProjectSnapshotPage() {
         </div>
       </section>
 
+      {snapshot?.wbs && (
+        <section style={{ marginBottom: 24 }}>
+          <SectionTitle eyebrow="WBS FACTS" title="WBS 执行事实" action={<Link href={`/projects/${projectId}/wbs`} className="section-link">打开 WBS <Icon name="chevron-right" size={14} /></Link>} />
+          <div className="card wbs-snapshot-facts-card">
+            <div className="wbs-snapshot-facts-meta"><Chip tone="blue">模板 {snapshot.wbs.templateVersion}</Chip><Chip tone="neutral">项目类型 {snapshot.wbs.profile}</Chip><Chip tone="neutral">当前 STR {snapshot.wbs.currentGate || "全部闭环"}</Chip></div>
+            <div className="wbs-snapshot-facts-grid"><MetricCard value={`${snapshot.wbs.roleCount}/${snapshot.wbs.roleTaskCount}`} label="WBS角色/任务" /><MetricCard value={snapshot.wbs.openTasks} label="未闭环任务" /><MetricCard value={snapshot.wbs.blockedTasks} label="阻塞任务" valueColor="var(--accent-red)" /><MetricCard value={snapshot.wbs.pendingRequiredDeliverables} label="待交付物" valueColor="var(--accent-orange)" /><MetricCard value={snapshot.wbs.waivedTasks} label="已豁免" valueColor="var(--accent-blue)" /></div>
+            <div className="wbs-snapshot-gate-list">{snapshot.wbs.gates.map((gate) => <Link key={gate.gateKey} href={`/projects/${projectId}/wbs/${gate.gateKey}`}><strong>{gate.gateKey}</strong><span>{gate.completed}/{gate.total}</span><small>{gate.status}</small></Link>)}</div>
+            {snapshot.wbs.waived.length > 0 && <div className="wbs-waived-facts"><strong>已豁免任务及原因</strong>{snapshot.wbs.waived.slice(0, 8).map((entry) => <div key={`${entry.gateKey}-${entry.code}`}><span>{entry.gateKey} · {entry.code} · {entry.title}</span><small>{entry.reason}</small></div>)}</div>}
+          </div>
+        </section>
+      )}
+
       <section style={{ marginBottom: 24 }}>
         <SectionTitle eyebrow="DELIVERY" title="里程碑与检查点" />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>

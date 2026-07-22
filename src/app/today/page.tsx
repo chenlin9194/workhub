@@ -6,6 +6,7 @@ import WorkLogCard from "@/components/WorkLogCard";
 import { formatTodayStr, getLocalDateString, getTodayRange } from "@/lib/utils";
 import { signalToItemsHref, signalToLogsHref } from "@/lib/signalMap";
 import TodayActionQueue from "@/components/TodayActionQueue";
+import TodayWbsQueue from "@/components/TodayWbsQueue";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,7 @@ export default async function TodayPage() {
       </section>
 
       <TodayActionQueue initialItems={openActionItems} today={today} />
+      <TodayWbsQueue today={today} />
 
       <div className="today-sections">
         {todayGroups.map((group) => (

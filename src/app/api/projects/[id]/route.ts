@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { toNullableString } from "@/lib/utils";
+import { getLocalDateString, toNullableString } from "@/lib/utils";
+import { getWbsStageReadiness } from "@/lib/wbs/service";
 
 export async function GET(
   request: NextRequest,
@@ -46,10 +47,20 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const currentProject = await prisma.project.findUnique({ where: { id } });
+    const currentProject = await prisma.project.findUnique({ where: { id }, include: { wbsPlan: true } });
 
     if (!currentProject) {
       return NextResponse.json({ error: "项目不存在" }, { status: 404 });
+    }
+
+    let wbsStageReadiness: Awaited<ReturnType<typeof getWbsStageReadiness>> | null = null;
+    const nextStage = typeof body.stage === "string" ? body.stage.trim() : "";
+    const exceptionReason = typeof body.wbsExceptionReason === "string" ? body.wbsExceptionReason.trim() : "";
+    if (currentProject.wbsPlan?.status === "active" && nextStage && nextStage !== currentProject.stage) {
+      wbsStageReadiness = await getWbsStageReadiness(id, nextStage);
+      if (!wbsStageReadiness.ready && !exceptionReason) {
+        return NextResponse.json({ error: "当前 WBS 存在未闭环 STR，阶段切换需要例外原因", readiness: wbsStageReadiness }, { status: 409 });
+      }
     }
 
     const data: Record<string, unknown> = {};
@@ -74,10 +85,24 @@ export async function PUT(
     if ("sourceUrl" in body) data.sourceUrl = toNullableString(body.sourceUrl);
     if ("tags" in body) data.tags = toNullableString(body.tags);
 
-    const project = await prisma.project.update({
-      where: { id },
-      data,
-    });
+    const project = wbsStageReadiness && !wbsStageReadiness.ready && exceptionReason
+      ? await prisma.$transaction(async (tx) => {
+          const updatedProject = await tx.project.update({ where: { id }, data });
+          await tx.workLog.create({
+            data: {
+              workDate: getLocalDateString(),
+              title: `WBS 阶段切换例外：${currentProject.stage || "未设置"} → ${nextStage}`,
+              content: exceptionReason,
+              type: "decision",
+              source: "manual",
+              project: currentProject.name,
+              projectId: currentProject.id,
+              reportable: true,
+            },
+          });
+          return updatedProject;
+        })
+      : await prisma.project.update({ where: { id }, data });
 
     revalidatePath("/");
     revalidatePath("/projects");
@@ -99,6 +124,8 @@ export async function DELETE(
 
     // Unlink dependent records and delete the project as one all-or-nothing operation.
     await prisma.$transaction([
+      prisma.projectWbsPlan.deleteMany({ where: { projectId: id } }),
+      prisma.workItem.deleteMany({ where: { projectId: id, managedBy: "wbs" } }),
       prisma.workItem.updateMany({
         where: { projectId: id },
         data: { projectId: null },
