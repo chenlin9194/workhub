@@ -7480,6 +7480,62 @@ body,
   grid-row: 3 !important;
 }
 
+.item-create-page .item-form-advanced,
+.item-edit-page .item-form-advanced {
+  grid-column: 1 / -1 !important;
+  padding: 0 !important;
+  border: 1px solid var(--item-flow-border) !important;
+  border-radius: var(--item-flow-radius) !important;
+  background: var(--item-flow-surface-soft) !important;
+}
+
+.item-form-advanced > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.item-form-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.item-form-advanced > summary::after {
+  content: "+";
+  color: var(--text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.item-form-advanced[open] > summary {
+  border-bottom: 1px solid var(--item-flow-border);
+}
+
+.item-form-advanced[open] > summary::after {
+  content: "−";
+}
+
+.item-form-advanced > summary span {
+  flex: 1;
+  color: var(--item-flow-muted);
+  font-size: 12px;
+}
+
+.item-form-advanced-content {
+  display: grid;
+  gap: 11px;
+  padding: 13px;
+}
+
+.reports-page .report-quality-panel {
+  order: -1;
+}
+
 .item-create-page .command-form-section,
 .item-edit-page .command-form-section {
   padding: 13px !important;
@@ -10961,12 +11017,6 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
 
 .item-list-page .item-filter-advanced.is-open {
   display: grid !important;
-}
-
-.item-list-page .item-filter-advanced > input:first-child,
-.item-list-page .item-filter-advanced > select:nth-of-type(1),
-.item-list-page .item-filter-advanced > .btn {
-  display: none !important;
 }
 
 .item-list-page .item-filter-advanced > input,

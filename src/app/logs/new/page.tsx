@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MODULES, SOURCES, WORK_LOG_TYPES, WORK_ITEM_TYPES, PRIORITIES, STATUSES } from "@/lib/constants";
@@ -16,6 +16,10 @@ interface ExistingItem {
   title: string;
   projectId?: string | null;
   project?: string | null;
+  module?: string | null;
+  priority?: string | null;
+  status?: string | null;
+  owner?: string | null;
 }
 
 interface ProjectOption {
@@ -37,6 +41,10 @@ function NewLogForm() {
   const submittingRef = useRef(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [items, setItems] = useState<ExistingItem[]>([]);
+  const [itemKeyword, setItemKeyword] = useState("");
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemsError, setItemsError] = useState("");
+  const [selectedItemProjectId, setSelectedItemProjectId] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [actionItemsEnabled, setActionItemsEnabled] = useState(false);
   const [actionItemDrafts, setActionItemDrafts] = useState<ActionItemDraft[]>([]);
@@ -62,10 +70,45 @@ function NewLogForm() {
     newNextAction: "",
   });
 
+  const fetchItems = useCallback(async () => {
+    setItemsLoading(true);
+    setItemsError("");
+    try {
+      const params = new URLSearchParams({ visibility: "open", pageSize: "100" });
+      if (form.projectId) params.set("projectId", form.projectId);
+      if (itemKeyword.trim()) params.set("keyword", itemKeyword.trim());
+      const res = await fetch(`/api/items?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "加载事项失败");
+      const nextItems = data.items || [];
+      setItems(nextItems);
+      const selectedItem = nextItems.find((item: ExistingItem) => item.id === form.itemId);
+      if (selectedItem) setSelectedItemProjectId(selectedItem.projectId || null);
+    } catch (error) {
+      console.error("Error fetching items:", error);
+      setItemsError("事项加载失败，请稍后重试");
+    } finally {
+      setItemsLoading(false);
+    }
+  }, [form.itemId, form.projectId, itemKeyword]);
+
   useEffect(() => {
-    fetchItems();
-    fetchProjects();
+    void fetchProjects();
   }, []);
+
+  useEffect(() => {
+    if (form.relationMode !== "existing") {
+      setItems([]);
+      setItemsError("");
+      setSelectedItemProjectId(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void fetchItems();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [fetchItems, form.relationMode]);
 
   useEffect(() => {
     if (!form.projectId) {
@@ -125,16 +168,6 @@ function NewLogForm() {
     });
   }, [initialItemId, initialProjectId, items, projects]);
 
-  const fetchItems = async () => {
-    try {
-      const res = await fetch("/api/items?pageSize=100");
-      const data = await res.json();
-      setItems(data.items || []);
-    } catch (error) {
-      console.error("Error fetching items:", error);
-    }
-  };
-
   const fetchProjects = async () => {
     try {
       const res = await fetch("/api/projects?pageSize=100");
@@ -147,15 +180,21 @@ function NewLogForm() {
 
   const handleProjectChange = (projectId: string) => {
     const proj = projects.find((p) => p.id === projectId);
-    if (proj) {
-      setForm({ ...form, projectId, project: proj.name });
-    } else {
-      setForm({ ...form, projectId: "" });
-    }
+    const hasConflict = Boolean(projectId && selectedItemProjectId && selectedItemProjectId !== projectId);
+    setForm((prev) => ({
+      ...prev,
+      projectId,
+      project: proj?.name || "",
+      itemId: hasConflict ? "" : prev.itemId,
+    }));
+    setSelectedItemProjectId(hasConflict ? null : selectedItemProjectId);
+    setItemsError(hasConflict ? "已清除与新项目不一致的事项，请重新选择。" : "");
   };
 
   const handleItemChange = (itemId: string) => {
     const selectedItem = items.find((item) => item.id === itemId);
+    setSelectedItemProjectId(selectedItem?.projectId || null);
+    setItemsError("");
 
     setForm((prev) => {
       const nextState = { ...prev, itemId };
@@ -341,21 +380,34 @@ function NewLogForm() {
               </fieldset>
 
               {form.relationMode === "existing" && (
-                <div>
+                <div className="log-existing-item-picker">
                   <label className="form-field-label">选择已有事项</label>
+                  <input
+                    type="search"
+                    value={itemKeyword}
+                    onChange={(e) => setItemKeyword(e.target.value)}
+                    placeholder="搜索标题、模块、负责人"
+                    className="form-field-control"
+                  />
+                  <div className="field-note">只显示未关闭事项；项目筛选会随上方项目选择同步。</div>
                   <select
                     value={form.itemId}
                     onChange={(e) => handleItemChange(e.target.value)}
                     className="form-field-control"
-                    disabled={items.length === 0}
+                    disabled={itemsLoading || items.length === 0}
                   >
-                    <option value="">{items.length === 0 ? "当前没有可关联事项" : "请选择已有事项"}</option>
+                    <option value="">
+                      {itemsLoading ? "正在加载事项..." : items.length === 0 ? "当前没有匹配的未关闭事项" : "请选择已有事项"}
+                    </option>
                     {items.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.title}
+                        {[item.title, item.project || "无项目", `${item.priority || "-"}/${item.status || "-"}`, item.owner, item.module]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </option>
                     ))}
                   </select>
+                  {itemsError && <div className="field-help">{itemsError}</div>}
                 </div>
               )}
 

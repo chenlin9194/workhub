@@ -21,13 +21,52 @@ interface ProjectOption {
   code?: string | null;
 }
 
+function hasAdvancedItemValues(value: {
+  description?: string | null;
+  module?: string | null;
+  tags?: string | null;
+  health?: string | null;
+  reportLevel?: string | null;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
+  sourceUrl?: string | null;
+  currentSummary?: string | null;
+  trackingReason?: string | null;
+}) {
+  return Boolean(
+    value.description ||
+      value.module ||
+      value.tags ||
+      (value.health && value.health !== "unknown") ||
+      (value.reportLevel && value.reportLevel !== "none") ||
+      value.sourceSystem ||
+      value.sourceId ||
+      value.sourceUrl ||
+      value.currentSummary ||
+      value.trackingReason
+  );
+}
+
 function NewItemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialProjectId = searchParams.get("projectId") || "";
   const initialActionItemsEnabled = searchParams.get("actionItems") === "1";
+  const initialAdvancedOpen = hasAdvancedItemValues({
+    description: searchParams.get("description"),
+    module: searchParams.get("module"),
+    tags: searchParams.get("tags"),
+    health: searchParams.get("health"),
+    reportLevel: searchParams.get("reportLevel"),
+    sourceSystem: searchParams.get("sourceSystem"),
+    sourceId: searchParams.get("sourceId"),
+    sourceUrl: searchParams.get("sourceUrl"),
+    currentSummary: searchParams.get("currentSummary"),
+    trackingReason: searchParams.get("trackingReason"),
+  });
 
   const [loading, setLoading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(initialAdvancedOpen);
   const submittingRef = useRef(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -167,7 +206,7 @@ function NewItemForm() {
             <section className="command-form-section item-form-section-main item-form-section-intake">
               <div className="command-form-section-header">
                 <h2>快速录入</h2>
-                <p>先把标题和问题背景记下来，后续可继续补齐。</p>
+                <p>先记录标题、归属和处理节奏，其他信息可稍后补齐。</p>
               </div>
 
               <div>
@@ -182,76 +221,28 @@ function NewItemForm() {
                 />
               </div>
 
-              <div>
-                <label className="form-field-label">描述</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="输入事项描述"
-                  rows={4}
-                  className="form-field-control form-field-textarea"
-                />
-              </div>
             </section>
 
             <section className="command-form-section item-form-section-side item-form-section-context">
               <div className="command-form-section-header">
                 <h2>归属信息</h2>
-                <p>项目、模块和标签，用于后续检索。</p>
+                <p>先选择需要持续跟踪的项目。</p>
               </div>
 
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">项目</label>
-                  <select
-                    value={form.projectId}
-                    onChange={(e) => handleProjectChange(e.target.value)}
-                    className="form-field-control"
-                  >
-                    <option value="">选择已有项目（可选）</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}{p.code ? ` (${p.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-field-label">项目名称</label>
-                  <input
-                    type="text"
-                    value={form.project}
-                    onChange={(e) => setForm({ ...form, project: e.target.value })}
-                    placeholder="可手填或由项目选择同步"
-                    className="form-field-control"
-                  />
-                </div>
-              </div>
-
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">模块</label>
-                  <select
-                    value={form.module}
-                    onChange={(e) => setForm({ ...form, module: e.target.value })}
-                    className="form-field-control"
-                  >
-                    <option value="">选择模块</option>
-                    {MODULES.map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-field-label">标签</label>
-                  <input
-                    type="text"
-                    value={form.tags}
-                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                    placeholder="标签，用逗号分隔"
-                    className="form-field-control"
-                  />
-                </div>
+              <div>
+                <label className="form-field-label">项目</label>
+                <select
+                  value={form.projectId}
+                  onChange={(e) => handleProjectChange(e.target.value)}
+                  className="form-field-control"
+                >
+                  <option value="">选择已有项目（可选）</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.code ? ` (${p.code})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </section>
 
@@ -325,8 +316,8 @@ function NewItemForm() {
 
             <section className="command-form-section item-form-section-signal item-form-section-supplement">
               <div className="command-form-section-header">
-                <h2>补充信号</h2>
-                <p>下一步动作、健康度、汇报层级和来源信息。</p>
+                <h2>执行信号</h2>
+                <p>下一步行动和下一检查点决定后续处理节奏。</p>
               </div>
 
               <div>
@@ -340,105 +331,154 @@ function NewItemForm() {
                 />
               </div>
 
-              <div className="field-grid-3">
-                <div>
-                  <label className="form-field-label">健康度</label>
-                  <select
-                    value={form.health}
-                    onChange={(e) => setForm({ ...form, health: e.target.value })}
-                    className="form-field-control"
-                  >
-                    {HEALTH_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-field-label">汇报层级</label>
-                  <select
-                    value={form.reportLevel}
-                    onChange={(e) => setForm({ ...form, reportLevel: e.target.value })}
-                    className="form-field-control"
-                  >
-                    {REPORT_LEVEL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-field-label">来源系统</label>
-                  <select
-                    value={form.sourceSystem}
-                    onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
-                    className="form-field-control"
-                  >
-                    <option value="">选择来源系统</option>
-                    {SOURCE_SYSTEM_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">来源编号</label>
-                  <input
-                    type="text"
-                    value={form.sourceId}
-                    onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
-                    placeholder="来源系统中的编号"
-                    className="form-field-control"
-                  />
-                </div>
-                <div>
-                  <label className="form-field-label">来源链接</label>
-                  <input
-                    type="url"
-                    value={form.sourceUrl}
-                    onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="form-field-control"
-                  />
-                </div>
-              </div>
-
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">当前摘要</label>
-                  <textarea
-                    value={form.currentSummary}
-                    onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
-                    rows={3}
-                    placeholder="当前状态、结论或摘要"
-                    className="form-field-control form-field-textarea"
-                  />
-                </div>
-                <div>
-                  <label className="form-field-label">跟踪原因</label>
-                  <textarea
-                    value={form.trackingReason}
-                    onChange={(e) => setForm({ ...form, trackingReason: e.target.value })}
-                    rows={3}
-                    placeholder="为什么需要跟踪这件事"
-                    className="form-field-control form-field-textarea"
-                  />
-                </div>
-              </div>
-
-              <div className="field-grid-2">
-                <div>
-                  <label className="form-field-label">下一检查点</label>
-                  <input
-                    type="date"
-                    value={form.nextCheckpoint}
-                    onChange={(e) => setForm({ ...form, nextCheckpoint: e.target.value })}
-                    className="form-field-control"
-                  />
-                </div>
-                <div />
+              <div>
+                <label className="form-field-label">下一检查点</label>
+                <input
+                  type="date"
+                  value={form.nextCheckpoint}
+                  onChange={(e) => setForm({ ...form, nextCheckpoint: e.target.value })}
+                  className="form-field-control"
+                />
               </div>
             </section>
+
+            <details
+              className="item-form-advanced"
+              open={showAdvanced}
+              onToggle={(event) => setShowAdvanced(event.currentTarget.open)}
+            >
+              <summary>
+                <strong>更多信息</strong>
+                <span>描述、模块、标签、健康度、来源与补充字段</span>
+              </summary>
+              <div className="item-form-advanced-content">
+                <div>
+                  <label className="form-field-label">详细描述</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="输入事项描述"
+                    rows={4}
+                    className="form-field-control form-field-textarea"
+                  />
+                </div>
+
+                <div className="field-grid-2">
+                  <div>
+                    <label className="form-field-label">项目名称</label>
+                    <input
+                      type="text"
+                      value={form.project}
+                      onChange={(e) => setForm({ ...form, project: e.target.value })}
+                      placeholder="无项目 ID 时可手填"
+                      className="form-field-control"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-field-label">模块</label>
+                    <select
+                      value={form.module}
+                      onChange={(e) => setForm({ ...form, module: e.target.value })}
+                      className="form-field-control"
+                    >
+                      <option value="">选择模块</option>
+                      {MODULES.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-field-label">标签</label>
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="标签，用逗号分隔"
+                    className="form-field-control"
+                  />
+                </div>
+
+                <div className="field-grid-3">
+                  <div>
+                    <label className="form-field-label">健康度</label>
+                    <select
+                      value={form.health}
+                      onChange={(e) => setForm({ ...form, health: e.target.value })}
+                      className="form-field-control"
+                    >
+                      {HEALTH_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-field-label">汇报层级</label>
+                    <select
+                      value={form.reportLevel}
+                      onChange={(e) => setForm({ ...form, reportLevel: e.target.value })}
+                      className="form-field-control"
+                    >
+                      {REPORT_LEVEL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-field-label">来源系统</label>
+                    <select
+                      value={form.sourceSystem}
+                      onChange={(e) => setForm({ ...form, sourceSystem: e.target.value })}
+                      className="form-field-control"
+                    >
+                      <option value="">选择来源系统</option>
+                      {SOURCE_SYSTEM_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="field-grid-2">
+                  <div>
+                    <label className="form-field-label">来源编号</label>
+                    <input
+                      type="text"
+                      value={form.sourceId}
+                      onChange={(e) => setForm({ ...form, sourceId: e.target.value })}
+                      placeholder="来源系统中的编号"
+                      className="form-field-control"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-field-label">来源链接</label>
+                    <input
+                      type="url"
+                      value={form.sourceUrl}
+                      onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="form-field-control"
+                    />
+                  </div>
+                </div>
+
+                <div className="field-grid-2">
+                  <div>
+                    <label className="form-field-label">当前摘要</label>
+                    <textarea
+                      value={form.currentSummary}
+                      onChange={(e) => setForm({ ...form, currentSummary: e.target.value })}
+                      rows={3}
+                      placeholder="当前状态、结论或摘要"
+                      className="form-field-control form-field-textarea"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-field-label">跟踪原因</label>
+                    <textarea
+                      value={form.trackingReason}
+                      onChange={(e) => setForm({ ...form, trackingReason: e.target.value })}
+                      rows={3}
+                      placeholder="为什么需要跟踪这件事"
+                      className="form-field-control form-field-textarea"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
 
             <div className="item-form-section-wide">
               <ActionItemDraftSection

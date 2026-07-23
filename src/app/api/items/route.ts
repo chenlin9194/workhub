@@ -68,6 +68,8 @@ export async function GET(request: NextRequest) {
         { description: { contains: keyword } },
         { currentSummary: { contains: keyword } },
         { trackingReason: { contains: keyword } },
+        { module: { contains: keyword } },
+        { owner: { contains: keyword } },
         { sourceId: { contains: keyword } },
       ];
     }

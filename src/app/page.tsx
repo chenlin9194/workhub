@@ -166,7 +166,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
       due: item.dueDate,
     })),
   ].slice(0, 6);
-  const actionRows = openActionItems.slice(0, 6).map((action) => ({
+  const actionRows = openActionItems.slice(0, 4).map((action) => ({
     href: action.workItemId ? `/items/${action.workItemId}` : "/today",
     reason: action.dueDate && action.dueDate < today ? "逾期" : action.status === "in_progress" ? "跟进中" : "待办",
     tone: action.dueDate && action.dueDate < today ? "critical" as const : action.status === "in_progress" ? "warning" as const : "neutral" as const,
@@ -246,17 +246,17 @@ export default async function Dashboard({ searchParams }: PageProps) {
           <div className="redesign-dashboard-columns">
             <section>
               <header className="redesign-column-header">
-                <span>◆ ACTION ITEMS</span>
-                <h2>行动项</h2>
-                <small>{openActionItems.length} 待处理</small>
+                <span>◆ EXECUTION SUMMARY</span>
+                <h2>执行摘要</h2>
+                <small>{openActionItems.length} 条行动项进入今日处理</small>
               </header>
-              <Panel tag="01" title="待办行动项" meta="逾期 → 跟进中 → 待办">
+              <Panel tag="01" title="今日处理摘要" meta="优先展示 4 条待处理动作">
                 {actionRows.length === 0 ? (
                   <div className="redesign-empty">当前没有待处理的行动项。</div>
                 ) : (
                   actionRows.map((row) => <AttnRow key={`${row.code}-${row.title}`} {...row} />)
                 )}
-                <Link href="/today" className="redesign-panel-footer-link">查看全部行动项 →</Link>
+                <Link href="/today" className="redesign-panel-footer-link">进入今日完整执行队列 →</Link>
               </Panel>
             </section>
 

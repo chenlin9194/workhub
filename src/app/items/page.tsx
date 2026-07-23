@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ItemsTable from "@/components/redesign/ItemsTable";
 import Icon from "@/components/Icon";
 import PageLoadingState from "@/components/PageLoadingState";
@@ -102,6 +102,21 @@ function readItemFilters(searchParams: URLSearchParams): ItemFilters {
   };
 }
 
+function hasAdvancedItemFilters(filters: ItemFilters) {
+  return Boolean(
+    filters.type ||
+      filters.priority ||
+      filters.status ||
+      filters.health ||
+      filters.reportLevel ||
+      filters.sourceSystem ||
+      filters.module ||
+      filters.owner ||
+      filters.overdue ||
+      filters.quality
+  );
+}
+
 function formatCombinedLabel(value: string, labels: Record<string, string>) {
   return value
     .split(",")
@@ -179,13 +194,14 @@ function isLowActivityItem(item: WorkItem) {
 export default function ItemsPage() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<WorkItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [urlFiltersInitialized, setUrlFiltersInitialized] = useState(false);
   const [filters, setFilters] = useState<ItemFilters>(DEFAULT_FILTERS);
-  const [showAdvancedFilters] = useState(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [hideLowActivity, setHideLowActivity] = useState(false);
 
   const fetchItems = useCallback(async () => {
@@ -204,9 +220,14 @@ export default function ItemsPage() {
   }, [page, filters]);
 
   useEffect(() => {
-    setFilters(readItemFilters(new URLSearchParams(window.location.search)));
+    const nextFilters = readItemFilters(new URLSearchParams(searchParams.toString()));
+    setFilters((current) =>
+      JSON.stringify(current) === JSON.stringify(nextFilters) ? current : nextFilters
+    );
+    if (hasAdvancedItemFilters(nextFilters)) setShowAdvancedFilters(true);
+    setPage(1);
     setUrlFiltersInitialized(true);
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!urlFiltersInitialized) return;
@@ -244,11 +265,14 @@ export default function ItemsPage() {
   const clearFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setPage(1);
+    setShowAdvancedFilters(false);
   };
 
   const applyQuickView = (nextFilters: Partial<ItemFilters>) => {
-    setFilters({ ...DEFAULT_FILTERS, ...nextFilters });
+    const nextState = { ...DEFAULT_FILTERS, ...nextFilters };
+    setFilters(nextState);
     setPage(1);
+    setShowAdvancedFilters(hasAdvancedItemFilters(nextState));
   };
 
   const quickViews = useMemo(
@@ -356,6 +380,14 @@ export default function ItemsPage() {
               清除筛选
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-ghost item-filter-advanced-toggle"
+            aria-expanded={showAdvancedFilters}
+            onClick={() => setShowAdvancedFilters((current) => !current)}
+          >
+            {showAdvancedFilters ? "收起高级筛选" : "展开高级筛选"}
+          </button>
         </div>
         <div className="filter-panel-label"><Icon name="search" size={14} />高级筛选</div>
         {activeFilterLabels.length > 0 && (
@@ -366,20 +398,6 @@ export default function ItemsPage() {
           </div>
         )}
         <div className={`filter-grid item-filter-advanced${showAdvancedFilters ? " is-open" : ""}`}>
-          <input
-            type="text"
-            placeholder="关键词搜索"
-            value={filters.keyword}
-            onChange={(e) => handleFilterChange("keyword", e.target.value)}
-          />
-          <select
-            value={filters.visibility}
-            onChange={(e) => handleFilterChange("visibility", e.target.value)}
-          >
-            <option value="open">默认未关闭</option>
-            <option value="closed">仅已关闭</option>
-            <option value="all">全部事项</option>
-          </select>
           <select
             value={filters.type}
             onChange={(e) => handleFilterChange("type", e.target.value)}
@@ -464,9 +482,6 @@ export default function ItemsPage() {
               当前为汇报入口的质量筛选，可清除后切换其他条件。
             </div>
           )}
-          <button onClick={clearFilters} className="btn btn-ghost">
-            清除筛选
-          </button>
         </div>
       </div>
 
