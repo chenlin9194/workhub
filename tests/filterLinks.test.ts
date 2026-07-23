@@ -11,4 +11,9 @@ describe("filter links", () => {
     expect(buildLogsLink({ projectId: "p-1", reportable: false, hasItem: "false" }))
       .toBe("/logs?projectId=p-1&hasItem=false&reportable=false");
   });
+
+  it("uses the all-records view for unarchived facts", () => {
+    expect(buildLogsLink({ hasItem: "false", view: "all" }))
+      .toBe("/logs?hasItem=false&view=all");
+  });
 });

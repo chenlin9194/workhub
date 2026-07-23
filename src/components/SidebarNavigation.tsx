@@ -13,7 +13,7 @@ const mainItems = [
 ];
 
 const inboxItems = [
-  { href: "/logs?hasItem=false&view=facts", label: "未归档事实", icon: "inbox", count: "unarchivedFacts" as const },
+  { href: "/logs?hasItem=false&view=all", label: "未归档事实", icon: "inbox", count: "unarchivedFacts" as const },
   { href: "/today", label: "今日行动项", icon: "zap", count: "openActionItems" as const },
 ];
 

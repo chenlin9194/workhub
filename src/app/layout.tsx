@@ -18,7 +18,7 @@ export default async function RootLayout({
 }>) {
   const [openItems, unarchivedFacts, openActionItems] = await Promise.all([
     prisma.workItem.count({ where: { status: { not: "closed" } } }),
-    prisma.workLog.count({ where: { itemId: null, projectId: null } }),
+    prisma.workLog.count({ where: { itemId: null } }),
     prisma.actionItem.count({ where: { status: { not: "done" } } }),
   ]);
 
