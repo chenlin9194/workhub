@@ -25,6 +25,7 @@ import {
 import { getMilestoneActualEnd, getMilestoneDateMode, getMilestonePlannedEnd } from "@/lib/projectMilestones";
 import { excludeClosedItemsFromUpdatedItems } from "@/lib/todayBuckets";
 import { formatDate, getLocalDateString } from "@/lib/utils";
+import { getOptionalProjectDisplayName } from "@/lib/projectDisplay";
 import type {
   ProjectSnapshotData,
   ProjectSnapshotItem,
@@ -46,6 +47,7 @@ interface LogEntry {
   type: string;
   source: string;
   project?: string | null;
+  projectRef?: { name: string } | null;
   module?: string | null;
   tags?: string | null;
   content: string;
@@ -126,7 +128,9 @@ function renderTodayQualitySection(data: TodayExportData) {
   );
   const logsWithItem = workLogs.filter((log) => log.item).length;
   const logsWithSourceUrl = workLogs.filter((log) => hasText(log.sourceUrl)).length;
-  const logsWithProjectOrModule = workLogs.filter((log) => hasText(log.project) || hasText(log.module)).length;
+  const logsWithProjectOrModule = workLogs.filter(
+    (log) => hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) || hasText(log.module)
+  ).length;
   const itemsWithOwner = activeAttentionItems.filter((item) => hasText(item.owner)).length;
   const itemsWithNextAction = activeAttentionItems.filter((item) => hasText(item.nextAction)).length;
   const itemsWithDueDate = activeAttentionItems.filter((item) => hasText(item.dueDate)).length;
@@ -142,7 +146,9 @@ function renderTodayQualitySection(data: TodayExportData) {
 
   workLogs.forEach((log, index) => {
     const gaps: string[] = [];
-    if (!hasText(log.project) && !hasText(log.module)) gaps.push("项目/模块");
+    if (!hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) && !hasText(log.module)) {
+      gaps.push("项目/模块");
+    }
     if (!hasText(log.content)) gaps.push("内容");
     if (gaps.length > 0) missing.push(`${traceId("LOG", index)} ${log.title}: 缺少 ${gaps.join("、")}`);
   });
@@ -216,9 +222,10 @@ export function generateTodayMarkdown(data: TodayExportData): string {
       md += `### [${traceId("LOG", index)}] ${log.title}\n`;
       md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
       if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      if (log.project) md += `- 项目: ${log.project}`;
+      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
+      if (projectName) md += `- 项目: ${projectName}`;
       if (log.module) md += ` | 模块: ${log.module}`;
-      if (log.project || log.module) md += "\n";
+      if (projectName || log.module) md += "\n";
       if (log.tags) md += `- 标签: ${log.tags}\n`;
       if (log.item) md += `- 关联事项: ${log.item.title}\n`;
       md += `\n${log.content}\n\n`;
@@ -304,7 +311,8 @@ export function generateTodayMarkdown(data: TodayExportData): string {
       md += `### [${traceId("RISK", index)}] ${log.title}\n`;
       md += `- 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
       if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      if (log.project) md += `- 项目: ${log.project}\n`;
+      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
+      if (projectName) md += `- 项目: ${projectName}\n`;
       if (log.item) md += `- 关联事项: ${log.item.title}\n`;
       md += `\n${log.content}\n\n`;
     });
@@ -317,7 +325,8 @@ export function generateTodayMarkdown(data: TodayExportData): string {
       md += `### [${traceId("DECISION", index)}] ${log.title}\n`;
       md += `- 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
       if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      if (log.project) md += `- 项目: ${log.project}\n`;
+      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
+      if (projectName) md += `- 项目: ${projectName}\n`;
       if (log.item) md += `- 关联事项: ${log.item.title}\n`;
       md += `\n${log.content}\n\n`;
     });
@@ -342,7 +351,9 @@ function renderRangeQualitySection(data: RangeExportData) {
   const { workLogs, closedItems, updatedItems } = data;
   const logsWithItem = workLogs.filter((log) => log.item).length;
   const logsWithSourceUrl = workLogs.filter((log) => hasText(log.sourceUrl)).length;
-  const logsWithProjectOrModule = workLogs.filter((log) => hasText(log.project) || hasText(log.module)).length;
+  const logsWithProjectOrModule = workLogs.filter(
+    (log) => hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) || hasText(log.module)
+  ).length;
   const closedWithOwner = closedItems.filter((item) => hasText(item.owner)).length;
   const updatedWithNextAction = updatedItems.filter((item) => hasText(item.nextAction)).length;
   const importantLogs = workLogs.filter((log) => ["risk", "blocker", "decision"].includes(log.type)).length;
@@ -350,7 +361,9 @@ function renderRangeQualitySection(data: RangeExportData) {
 
   workLogs.forEach((log, index) => {
     const gaps: string[] = [];
-    if (!hasText(log.project) && !hasText(log.module)) gaps.push("项目/模块");
+    if (!hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) && !hasText(log.module)) {
+      gaps.push("项目/模块");
+    }
     if (!hasText(log.content)) gaps.push("内容");
     if (gaps.length > 0) missing.push(`${traceId("LOG", index)} ${log.title}: 缺少 ${gaps.join("、")}`);
   });
@@ -419,9 +432,10 @@ export function generateRangeMarkdown(data: RangeExportData): string {
         md += `#### [${traceId("LOG", logIndex >= 0 ? logIndex : 0)}] ${log.title}\n`;
         md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
         if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-        if (log.project) md += `- 项目: ${log.project}`;
+        const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
+        if (projectName) md += `- 项目: ${projectName}`;
         if (log.module) md += ` | 模块: ${log.module}`;
-        if (log.project || log.module) md += "\n";
+        if (projectName || log.module) md += "\n";
         if (log.tags) md += `- 标签: ${log.tags}\n`;
         if (log.item) md += `- 关联事项: ${log.item.title}\n`;
         md += `\n${log.content}\n\n`;
@@ -600,8 +614,9 @@ function renderLogLine(log: ProjectSnapshotLog) {
   const title = escapeMarkdownInline(log.title);
   const parts = [`日期 ${escapeMarkdownInline(log.workDate)}`, `类型 ${escapeMarkdownInline(typeLabel)}`, `来源 ${escapeMarkdownInline(sourceLabel)}`];
 
-  if (log.project) {
-    parts.push(`项目 ${escapeMarkdownInline(log.project)}`);
+  const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
+  if (projectName) {
+    parts.push(`项目 ${escapeMarkdownInline(projectName)}`);
   }
 
   if (log.module) {

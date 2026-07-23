@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import ActionItemDraftSection, { createActionItemDraft } from "@/components/ActionItemDraftSection";
 import type { ActionItemDraft } from "@/lib/types";
+import { resolveProjectSelection } from "@/lib/projectSelection";
 
 interface ProjectOption {
   id: string;
@@ -121,12 +122,7 @@ function NewItemForm() {
   };
 
   const handleProjectChange = (projectId: string) => {
-    const proj = projects.find((p) => p.id === projectId);
-    if (proj) {
-      setForm({ ...form, projectId, project: proj.name });
-    } else {
-      setForm({ ...form, projectId: "" });
-    }
+    setForm((prev) => ({ ...prev, ...resolveProjectSelection(projectId, projects) }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

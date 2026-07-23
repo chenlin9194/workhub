@@ -11,7 +11,10 @@ const COMPLETED_MILESTONE_STATUSES = new Set(["done", "cancelled"]);
 
 type WorkItemWithLogs = Prisma.WorkItemGetPayload<Prisma.WorkItemDefaultArgs>;
 type WorkLogWithItem = Prisma.WorkLogGetPayload<{
-  include: { item: { select: { id: true; title: true } } };
+  include: {
+    item: { select: { id: true; title: true } };
+    projectRef: { select: { id: true; name: true } };
+  };
 }>;
 type SnapshotMilestone = Prisma.ProjectMilestoneGetPayload<{
   select: {
@@ -315,7 +318,10 @@ export async function GET(
             where: {
               OR: [{ projectId: project.id }, { item: { projectId: project.id } }],
             },
-            include: { item: { select: { id: true, title: true } } },
+            include: {
+              item: { select: { id: true, title: true } },
+              projectRef: { select: { id: true, name: true } },
+            },
             orderBy: { createdAt: "desc" },
             take: 10,
           }),
@@ -391,7 +397,10 @@ export async function GET(
         where: {
           OR: [{ project: id }, { item: { project: id } }],
         },
-        include: { item: { select: { id: true, title: true } } },
+        include: {
+          item: { select: { id: true, title: true } },
+          projectRef: { select: { id: true, name: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 10,
       }),

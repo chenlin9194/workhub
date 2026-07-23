@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getLocalDateString, formatTodayStr, getTodayRange } from "@/lib/utils";
 import { generateTodayMarkdown } from "@/lib/export";
 import { excludeClosedItemsFromUpdatedItems } from "@/lib/todayBuckets";
+import { getOptionalProjectDisplayName } from "@/lib/projectDisplay";
 import CopyButton from "@/components/CopyButton";
 import Icon from "@/components/Icon";
 
@@ -23,7 +24,10 @@ export default async function ExportTodayPage() {
   ] = await Promise.all([
     prisma.workLog.findMany({
       where: { workDate: today },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.workItem.findMany({
@@ -48,12 +52,18 @@ export default async function ExportTodayPage() {
     }),
     prisma.workLog.findMany({
       where: { workDate: today, type: { in: ["risk", "blocker"] } },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.workLog.findMany({
       where: { workDate: today, type: "decision" },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -80,7 +90,9 @@ export default async function ExportTodayPage() {
   const riskSignalCount = riskAndBlockerLogs.length + overdueItems.length + openHighPriorityItems.length;
   const missingOwnerCount = trackedItems.filter((item) => !item.owner?.trim()).length;
   const missingNextActionCount = trackedItems.filter((item) => !item.nextAction?.trim()).length;
-  const logsWithTraceCount = workLogs.filter((log) => log.item || log.sourceUrl || log.project || log.module).length;
+  const logsWithTraceCount = workLogs.filter(
+    (log) => log.item || log.sourceUrl || getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project }) || log.module
+  ).length;
   const traceRate = workLogs.length > 0 ? Math.round((logsWithTraceCount / workLogs.length) * 100) : 100;
   const highPriorityWithoutTodayLog = openHighPriorityItems.filter(
     (item) => !workLogs.some((log) => log.item?.id === item.id || log.item?.title === item.title)

@@ -53,7 +53,10 @@ export default async function ExportRangePage({ searchParams }: PageProps) {
   const [workLogs, closedItems, rawUpdatedItems] = await Promise.all([
     prisma.workLog.findMany({
       where: { workDate: { gte: start, lte: end } },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { workDate: "desc" },
     }),
     prisma.workItem.findMany({

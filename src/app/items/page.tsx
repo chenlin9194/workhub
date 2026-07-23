@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ItemsTable from "@/components/redesign/ItemsTable";
@@ -24,6 +24,7 @@ import {
 import { buildItemsQueryString } from "@/lib/filterLinks";
 import { REPORT_QUALITY_LABELS, isReportQuality } from "@/lib/reportReadiness";
 import { getProjectDisplayName } from "@/lib/projectDisplay";
+import { hasAdvancedItemFilters } from "@/lib/itemFilters";
 
 type ItemFilters = {
   projectId: string;
@@ -102,21 +103,6 @@ function readItemFilters(searchParams: URLSearchParams): ItemFilters {
     overdue: searchParams.get("overdue") === "true",
     quality: searchParams.get("quality") || "",
   };
-}
-
-function hasAdvancedItemFilters(filters: ItemFilters) {
-  return Boolean(
-    filters.type ||
-      filters.priority ||
-      filters.status ||
-      filters.health ||
-      filters.reportLevel ||
-      filters.sourceSystem ||
-      filters.module ||
-      filters.owner ||
-      filters.overdue ||
-      filters.quality
-  );
 }
 
 function formatCombinedLabel(value: string, labels: Record<string, string>) {
@@ -205,6 +191,7 @@ export default function ItemsPage() {
   const [filters, setFilters] = useState<ItemFilters>(DEFAULT_FILTERS);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [hideLowActivity, setHideLowActivity] = useState(false);
+  const localUrlSyncRef = useRef<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -226,7 +213,11 @@ export default function ItemsPage() {
     setFilters((current) =>
       JSON.stringify(current) === JSON.stringify(nextFilters) ? current : nextFilters
     );
-    if (hasAdvancedItemFilters(nextFilters)) setShowAdvancedFilters(true);
+    const isLocalUrlSync = localUrlSyncRef.current === buildItemsQueryString(nextFilters);
+    localUrlSyncRef.current = null;
+    if (!isLocalUrlSync) {
+      setShowAdvancedFilters(hasAdvancedItemFilters(nextFilters));
+    }
     setPage(1);
     setUrlFiltersInitialized(true);
   }, [searchParams]);
@@ -251,6 +242,7 @@ export default function ItemsPage() {
       if (currentQuery === nextQuery) return;
 
       const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      localUrlSyncRef.current = nextQuery;
       router.replace(nextHref, { scroll: false });
     };
 

@@ -89,12 +89,18 @@ export default async function ReportsPage() {
     }),
     prisma.workLog.findMany({
       where: { workDate: today, type: { in: ["risk", "blocker"] } },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.workLog.findMany({
       where: { workDate: today, type: "decision" },
-      include: { item: { select: { id: true, title: true } } },
+      include: {
+        item: { select: { id: true, title: true } },
+        projectRef: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.workLog.findMany({

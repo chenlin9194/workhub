@@ -8,6 +8,8 @@ import { getLocalDateString } from "@/lib/utils";
 import Icon from "@/components/Icon";
 import ActionItemDraftSection from "@/components/ActionItemDraftSection";
 import type { ActionItemDraft } from "@/lib/types";
+import { getOptionalProjectDisplayName } from "@/lib/projectDisplay";
+import { resolveProjectSelection } from "@/lib/projectSelection";
 
 type RelationMode = "none" | "existing" | "new";
 
@@ -16,6 +18,7 @@ interface ExistingItem {
   title: string;
   projectId?: string | null;
   project?: string | null;
+  projectRef?: { name: string } | null;
   module?: string | null;
   priority?: string | null;
   status?: string | null;
@@ -144,10 +147,10 @@ function NewLogForm() {
     }
 
     const nextProjectId = linkedItem.projectId || "";
-    const nextProjectName =
-      (linkedItem.projectId ? projects.find((project) => project.id === linkedItem.projectId)?.name : "") ||
-      linkedItem.project ||
-      "";
+    const nextProjectName = getOptionalProjectDisplayName({
+      relationName: linkedItem.projectRef?.name,
+      legacyName: linkedItem.project,
+    });
 
     if (!nextProjectId && !nextProjectName) {
       return;
@@ -179,12 +182,11 @@ function NewLogForm() {
   };
 
   const handleProjectChange = (projectId: string) => {
-    const proj = projects.find((p) => p.id === projectId);
+    const selection = resolveProjectSelection(projectId, projects);
     const hasConflict = Boolean(projectId && selectedItemProjectId && selectedItemProjectId !== projectId);
     setForm((prev) => ({
       ...prev,
-      projectId,
-      project: proj?.name || "",
+      ...selection,
       itemId: hasConflict ? "" : prev.itemId,
     }));
     setSelectedItemProjectId(hasConflict ? null : selectedItemProjectId);
@@ -202,13 +204,11 @@ function NewLogForm() {
       if (!initialProjectId && selectedItem) {
         if (selectedItem.projectId) {
           nextState.projectId = selectedItem.projectId;
-          nextState.project =
-            projects.find((project) => project.id === selectedItem.projectId)?.name ||
-            selectedItem.project ||
-            "";
-        } else if (selectedItem.project) {
-          nextState.project = selectedItem.project;
         }
+        nextState.project = getOptionalProjectDisplayName({
+          relationName: selectedItem.projectRef?.name,
+          legacyName: selectedItem.project,
+        }) || "";
       }
 
       return nextState;
@@ -381,6 +381,20 @@ function NewLogForm() {
 
               {form.relationMode === "existing" && (
                 <div className="log-existing-item-picker">
+                  <label className="form-field-label">项目范围</label>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => handleProjectChange(e.target.value)}
+                    className="form-field-control"
+                  >
+                    <option value="">全部项目（可选）</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                        {project.code ? ` (${project.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
                   <label className="form-field-label">选择已有事项</label>
                   <input
                     type="search"
@@ -389,7 +403,7 @@ function NewLogForm() {
                     placeholder="搜索标题、模块、负责人"
                     className="form-field-control"
                   />
-                  <div className="field-note">只显示未关闭事项；项目筛选会随上方项目选择同步。</div>
+                  <div className="field-note">先选择项目范围，再搜索未关闭事项；清空项目可查看全部项目。</div>
                   <select
                     value={form.itemId}
                     onChange={(e) => handleItemChange(e.target.value)}
@@ -401,7 +415,16 @@ function NewLogForm() {
                     </option>
                     {items.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {[item.title, item.project || "无项目", `${item.priority || "-"}/${item.status || "-"}`, item.owner, item.module]
+                        {[
+                          item.title,
+                          getOptionalProjectDisplayName({
+                            relationName: item.projectRef?.name,
+                            legacyName: item.project,
+                          }) || "无项目",
+                          `${item.priority || "-"}/${item.status || "-"}`,
+                          item.owner,
+                          item.module,
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </option>
@@ -582,30 +605,15 @@ function NewLogForm() {
                 </div>
               </div>
 
-              <div className="field-grid-3">
-                <div>
-                  <label className="form-field-label">项目</label>
-                  <select
-                    value={form.projectId}
-                    onChange={(e) => handleProjectChange(e.target.value)}
-                    className="form-field-control"
-                  >
-                    <option value="">选择已有项目（可选）</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                        {project.code ? ` (${project.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="field-grid-2">
                 <div>
                   <label className="form-field-label">项目名称</label>
                   <input
                     type="text"
                     value={form.project}
                     onChange={(e) => setForm({ ...form, project: e.target.value })}
-                    placeholder="可手填或由项目选择同步"
+                    placeholder={form.projectId ? "跟随已选项目" : "无项目 ID 时可手填"}
+                    disabled={Boolean(form.projectId)}
                     className="form-field-control"
                   />
                 </div>

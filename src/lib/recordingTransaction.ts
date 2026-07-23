@@ -210,6 +210,37 @@ async function resolveExistingItem(itemId: string | null) {
   return { ...item, project: item.projectRef?.name || item.project };
 }
 
+type ProjectContext = {
+  projectId: string | null;
+  project: string | null;
+};
+
+export function resolveFinalProjectContext({
+  requestedProject,
+  existingItem,
+  newItemProject,
+}: {
+  requestedProject: ProjectContext;
+  existingItem: ProjectContext | null;
+  newItemProject: ProjectContext;
+}) {
+  if (existingItem?.projectId && requestedProject.projectId && existingItem.projectId !== requestedProject.projectId) {
+    throw new CompositeInputError("事项与日志项目不一致");
+  }
+  if (newItemProject.projectId && requestedProject.projectId && newItemProject.projectId !== requestedProject.projectId) {
+    throw new CompositeInputError("新建事项与日志项目不一致");
+  }
+
+  if (requestedProject.projectId) return requestedProject;
+  if (existingItem?.projectId) return existingItem;
+  if (newItemProject.projectId) return newItemProject;
+
+  return {
+    projectId: null,
+    project: requestedProject.project || existingItem?.project || newItemProject.project || null,
+  };
+}
+
 async function createActionItems(
   transaction: TransactionClient,
   actionInputs: ActionItemInput[],
@@ -275,15 +306,14 @@ export async function createWorkLogWithContext(
     ? await resolveProject(newItemInput.projectId, newItemInput.project)
     : { projectId: null, project: null };
 
-  if (existingItem?.projectId && requestedProject.projectId && existingItem.projectId !== requestedProject.projectId) {
-    throw new CompositeInputError("事项与日志项目不一致");
-  }
-  if (newItemProject.projectId && requestedProject.projectId && newItemProject.projectId !== requestedProject.projectId) {
-    throw new CompositeInputError("新建事项与日志项目不一致");
-  }
-
-  const projectId = requestedProject.projectId || existingItem?.projectId || newItemProject.projectId || null;
-  const projectName = requestedProject.project || existingItem?.project || newItemProject.project || null;
+  const finalProject = resolveFinalProjectContext({
+    requestedProject,
+    existingItem: existingItem
+      ? { projectId: existingItem.projectId, project: existingItem.project }
+      : null,
+    newItemProject,
+  });
+  const { projectId, project: projectName } = finalProject;
 
   return prisma.$transaction(async (transaction) => {
     const item = newItemInput

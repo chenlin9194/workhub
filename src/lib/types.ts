@@ -201,6 +201,7 @@ export interface ProjectSnapshotLog {
   type: string;
   source: string;
   project?: string | null;
+  projectRef?: { name: string } | null;
   module?: string | null;
   tags?: string | null;
   item?: ProjectSnapshotLogItem | null;

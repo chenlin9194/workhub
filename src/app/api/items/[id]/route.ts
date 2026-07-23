@@ -15,6 +15,7 @@ import {
   WORK_ITEM_TYPE_VALUES,
 } from "@/lib/inputValidation";
 import { updateWorkItemWithChangeLog } from "@/lib/workItemChangeLog";
+import { resolveWorkItemProjectUpdate } from "@/lib/workItemProject";
 
 export async function GET(
   request: NextRequest,
@@ -68,37 +69,37 @@ export async function PUT(
     // Build update data - only include fields that are provided
     const data: Record<string, unknown> = {};
 
-    if (!("projectId" in body) && currentItem.projectRef) {
-      data.project = currentItem.projectRef.name;
-    }
-
     if ("title" in body) {
       const titleResult = requireText(body.title, "标题");
       if (titleResult.error) return NextResponse.json({ error: titleResult.error }, { status: 400 });
       data.title = titleResult.value;
     }
     if ("description" in body) data.description = toNullableString(body.description);
-    if ("projectId" in body) {
-      const nextProjectId = toNullableString(body.projectId);
-      if (nextProjectId) {
-        const project = await prisma.project.findUnique({
-          where: { id: nextProjectId },
-          select: { name: true },
-        });
+    let resolvedProjectName: string | null = null;
+    const requestedProjectId = "projectId" in body ? toNullableString(body.projectId) : null;
+    if (requestedProjectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: requestedProjectId },
+        select: { name: true },
+      });
 
-        if (!project) {
-          return NextResponse.json({ error: "项目不存在" }, { status: 400 });
-        }
-
-        data.projectId = nextProjectId;
-        data.project = project.name;
-      } else {
-        data.projectId = null;
-        data.project = "project" in body ? toNullableString(body.project) : null;
+      if (!project) {
+        return NextResponse.json({ error: "项目不存在" }, { status: 400 });
       }
-    } else if ("project" in body) {
-      data.project = toNullableString(body.project);
+      resolvedProjectName = project.name;
     }
+    Object.assign(
+      data,
+      resolveWorkItemProjectUpdate({
+        currentProjectId: currentItem.projectId,
+        currentProjectName: currentItem.projectRef?.name || currentItem.project,
+        hasProjectId: "projectId" in body,
+        requestedProjectId,
+        hasProject: "project" in body,
+        requestedProjectName: toNullableString(body.project),
+        resolvedProjectName,
+      })
+    );
     if ("module" in body) data.module = toNullableString(body.module);
     if ("type" in body) {
       const result = requireEnum(body.type, WORK_ITEM_TYPE_VALUES, "事项类型");

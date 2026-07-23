@@ -76,6 +76,7 @@ describe("atomic recording transactions", () => {
       title: "风险同步",
       content: "等待外部确认",
       itemId: "item-1",
+      project: "项目 B",
       actionItems: [{ title: "明日跟进" }],
     }, { requireItemContext: true });
 
@@ -88,6 +89,43 @@ describe("atomic recording transactions", () => {
     expect(mocks.createAction).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ workItemId: "item-1", workLogId: "log-1", projectId: "project-1" }),
     }));
+  });
+
+  it("uses the requested project's canonical name when its id is provided", async () => {
+    mocks.findProject.mockResolvedValue({ id: "project-1", name: "项目 A" });
+    mocks.createLog.mockResolvedValue({ id: "log-1", itemId: null, projectId: "project-1" });
+
+    const result = await createWorkLogWithContext({
+      title: "项目事实",
+      content: "请求项目关系优先",
+      projectId: "project-1",
+      project: "项目 B",
+    });
+
+    expect(result.log.projectId).toBe("project-1");
+    expect(mocks.createLog).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ projectId: "project-1", project: "项目 A" }),
+    }));
+  });
+
+  it("rejects a project conflict before starting the transaction", async () => {
+    mocks.findItem.mockResolvedValue({
+      id: "item-1",
+      projectId: "project-1",
+      project: "项目 A",
+      projectRef: { name: "项目 A" },
+    });
+    mocks.findProject.mockResolvedValue({ id: "project-2", name: "项目 B" });
+
+    await expect(createWorkLogWithContext({
+      title: "冲突日志",
+      content: "项目范围不一致",
+      itemId: "item-1",
+      projectId: "project-2",
+    }, { requireItemContext: true })).rejects.toThrow("事项与日志项目不一致");
+
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.createLog).not.toHaveBeenCalled();
   });
 
   it("creates an unassociated log without an item context", async () => {
