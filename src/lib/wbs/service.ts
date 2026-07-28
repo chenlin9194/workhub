@@ -2,10 +2,9 @@ import { Prisma } from "@prisma/client";
 import {
   WBS_GATE_KEYS,
   WBS_GATE_RULES,
-  WBS_PROJECT_PROFILES,
+  WBS_GLOBAL_PROFILE,
 } from "@/lib/wbs/constants";
-import type { WbsProjectProfile, WbsGateKey } from "@/lib/wbs/constants";
-import { filterWbsNodesForProfile } from "@/lib/wbs/import";
+import type { WbsGateKey } from "@/lib/wbs/constants";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString, isValidYmdDateString } from "@/lib/utils";
 import {
@@ -78,16 +77,6 @@ export class WbsInvalidNodeInputError extends Error {
   }
 }
 
-function assertProfile(profile: string): asserts profile is WbsProjectProfile {
-  if (!WBS_PROJECT_PROFILES.includes(profile as WbsProjectProfile)) {
-    throw new Error(`不支持的 WBS 项目类型：${profile}`);
-  }
-}
-
-export function isWbsProjectProfile(value: unknown): value is WbsProjectProfile {
-  return typeof value === "string" && WBS_PROJECT_PROFILES.includes(value as WbsProjectProfile);
-}
-
 function dateToYmd(value: Date | null): string | null {
   return value ? value.toISOString().slice(0, 10) : null;
 }
@@ -113,7 +102,7 @@ function toTemplateNode(node: TemplateNodeRecord): WbsTemplateNode {
     title: node.title,
     description: node.description ?? "",
     role: node.role ?? "",
-    projectScope: node.projectScope as WbsTemplateNode["projectScope"],
+    projectScope: "all",
     processSupport: node.processSupport ?? "",
     deliverableSpec: node.deliverableSpec ?? "",
     sortOrder: node.sortOrder,
@@ -126,7 +115,7 @@ function existingPlanSummary(
   if (!plan) return null;
   return {
     id: plan.id,
-    profile: plan.profile as WbsProjectProfile,
+    profile: plan.profile,
     status: plan.status,
     initializedAt: plan.initializedAt?.toISOString() ?? null,
     nodeCount: plan._count.nodes,
@@ -224,7 +213,7 @@ function orderedNodes(nodes: readonly WbsTemplateNode[]): WbsTemplateNode[] {
   });
 }
 
-async function loadInitializationData(projectId: string, templateVersion: string) {
+async function loadInitializationData(projectId: string, templateVersion?: string) {
   const [project, template] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -234,22 +223,21 @@ async function loadInitializationData(projectId: string, templateVersion: string
       },
     }),
     prisma.wbsTemplate.findFirst({
-      where: { version: templateVersion, status: "active" },
+      where: { status: "active", ...(templateVersion ? { version: templateVersion } : {}) },
       include: { nodes: { include: { parent: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
     }),
   ]);
 
   if (!project) throw new WbsProjectNotFoundError(projectId);
-  if (!template) throw new WbsTemplateNotFoundError(templateVersion);
+  if (!template) throw new WbsTemplateNotFoundError(templateVersion || "active");
   return { project, template };
 }
 
 function buildPreviewFromData(
   project: ProjectInitializationData,
   template: { id: string; version: string; sourceFileName: string; sourceHash: string; nodes: TemplateNodeRecord[] },
-  profile: WbsProjectProfile,
 ): WbsInitializationPreview {
-  const nodes = filterWbsNodesForProfile(template.nodes.map(toTemplateNode), profile);
+  const nodes = template.nodes.map(toTemplateNode);
   const gateResult = buildGatePreviews(project, nodes);
   const roleSummaryResult = roleSummary(nodes);
   const deliverables = nodes.reduce((count, node) => count + splitDeliverables(node.deliverableSpec).length, 0);
@@ -264,7 +252,7 @@ function buildPreviewFromData(
       sourceHash: template.sourceHash,
       nodeCount: template.nodes.length,
     },
-    profile,
+    profile: WBS_GLOBAL_PROFILE,
     gates: gateResult.gates,
     counts: {
       nodes: nodes.length,
@@ -283,12 +271,10 @@ function buildPreviewFromData(
 
 export async function buildWbsInitializationPreview(
   projectId: string,
-  profile: WbsProjectProfile,
-  templateVersion = "V2.0",
+  templateVersion?: string,
 ): Promise<WbsInitializationPreview> {
-  assertProfile(profile);
   const { project, template } = await loadInitializationData(projectId, templateVersion);
-  return buildPreviewFromData(project, template, profile);
+  return buildPreviewFromData(project, template);
 }
 
 function gateMapFromPreview(preview: WbsInitializationPreview): Map<WbsGateKey, WbsInitializationGatePreview> {
@@ -297,6 +283,7 @@ function gateMapFromPreview(preview: WbsInitializationPreview): Map<WbsGateKey, 
 
 function generatedExecutionItemData(args: {
   project: { id: string; name: string };
+  templateVersion: string;
   milestoneId: string;
   gateKey: WbsGateKey;
   dueDate: string | null;
@@ -317,7 +304,7 @@ function generatedExecutionItemData(args: {
     nextAction: `${args.gateKey} 评审准备与问题闭环`,
     trackingReason: "WBS 模板节点执行",
     sourceSystem: "wbs",
-    sourceId: `wbs-v2.0-${args.gateKey}`,
+    sourceId: `wbs-${args.templateVersion}-${args.gateKey}`,
     sourceUrl: null,
     health: "unknown",
     currentSummary: null,
@@ -333,16 +320,14 @@ function generatedExecutionItemData(args: {
 
 export async function initializeProjectWbs(
   projectId: string,
-  profile: WbsProjectProfile,
-  templateVersion = "V2.0",
+  templateVersion?: string,
 ): Promise<WbsInitializationResult> {
-  assertProfile(profile);
-  const preview = await buildWbsInitializationPreview(projectId, profile, templateVersion);
+  const preview = await buildWbsInitializationPreview(projectId, templateVersion);
   if (!preview.ready) throw new WbsInitializationConflictError(preview);
 
   const gateMap = gateMapFromPreview(preview);
   const { template } = await loadInitializationData(projectId, templateVersion);
-  const templateNodes = filterWbsNodesForProfile(template.nodes.map(toTemplateNode), profile);
+  const templateNodes = template.nodes.map(toTemplateNode);
   const now = new Date();
 
   return prisma.$transaction(async (tx) => {
@@ -375,7 +360,7 @@ export async function initializeProjectWbs(
           where: { id: existingPlan.id },
           data: {
             templateId: template.id,
-            profile,
+            profile: WBS_GLOBAL_PROFILE,
             status: "active",
             initializedAt: existingPlan.initializedAt ?? now,
           },
@@ -384,7 +369,7 @@ export async function initializeProjectWbs(
           data: {
             projectId,
             templateId: template.id,
-            profile,
+            profile: WBS_GLOBAL_PROFILE,
             status: "active",
             initializedAt: now,
           },
@@ -466,6 +451,7 @@ export async function initializeProjectWbs(
       const existingItem = await tx.workItem.findUnique({ where: { executionMilestoneId: milestone.id } });
       const itemData = generatedExecutionItemData({
         project,
+        templateVersion: template.version,
         milestoneId: milestone.id,
         gateKey: gate.gateKey,
         dueDate: dateToYmd(milestone.targetDate),
@@ -485,7 +471,7 @@ export async function initializeProjectWbs(
     return {
       planId: plan.id,
       templateId: template.id,
-      profile,
+      profile: WBS_GLOBAL_PROFILE,
       nodeCount: templateNodes.length,
       packageCount,
       taskCount,
@@ -500,34 +486,59 @@ export async function initializeProjectWbs(
 }
 
 export async function getProjectWbsSummary(projectId: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      pm: true,
-      wbsPlan: {
-        include: {
-          template: { select: { id: true, version: true, sourceFileName: true, sourceHash: true } },
-          nodes: {
-            include: {
-              deliverables: true,
-              milestone: { include: { executionWorkItem: { select: { id: true, title: true, status: true, health: true } } } },
-              ownerMember: true,
-              originWorkItems: { select: { id: true, title: true, status: true } },
+  const [project, template] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        pm: true,
+        wbsPlan: {
+          include: {
+            template: { select: { id: true, version: true, sourceFileName: true, sourceHash: true } },
+            nodes: {
+              include: {
+                deliverables: true,
+                milestone: { include: { executionWorkItem: { select: { id: true, title: true, status: true, health: true } } } },
+                ownerMember: true,
+                originWorkItems: { select: { id: true, title: true, status: true } },
+              },
+              orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
             },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           },
         },
       },
-    },
-  });
+    }),
+    prisma.wbsTemplate.findFirst({
+      where: { status: "active" },
+      select: {
+        id: true,
+        version: true,
+        sourceFileName: true,
+        sourceHash: true,
+        importedAt: true,
+        _count: { select: { nodes: true } },
+      },
+    }),
+  ]);
   if (!project) throw new WbsProjectNotFoundError(projectId);
 
-  if (!project.wbsPlan) return { project, plan: null };
+  const templateSummary = template
+    ? {
+        id: template.id,
+        version: template.version,
+        sourceFileName: template.sourceFileName,
+        sourceHash: template.sourceHash,
+        importedAt: template.importedAt.toISOString(),
+        nodeCount: template._count.nodes,
+      }
+    : null;
+
+  if (!project.wbsPlan) return { project, template: templateSummary, plan: null };
   return {
     project,
+    template: templateSummary,
     plan: {
       ...project.wbsPlan,
       initializedAt: project.wbsPlan.initializedAt?.toISOString() ?? null,

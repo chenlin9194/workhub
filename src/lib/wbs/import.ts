@@ -5,17 +5,14 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import {
   WBS_GATE_RULES,
-  WBS_PROJECT_SCOPES,
   WBS_STAGE_BY_SHEET,
   WBS_TEMPLATE_SHEETS,
+  WBS_TEMPLATE_SCOPE,
   applyWbsV20CodeCorrections,
   getGateRuleForCode,
-  isScopeApplicable,
   isSpmRole,
-  normalizeTemplateScope,
   shiftWbsV20FollowUpTaskCode,
 } from "@/lib/wbs/constants";
-import type { WbsProjectProfile, WbsProjectScope } from "@/lib/wbs/constants";
 import { validateTemplateStructure } from "@/lib/wbs/validation";
 import type {
   WbsGateSummary,
@@ -102,7 +99,8 @@ function buildRowFromWorksheet(
     title: cellText(worksheet.getCell(rowNumber, 5)),
     description: cellText(worksheet.getCell(rowNumber, 6)),
     projectScopeLabel: cellText(worksheet.getCell(rowNumber, 8)),
-    projectScope: normalizeTemplateScope(cellText(worksheet.getCell(rowNumber, 8))),
+    // WBS 任务集对所有项目统一适用；保留原始列文本仅用于兼容解析。
+    projectScope: WBS_TEMPLATE_SCOPE,
     processSupport: cellText(worksheet.getCell(rowNumber, 9)),
     deliverableSpec: cellText(worksheet.getCell(rowNumber, 7)),
   };
@@ -188,10 +186,6 @@ function nodeFromRow(row: WbsTemplateRow, sortOrder: number): { node: WbsTemplat
     issues.push(issue("error", "unknown-str", `编号无法映射到本期六个 STR：${code}`, row));
     return { node: null, issues };
   }
-  if (row.projectScope === null) {
-    issues.push(issue("error", "unknown-project-scope", `未知项目类型：${row.projectScopeLabel || "空值"}`, row));
-    return { node: null, issues };
-  }
   if (!row.title) issues.push(issue("error", "missing-title", "任务或工作包标题不能为空", row));
 
   const isReview = gateRule.reviewCode === code;
@@ -213,7 +207,7 @@ function nodeFromRow(row: WbsTemplateRow, sortOrder: number): { node: WbsTemplat
       title: row.title,
       description: row.description,
       role: row.role,
-      projectScope: row.projectScope,
+      projectScope: WBS_TEMPLATE_SCOPE,
       processSupport: row.processSupport,
       deliverableSpec: row.deliverableSpec,
       sortOrder,
@@ -237,21 +231,6 @@ export function parseWbsTemplateRows(rows: readonly WbsTemplateRow[], initialIss
   return { nodes, issues };
 }
 
-export function filterWbsNodesForProfile(
-  nodes: readonly WbsTemplateNode[],
-  profile: WbsProjectProfile,
-): WbsTemplateNode[] {
-  const applicable = nodes.filter((node) => isScopeApplicable(node.projectScope, profile));
-  const applicableTaskParents = new Set(
-    applicable.filter((node) => node.kind === "task").map((node) => `${node.stage}|${node.gateKey}|${node.parentCode}`),
-  );
-  return applicable.filter(
-    (node) =>
-      node.kind !== "package" ||
-      applicableTaskParents.has(`${node.stage}|${node.gateKey}|${node.code}`),
-  );
-}
-
 function gateSummaries(nodes: readonly WbsTemplateNode[]): WbsGateSummary[] {
   return WBS_GATE_RULES.map((rule) => {
     const gateNodes = nodes.filter((node) => node.gateKey === rule.gateKey);
@@ -272,14 +251,6 @@ function gateSummaries(nodes: readonly WbsTemplateNode[]): WbsGateSummary[] {
       reviewTaskCount: review ? 1 : 0,
     };
   });
-}
-
-function countByScope(nodes: readonly WbsTemplateNode[]): Record<WbsProjectScope, number> {
-  const counts = Object.fromEntries(WBS_PROJECT_SCOPES.map((scope) => [scope, 0])) as Record<WbsProjectScope, number>;
-  for (const node of nodes) {
-    if (node.kind === "task" || node.kind === "gate") counts[node.projectScope] += 1;
-  }
-  return counts;
 }
 
 export function buildTemplatePreview(args: {
@@ -305,7 +276,6 @@ export function buildTemplatePreview(args: {
     nodes: parsed.nodes,
     gates: gateSummaries(parsed.nodes),
     spmTaskCount: parsed.nodes.filter((node) => (node.kind === "task" || node.kind === "gate") && isSpmRole(node.role)).length,
-    projectScopeTaskCounts: countByScope(parsed.nodes),
     issues: [...errors, ...warnings],
     changes: { add: parsed.nodes.length, update: 0, ignore: 0, remove: 0 },
     hasStructuralErrors: errors.length > 0,
@@ -339,8 +309,11 @@ async function loadWorkbook(buffer: Buffer): Promise<{ workbook: ExcelJS.Workboo
   }
 }
 
-export async function readWbsTemplateFile(filePath: string, version: string): Promise<WbsTemplatePreview> {
-  const buffer = await readFile(filePath);
+export async function readWbsTemplateBuffer(
+  sourceFileName: string,
+  buffer: Buffer,
+  version: string,
+): Promise<WbsTemplatePreview> {
   const sourceHash = createHash("sha256").update(buffer).digest("hex");
   const loaded = await loadWorkbook(buffer);
   const extracted = readTemplateRowsFromWorkbook(loaded.workbook);
@@ -349,7 +322,7 @@ export async function readWbsTemplateFile(filePath: string, version: string): Pr
       `已按 V2.0 纠正 ${correction.sheetName} 第${correction.rowNumber}行 ${correction.title}：${correction.fromCode} → ${correction.toCode}`,
   );
   return buildTemplatePreview({
-    sourceFileName: basename(filePath),
+    sourceFileName: basename(sourceFileName),
     sourceHash,
     version,
     sheets: WBS_TEMPLATE_SHEETS.slice(),
@@ -359,6 +332,10 @@ export async function readWbsTemplateFile(filePath: string, version: string): Pr
     rows: extracted.rows,
     initialIssues: extracted.issues,
   });
+}
+
+export async function readWbsTemplateFile(filePath: string, version: string): Promise<WbsTemplatePreview> {
+  return readWbsTemplateBuffer(filePath, await readFile(filePath), version);
 }
 
 function listOrDash(values: readonly string[]): string {
@@ -374,7 +351,7 @@ export function formatTemplatePreview(preview: WbsTemplatePreview): string {
     `读取 Sheet：${preview.sheets.join("、")}`,
     `解析记录：${preview.rows.length}；候选节点：${preview.nodes.length}`,
     `SPM/项目经理可负责任务：${preview.spmTaskCount}`,
-    `项目类型任务数量：ALL=${preview.projectScopeTaskCounts.all}，仅tOS=${preview.projectScopeTaskCounts.tos}，仅tOS大版本=${preview.projectScopeTaskCounts.tos_major}，仅整机=${preview.projectScopeTaskCounts.device}`,
+    `统一任务集：所有项目使用 ${preview.nodes.filter((node) => node.kind === "task" || node.kind === "gate").length} 个执行节点`,
     "",
     "六个 STR 映射结果：",
   ];

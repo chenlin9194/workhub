@@ -1,146 +1,146 @@
 # WorkHub
 
-## Hermes + Feishu Integration
+WorkHub 是面向个人软件项目经理的关键事实管理控制台。它用于跟踪项目、事项、日志、风险、阻塞、决策、变更和关键节点，支持快速定位、项目快照和日报/周报事实整理。
 
-WorkHub provides the authenticated HTTP endpoint and business rules for Hermes MCP. The Hermes stdio server, WSL installation scripts, deployment runbook, skill, and Feishu acceptance prompts live in the separate [WorkHub Hermes Bridge repository](https://github.com/chenlin9194/workhub-hermes-bridge).
+WorkHub 保持轻量，不是 Jira、ALM、飞书或团队协同平台的替代品，也不追求完整的企业级项目管理、权限和任务协作能力。
 
-Before changing this integration, read [`AGENTS.md`](AGENTS.md), [`docs/hermes-workhub-v1.md`](docs/hermes-workhub-v1.md), then the [Bridge deployment runbook](https://github.com/chenlin9194/workhub-hermes-bridge/blob/main/docs/company-deployment.md). Do not commit `.env`, database files, Hermes configuration, Feishu credentials, or real tokens.
+## 当前能力
 
-WorkHub 是一个面向个人的软件项目经理的关键事实管理控制台，也可以理解为“个人项目管理控制台 / 关键事实导航系统”。
+- 工作台：查看今日态势、待处理行动、事项信号和 WBS 待处理队列。
+- 项目驾驶舱：维护项目基本信息、阶段、健康度、成员、关键链接、里程碑/计划节点、事项和事实日志。
+- 事项与事实：管理关键 WorkItem、WorkLog、行动项，以及项目和事项之间的上下文关系。
+- 项目快照与汇报：查看项目状态、信号、交付节点、成员、链接、风险和最近日志，并导出日报或区间/周报事实包。
+- 统计概览：查看交付健康、优先级、阻塞和日志活动等指标。
+- 工具入口：维护右上角常用外部链接，例如 Jira、Gerrit、Jenkins；只做跳转，不保存凭据或做外部系统同步。
+- Hermes + Feishu：WorkHub 提供鉴权 HTTP 接口和业务规则，Hermes Bridge 单独维护 MCP stdio 服务、部署脚本和 Feishu 验收材料。
 
-它只服务于你真正需要持续跟踪、快速定位、可以汇报的内容，不是完整项目管理系统，也不是 Jira、ALM、飞书或团队协同平台的替代品。
+## WBS 规划与执行
 
-## 项目定位
+WBS 是项目级执行模块，但任务定义是全局统一的：所有项目共用同一套 WBS 模板，项目只保存自己的初始化结果、节点状态、交付物、检查日期和执行进度，不按项目类型筛选任务。
 
-WorkHub 的目标很明确：
+使用流程：
 
-- 个人使用
-- 管理关键事实，而不是管理所有细节
-- 支撑日报、周报、项目快照
-- 快速找到风险、阻塞、决策、变更和关键节点
-- 保持轻量，不扩展成全量项目管理系统
+1. 打开 `/settings/tools` 的“全局 WBS 模板”区域。
+2. 上传 `.xlsx` 模板，填写版本，点击“导入并设为当前模板”。系统会校验模板结构，并保存历史模板版本。
+3. 打开项目驾驶舱中的 WBS 区块，进入 `/projects/[id]/wbs`。
+4. 预览并初始化当前项目的 WBS 执行计划。
+5. 在 WBS 总览或 `/projects/[id]/wbs/[gateKey]` 中维护 STR1、STR2、STR3、STR4、STR4A、STR5 各阶段节点。
 
-## 当前核心能力
+也可以使用命令行预览或导入模板：
 
-WorkHub 第一版已经包含以下能力：
+```powershell
+npm.cmd run wbs:template:preview -- --dry-run "D:\path\template.xlsx" V2.0
+npm.cmd run wbs:template:import -- --apply "D:\path\template.xlsx" V2.0
+```
 
-- 工作台 `cockpit`
-- 项目管理
-- 事项 `WorkItem`
-- 日志 `WorkLog`
-- 项目详情 `cockpit`
-- 项目信号 `signal`
-- `signal → filter → list` 导航链路
-- 日报、周报、项目快照导出
-- 工具链接配置
-
-其中：
-
-- `signalMap` 负责把信号语义映射到列表跳转语义
-- `filterLinks` 负责构造列表筛选 URL
-- `items` / `logs` 列表页负责读取和同步 URL 筛选条件
-
-## 核心工作流
-
-1. 创建项目
-2. 录入关键事项
-3. 记录关键日志
-4. 通过项目 cockpit 或工作台信号定位风险
-5. 进入 `items` / `logs` 列表查看筛选结果
-6. 导出日报、周报或项目快照事实包
-
-## 信息收录边界
-
-### 应该收录
-
-- 关键风险
-- 关键阻塞
-- 关键决策
-- 关键变更
-- 关键项目节点
-- 需要持续跟踪的事项
-- 可汇报日志
-
-### 不应该收录
-
-- 全量需求
-- 全量 bug
-- 所有会议全文
-- 细粒度执行任务树
-- 完整文档库
-- 企业权限和多用户流程
-
-## 当前架构
-
-当前技术栈很简单：
-
-- Next.js
-- TypeScript
-- Prisma
-- SQLite
-- URL filter
-- `signalMap`
-- `filterLinks`
-
-维护时只需要记住两件事：
-
-- 页面层尽量只负责展示、筛选和跳转
-- 信号语义和筛选语义分别收口到 `signalMap` 和 `filterLinks`
+WBS 生成的系统事项由 WBS 执行节点管理，不能通过普通事项接口直接修改状态或删除；需要在 WBS 页面维护。
 
 ## 页面入口
 
-主要入口保持简洁：
+- `/`：工作台
+- `/projects`：项目列表、新建项目和项目驾驶舱入口
+- `/projects/[id]`：项目驾驶舱
+- `/projects/[id]/snapshot`：项目快照
+- `/projects/[id]/wbs`：项目 WBS 总览
+- `/projects/[id]/wbs/[gateKey]`：单个 STR 阶段执行页
+- `/items`：事项列表
+- `/logs`：事实日志列表
+- `/today`：今日行动项和待处理队列
+- `/reports`：汇报入口
+- `/stats`：统计概览
+- `/export/today`：今日日报事实包
+- `/export/range`：区间/周报事实包
+- `/settings/tools`：工具链接和全局 WBS 模板管理
 
-- `/` 工作台
-- `/projects` 项目列表
-- `/items` 事项列表
-- `/logs` 日志列表
-- `/today` 今日视图
-- `/reports` 汇报入口
-- `/projects/[id]` 项目详情 cockpit
+侧边栏保持分组导航：工作台、项目、事项、汇报；未归档事实和今日行动项位于 Inbox；统计、导出和工具入口位于 Tools。WBS 不作为新的顶层导航，而是从项目和工具入口进入。
 
-## 启动与验证
+## 技术栈
 
-Windows 侧使用以下命令：
+- Next.js 15
+- React 19
+- TypeScript
+- Prisma 6
+- SQLite
+- ExcelJS：读取 WBS `.xlsx` 模板
+- Vitest：自动化测试
 
-```bash
+主要代码目录：
+
+- `src/app`：页面和 API 路由
+- `src/components`：可复用界面组件
+- `src/lib`：业务逻辑、类型、筛选和 WBS 服务
+- `prisma/schema.prisma`：数据模型
+- `scripts`：数据库备份、恢复校验、导出和 WBS 模板命令
+- `tests`：自动化测试
+
+## 本地启动
+
+Windows PowerShell：
+
+```powershell
 npm.cmd install
-npm.cmd run typecheck
-npm.cmd run build
+Copy-Item .env.example .env
+npm.cmd run db:push
 npm.cmd run dev
 ```
 
-如需同步 Prisma schema，再执行：
+默认使用本地 SQLite 数据库 `prisma/dev.db`，不需要单独安装数据库服务。`.env`、数据库文件、备份文件和真实凭据均不纳入 Git。
 
-```bash
-npx prisma db push
+常用验证命令：
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+npm.cmd run lint
 ```
 
-## 工具链接配置
+如果只修改了前端或业务代码，通常执行 `typecheck`、`test` 和 `build` 即可；修改 Prisma schema 后还要执行：
 
-工具链接在 `/settings/tools` 中维护，用于记录常用外部链接，例如 Jira、Gerrit、Jenkins 等。
+```powershell
+npm.cmd run db:push
+```
 
-原则很简单：
+## 数据库备份与恢复
 
-- 只保留本地跳转需要的链接
-- 不做账号体系
-- 不做权限系统
-- 不做多用户协同
+本地数据库位于 `prisma/dev.db`。备份会写入 `.workhub/backups/`，并自动做 SQLite 完整性校验：
 
-## 当前稳定状态
+```powershell
+npm.cmd run db:backup
+npm.cmd run db:restore-check -- "D:\path\workhub-backup.db"
+```
 
-当前 WorkHub 第一版稳定收口到以下状态：
+恢复前建议先运行 `db:backup`，再停止开发服务器，将备份文件复制为 `prisma/dev.db`，最后重新启动应用并用 `db:restore-check` 校验。数据库是本机运行数据，不会通过 Git commit 或 push 同步到 GitHub。
 
-- Phase 11 快速定位完成
-- Phase 12 `signal → filter → list` 收敛完成
-- Phase 13A freeze 验收通过
-- 当前稳定提交：`adc4fe6 feat: unify signal navigation layer with DSL-based routing`
+## Hermes + Feishu Integration
 
-## 维护提醒
+WorkHub owns the authenticated HTTP endpoint and its business rules. The Hermes stdio server, WSL installation scripts, deployment runbook, skill, and Feishu acceptance prompts live in the separate [WorkHub Hermes Bridge repository](https://github.com/chenlin9194/workhub-hermes-bridge).
 
-后续如果继续扩展，优先遵守这几个约束：
+修改这条链路前，请先阅读 [`AGENTS.md`](AGENTS.md) 和 [`docs/hermes-workhub-v1.md`](docs/hermes-workhub-v1.md)，再阅读 [Bridge deployment runbook](https://github.com/chenlin9194/workhub-hermes-bridge/blob/main/docs/company-deployment.md)。
 
-- 不要把它扩成完整项目管理系统
-- 不要引入复杂状态管理
-- 不要把列表页改成搜索中心或保存视图中心
-- 不要把信号映射和筛选构造逻辑分散到各个页面
+配置项位于 `.env`：
+
+```dotenv
+DATABASE_URL="file:./dev.db"
+HERMES_WORKHUB_TOKEN=""
+```
+
+生产环境调用 `POST /api/integrations/hermes/workhub` 时使用 `Authorization: Bearer <HERMES_WORKHUB_TOKEN>`。不要把 token、`.env`、数据库或 Hermes 配置提交到 Git。WorkHub 不提供删除 MCP 工具；被跟踪事项的状态变更会产生系统变更日志，其他操作遵循现有 Web API 的日志边界。
+
+## 设计边界
+
+适合收录：
+
+- 关键风险、阻塞、决策和变更
+- 关键里程碑和项目节点
+- 需要持续跟踪的事项
+- 可用于日报、周报和项目快照的事实日志
+
+不适合收录：
+
+- 全量需求、全量 bug 或完整会议全文
+- 细粒度执行任务树的全面镜像
+- 完整文档库
+- 企业权限、多用户协同和复杂审批流程
+
+后续扩展应优先保持项目驾驶舱和事实导航清晰，避免增加大量顶层导航、复杂权限系统、Jira/ALM 全量同步或不必要的外部 AI 集成。

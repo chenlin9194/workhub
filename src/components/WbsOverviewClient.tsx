@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { WbsProjectProfile } from "@/lib/wbs/constants";
 import { deriveStrReadiness } from "@/lib/wbs/readiness";
 import type { WbsInitializationPreview } from "@/lib/wbs/types";
 
@@ -20,20 +19,12 @@ type WbsNodeView = {
 
 type WbsSummary = {
   project: { id: string; name: string; type: string };
+  template: { version: string; sourceFileName: string; nodeCount: number } | null;
   plan: {
-    id: string;
-    profile: string;
-    status: string;
-    initializedAt: string | null;
     template: { version: string; sourceFileName: string };
+    initializedAt: string | null;
     nodes: WbsNodeView[];
   } | null;
-};
-
-const PROFILE_LABELS: Record<WbsProjectProfile, string> = {
-  tos: "tOS项目",
-  tos_major: "tOS大版本",
-  device: "整机项目",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -62,7 +53,6 @@ function readinessFor(gateKey: string, nodes: WbsNodeView[]) {
 export default function WbsOverviewClient({ projectId }: { projectId: string }) {
   const [summary, setSummary] = useState<WbsSummary | null>(null);
   const [preview, setPreview] = useState<WbsInitializationPreview | null>(null);
-  const [profile, setProfile] = useState<WbsProjectProfile>("tos");
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
@@ -76,7 +66,6 @@ export default function WbsOverviewClient({ projectId }: { projectId: string }) 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "获取 WBS 摘要失败");
       setSummary(data);
-      if (data.plan?.profile && data.plan.profile in PROFILE_LABELS) setProfile(data.plan.profile);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "获取 WBS 摘要失败");
     } finally {
@@ -93,10 +82,11 @@ export default function WbsOverviewClient({ projectId }: { projectId: string }) 
     setError("");
     setMessage("");
     try {
+      if (!summary?.template) throw new Error("尚未配置全局 WBS 模板，请先导入模板");
       const response = await fetch(`/api/projects/${projectId}/wbs/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, version: "V2.0" }),
+        body: JSON.stringify({ version: summary.template.version }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "生成初始化预览失败");
@@ -113,10 +103,11 @@ export default function WbsOverviewClient({ projectId }: { projectId: string }) 
     setError("");
     setMessage("");
     try {
+      if (!summary?.template) throw new Error("尚未配置全局 WBS 模板，请先导入模板");
       const response = await fetch(`/api/projects/${projectId}/wbs/initialize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, version: "V2.0" }),
+        body: JSON.stringify({ version: summary.template.version }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "初始化 WBS 失败");
@@ -159,20 +150,24 @@ export default function WbsOverviewClient({ projectId }: { projectId: string }) 
         <div className="wbs-header-meta"><span>责任方式</span><strong>按 WBS 角色</strong><small>不映射具体姓名</small></div>
       </header>
 
-      {!summary.plan ? (
+      {!summary.template ? (
+        <section className="wbs-panel">
+          <div className="wbs-panel-head"><div><span className="wbs-eyebrow">TEMPLATE</span><h2>尚未配置全局 WBS 模板</h2></div></div>
+          <p>所有项目共用同一套 WBS 任务。请先在工具入口导入模板。</p>
+          <Link href="/settings/tools#wbs-template" className="btn btn-primary">去导入模板</Link>
+        </section>
+      ) : !summary.plan ? (
         <section className="wbs-panel">
           <div className="wbs-panel-head"><div><span className="wbs-eyebrow">INITIALIZE</span><h2>初始化项目 WBS</h2></div></div>
-          <div className="wbs-init-controls">
-            <label>项目类型<select value={profile} onChange={(event) => { setProfile(event.target.value as WbsProjectProfile); setPreview(null); }}><option value="tos">{PROFILE_LABELS.tos}</option><option value="tos_major">{PROFILE_LABELS.tos_major}</option><option value="device">{PROFILE_LABELS.device}</option></select></label>
-            <button type="button" className="btn btn-secondary" onClick={loadPreview} disabled={working}>{working ? "读取中…" : "查看初始化预览"}</button>
-          </div>
+          <p>当前模板 {summary.template.version}，所有项目使用同一套任务清单；这里只创建本项目的执行状态。</p>
+          <button type="button" className="btn btn-secondary" onClick={loadPreview} disabled={working}>{working ? "读取中…" : "查看初始化预览"}</button>
           {preview && <InitializationPreview preview={preview} working={working} onInitialize={initialize} />}
         </section>
       ) : (
         <>
           <section className="wbs-panel wbs-plan-meta">
             <div><span>模板</span><strong>{summary.plan.template.version}</strong><small>{summary.plan.template.sourceFileName}</small></div>
-            <div><span>项目类型</span><strong>{PROFILE_LABELS[summary.plan.profile as WbsProjectProfile] || summary.plan.profile}</strong><small>已初始化 {dateLabel(summary.plan.initializedAt)}</small></div>
+            <div><span>任务集</span><strong>统一 WBS</strong><small>已初始化 {dateLabel(summary.plan.initializedAt)}</small></div>
             <div><span>节点</span><strong>{summary.plan.nodes.length}</strong><small>仅在 WBS 页面执行</small></div>
             <div><span>当前 STR</span><strong>{currentGate}</strong><small>按执行状态计算</small></div>
             <div><span>下一 STR</span><strong>{nextGate}</strong><small>前序 STR 闭环后推进</small></div>
@@ -214,7 +209,7 @@ function InitializationPreview({
 }) {
   return (
     <div className="wbs-preview">
-      <div className="wbs-preview-summary"><strong>V2.0 初始化预览</strong><span>{preview.ready ? "六个 STR 均已唯一匹配，可初始化" : "存在冲突，暂不能初始化"}</span></div>
+      <div className="wbs-preview-summary"><strong>{preview.template.version} 初始化预览</strong><span>{preview.ready ? "六个 STR 均已唯一匹配，可初始化" : "存在冲突，暂不能初始化"}</span></div>
       <div className="wbs-stat-grid"><div><b>{preview.counts.nodes}</b><span>节点</span></div><div><b>{preview.counts.tasks}</b><span>执行任务</span></div><div><b>{preview.counts.deliverables}</b><span>交付物</span></div><div><b>{preview.roleSummary.roleCount}</b><span>WBS 角色</span></div></div>
       <div className="wbs-gate-preview-list">{preview.gates.map((gate) => <div key={gate.gateKey}><strong>{gate.gateKey}</strong><span>{gate.milestoneTitle || "未匹配"}</span><small>{gate.matchedBy || "—"} · {gate.applicableNodeCount} 节点</small></div>)}</div>
       {preview.conflicts.length > 0 && <ul className="wbs-conflict-list">{preview.conflicts.map((conflict) => <li key={`${conflict.code}-${conflict.gateKey}`}>{conflict.message}</li>)}</ul>}

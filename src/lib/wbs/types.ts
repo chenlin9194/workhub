@@ -3,8 +3,6 @@ import type {
   WbsExecutionStatus,
   WbsGateKey,
   WbsNodeKind,
-  WbsProjectProfile,
-  WbsProjectScope,
   WbsStage,
 } from "@/lib/wbs/constants";
 
@@ -19,7 +17,7 @@ export interface WbsTemplateRow {
   title: string;
   description: string;
   projectScopeLabel: string;
-  projectScope: WbsProjectScope | null;
+  projectScope: "all";
   processSupport: string;
   deliverableSpec: string;
 }
@@ -35,7 +33,7 @@ export interface WbsTemplateNode {
   title: string;
   description: string;
   role: string;
-  projectScope: WbsProjectScope;
+  projectScope: "all";
   processSupport: string;
   deliverableSpec: string;
   sortOrder: number;
@@ -90,7 +88,6 @@ export interface WbsTemplatePreview {
   nodes: WbsTemplateNode[];
   gates: WbsGateSummary[];
   spmTaskCount: number;
-  projectScopeTaskCounts: Record<WbsProjectScope, number>;
   issues: WbsTemplateIssue[];
   changes: WbsPreviewChangeSummary;
   hasStructuralErrors: boolean;
@@ -163,7 +160,7 @@ export interface WbsRoleSummary {
 
 export interface WbsExistingPlanSummary {
   id: string;
-  profile: WbsProjectProfile;
+  profile: string;
   status: string;
   initializedAt: string | null;
   nodeCount: number;
@@ -178,7 +175,7 @@ export interface WbsInitializationPreview {
     sourceHash: string;
     nodeCount: number;
   };
-  profile: WbsProjectProfile;
+  profile: string;
   gates: WbsInitializationGatePreview[];
   counts: {
     nodes: number;
@@ -197,7 +194,7 @@ export interface WbsInitializationPreview {
 export interface WbsInitializationResult {
   planId: string;
   templateId: string;
-  profile: WbsProjectProfile;
+  profile: string;
   nodeCount: number;
   packageCount: number;
   taskCount: number;

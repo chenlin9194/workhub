@@ -1,46 +1,42 @@
 import { describe, expect, it } from "vitest";
-import { isScopeApplicable } from "@/lib/wbs/constants";
-import { filterWbsNodesForProfile } from "@/lib/wbs/import";
-import type { WbsTemplateNode } from "@/lib/wbs/types";
+import { parseWbsTemplateRows } from "@/lib/wbs/import";
+import type { WbsTemplateRow } from "@/lib/wbs/types";
 
-const base = (overrides: Partial<WbsTemplateNode>): WbsTemplateNode => ({
+const row = (overrides: Partial<WbsTemplateRow>): WbsTemplateRow => ({
   sheetName: "01-概念阶段",
   rowNumber: 1,
   stage: "concept",
-  gateKey: "STR1",
-  kind: "task",
-  code: "1.1.1",
-  parentCode: "1.1",
+  role: "项目经理",
+  packageCode: null,
+  taskCode: null,
+  parentCode: null,
   title: "任务",
   description: "",
-  role: "项目经理",
+  projectScopeLabel: "仅整机项目",
   projectScope: "all",
   processSupport: "",
   deliverableSpec: "",
-  sortOrder: 1,
   ...overrides,
 });
 
-describe("WBS project scope", () => {
-  it("uses the fixed ALL/tOS/tOS-major/device applicability matrix", () => {
-    expect(isScopeApplicable("all", "tos")).toBe(true);
-    expect(isScopeApplicable("tos", "tos_major")).toBe(true);
-    expect(isScopeApplicable("tos_major", "tos")).toBe(false);
-    expect(isScopeApplicable("device", "tos")).toBe(false);
-    expect(isScopeApplicable("device", "device")).toBe(true);
+describe("WBS universal task set", () => {
+  it("keeps every parsed node applicable to all projects", () => {
+    const result = parseWbsTemplateRows([
+      row({ rowNumber: 1, packageCode: "1.1" }),
+      row({ rowNumber: 2, taskCode: "1.1.1", parentCode: "1.1" }),
+      row({ rowNumber: 3, packageCode: "1.11", title: "STR1评审" }),
+    ]);
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.nodes).toHaveLength(3);
+    expect(result.nodes.every((node) => node.projectScope === "all")).toBe(true);
   });
 
-  it("keeps a package when an applicable child remains", () => {
-    const nodes = [
-      base({ kind: "package", code: "1.1", parentCode: null, projectScope: "device" }),
-      base({ code: "1.1.1", projectScope: "tos" }),
-      base({ code: "1.1.2", projectScope: "device" }),
-    ];
-    const tosNodes = filterWbsNodesForProfile(nodes, "tos");
-    const tosMajorNodes = filterWbsNodesForProfile(nodes, "tos_major");
-    const deviceNodes = filterWbsNodesForProfile(nodes, "device");
-    expect(tosNodes.map((node) => node.code)).toEqual(["1.1.1"]);
-    expect(tosMajorNodes.map((node) => node.code)).toEqual(["1.1.1"]);
-    expect(deviceNodes.map((node) => node.code)).toEqual(["1.1", "1.1.2"]);
+  it("does not reject a legacy or unknown project category column", () => {
+    const result = parseWbsTemplateRows([
+      row({ rowNumber: 1, packageCode: "1.1", projectScopeLabel: "历史项目分类" }),
+    ]);
+
+    expect(result.issues.map((issue) => issue.code)).not.toContain("unknown-project-scope");
   });
 });

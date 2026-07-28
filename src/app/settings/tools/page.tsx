@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/Icon";
+import WbsTemplateManager from "@/components/WbsTemplateManager";
 
 interface ToolLink {
   id: string;
@@ -289,6 +290,8 @@ export default function ToolSettingsPage() {
           </Link>
         </div>
       </div>
+
+      <WbsTemplateManager />
 
       <section className="card tool-console-summary tool-drawer-summary">
         <div className="tool-drawer-summary-main">

@@ -27,25 +27,12 @@ export type WbsExecutionStatus = (typeof WBS_EXECUTION_STATUSES)[number];
 export const WBS_DELIVERABLE_STATUSES = ["pending", "delivered"] as const;
 export type WbsDeliverableStatus = (typeof WBS_DELIVERABLE_STATUSES)[number];
 
-export const WBS_PROJECT_PROFILES = ["tos", "tos_major", "device"] as const;
-export type WbsProjectProfile = (typeof WBS_PROJECT_PROFILES)[number];
+export const WBS_GLOBAL_PROFILE = "universal" as const;
+export type WbsPlanProfile = typeof WBS_GLOBAL_PROFILE;
 
-export const WBS_PROJECT_SCOPES = ["all", "tos", "tos_major", "device"] as const;
-export type WbsProjectScope = (typeof WBS_PROJECT_SCOPES)[number];
-
-export const WBS_TEMPLATE_SCOPE_LABELS: Record<WbsProjectScope, string> = {
-  all: "ALL",
-  tos: "仅tOS项目",
-  tos_major: "仅tOS大版本",
-  device: "仅整机项目",
-};
-
-export const WBS_TEMPLATE_SCOPE_BY_LABEL: Record<string, WbsProjectScope> = {
-  ALL: "all",
-  "仅tOS项目": "tos",
-  "仅tOS大版本": "tos_major",
-  "仅整机项目": "device",
-};
+// 保留模板字段的兼容值，但不再按项目筛选任务。
+export const WBS_TEMPLATE_SCOPE = "all" as const;
+export type WbsTemplateScope = typeof WBS_TEMPLATE_SCOPE;
 
 export interface WbsGateRule {
   gateKey: WbsGateKey;
@@ -204,11 +191,6 @@ export function shiftWbsV20FollowUpTaskCode(code: string | null): string | null 
   return `1.5.${suffix + 1}`;
 }
 
-export function normalizeTemplateScope(value: unknown): WbsProjectScope | null {
-  const label = typeof value === "string" ? value.trim() : "";
-  return WBS_TEMPLATE_SCOPE_BY_LABEL[label] ?? null;
-}
-
 export function isSpmRole(role: string): boolean {
   const normalized = role.trim().toLocaleLowerCase();
   return normalized.includes("spm") || role.includes("项目经理");
@@ -246,11 +228,4 @@ export function getGateRuleForCode(code: string): WbsGateRule | null {
         comparePackageCodes(normalized, rule.packageEnd) <= 0,
     ) ?? null
   );
-}
-
-export function isScopeApplicable(scope: WbsProjectScope, profile: WbsProjectProfile): boolean {
-  if (scope === "all") return true;
-  if (scope === "tos") return profile === "tos" || profile === "tos_major";
-  if (scope === "tos_major") return profile === "tos_major";
-  return profile === "device";
 }

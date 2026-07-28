@@ -93,11 +93,12 @@ describe("WBS template STR mapping", () => {
     expect(result.issues.map((issue) => issue.code)).toEqual(["missing-role"]);
   });
 
-  it("rejects an unknown project scope instead of guessing", () => {
+  it("ignores the legacy project category column", () => {
     const result = parseWbsTemplateRows([
-      row({ sheetName: "01-概念阶段", rowNumber: 2, stage: "concept", packageCode: "1.1", projectScope: null, projectScopeLabel: "未知项目" }),
+      row({ sheetName: "01-概念阶段", rowNumber: 2, stage: "concept", packageCode: "1.1", projectScopeLabel: "未知项目" }),
     ]);
 
-    expect(result.issues.map((issue) => issue.code)).toContain("unknown-project-scope");
+    expect(result.issues.map((issue) => issue.code)).not.toContain("unknown-project-scope");
+    expect(result.nodes[0]?.projectScope).toBe("all");
   });
 });
