@@ -371,8 +371,12 @@ async function handleCreateProjectMilestone(input: Record<string, unknown>) {
   const title = trimString(input.title);
   if (!title) return jsonError("milestone title is required");
 
-  if (typeof input.stage !== "string" || !PROJECT_MILESTONE_STAGE_VALUES.has(input.stage.trim())) {
+  const stage = trimString(input.stage);
+  if (!stage) {
     return jsonError("stage is required");
+  }
+  if (!PROJECT_MILESTONE_STAGE_VALUES.has(stage)) {
+    return jsonError("stage must be one of: planning, concept, plan, verification");
   }
 
   const planType = normalizePlanType(input.planType);
@@ -399,7 +403,7 @@ async function handleCreateProjectMilestone(input: Record<string, unknown>) {
       projectId: resolved.project.id,
       title,
       description: optionalString(input.description),
-      stage: input.stage.trim(),
+      stage,
       planType,
       dateMode,
       status: trimString(input.status) || "planned",
