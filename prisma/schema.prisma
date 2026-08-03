@@ -331,3 +331,19 @@ model ToolLink {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model IdempotencyOperation {
+  id            String   @id @default(cuid())
+  scope         String
+  operationId   String
+  requestHash   String
+  state         String
+  resultObjectId String?
+  resultPayload String?
+  errorType     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([scope, operationId])
+  @@index([state])
+}

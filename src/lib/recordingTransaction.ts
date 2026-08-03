@@ -15,8 +15,16 @@ import {
   WORK_LOG_TYPE_VALUES,
 } from "@/lib/inputValidation";
 import { getLocalDateString, toNullableString } from "@/lib/utils";
+import {
+  canonicalRequestHash,
+  CREATE_WORK_ITEM_SCOPE,
+  IdempotencyError,
+} from "@/lib/idempotency";
 
-type TransactionClient = Pick<Prisma.TransactionClient, "actionItem" | "workItem" | "workLog">;
+type TransactionClient = Pick<
+  Prisma.TransactionClient,
+  "actionItem" | "workItem" | "workLog" | "idempotencyOperation"
+>;
 
 type ActionItemInput = {
   title: string;
@@ -65,6 +73,10 @@ type CreateWorkLogInput = {
 };
 
 export class CompositeInputError extends Error {}
+
+export type CreateWorkItemWithActionsOptions = {
+  operationId?: string;
+};
 
 function errorIfInvalid(results: Array<{ error?: string }>) {
   const message = results.find((result) => result.error)?.error;
@@ -266,20 +278,134 @@ async function createActionItems(
   );
 }
 
-export async function createWorkItemWithActions(input: Record<string, unknown>) {
+async function createWorkItemWithActionsInTransaction(
+  transaction: TransactionClient,
+  itemInput: CreateWorkItemInput,
+  actionInputs: ActionItemInput[],
+  project: ProjectContext,
+) {
+  const item = await transaction.workItem.create({
+    data: { ...itemInput, projectId: project.projectId, project: project.project },
+  });
+  const actionItems = await createActionItems(transaction, actionInputs, {
+    projectId: item.projectId,
+    workItemId: item.id,
+  });
+  return { item, actionItems };
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+async function createIdempotentWorkItemWithActions(
+  itemInput: CreateWorkItemInput,
+  actionInputs: ActionItemInput[],
+  project: ProjectContext,
+  operationId: string,
+) {
+  const requestHash = canonicalRequestHash({
+    workItem: {
+      ...itemInput,
+      projectId: project.projectId,
+      // A project name is denormalized onto WorkItem. It may change after the
+      // original write, so an identified project is hashed by its stable id.
+      project: project.projectId ? null : project.project,
+    },
+    actionItems: actionInputs,
+  });
+
+  return prisma.$transaction(async (transaction) => {
+    let operation;
+    let ownsOperation = false;
+
+    try {
+      operation = await transaction.idempotencyOperation.create({
+        data: {
+          scope: CREATE_WORK_ITEM_SCOPE,
+          operationId,
+          requestHash,
+          state: "processing",
+        },
+      });
+      ownsOperation = true;
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+      operation = await transaction.idempotencyOperation.findUnique({
+        where: {
+          scope_operationId: {
+            scope: CREATE_WORK_ITEM_SCOPE,
+            operationId,
+          },
+        },
+      });
+      if (!operation) throw error;
+    }
+
+    if (!ownsOperation) {
+      if (operation.requestHash !== requestHash) {
+        throw new IdempotencyError(
+          "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD",
+          409,
+          "operationId was already used with a different payload",
+        );
+      }
+      if (operation.state === "succeeded") {
+        if (!operation.resultPayload) {
+          throw new Error("Succeeded idempotency operation has no result payload");
+        }
+        const result = JSON.parse(operation.resultPayload) as {
+          item: { id: string; projectId: string | null };
+          actionItems: unknown[];
+        };
+        return { ...result, operationId, idempotentReplay: true };
+      }
+      throw new IdempotencyError(
+        "IDEMPOTENCY_OPERATION_IN_PROGRESS",
+        409,
+        "operationId is still being processed; retry with the same operationId",
+      );
+    }
+
+    const result = await createWorkItemWithActionsInTransaction(
+      transaction,
+      itemInput,
+      actionInputs,
+      project,
+    );
+    await transaction.idempotencyOperation.update({
+      where: { id: operation.id },
+      data: {
+        resultObjectId: result.item.id,
+        resultPayload: JSON.stringify(result),
+        errorType: null,
+        state: "succeeded",
+      },
+    });
+
+    return { ...result, operationId, idempotentReplay: false };
+  }, { maxWait: 15_000, timeout: 30_000 });
+}
+
+export async function createWorkItemWithActions(
+  input: Record<string, unknown>,
+  options: CreateWorkItemWithActionsOptions = {},
+) {
   const itemInput = parseWorkItem(input);
   const actionInputs = parseActionItems(input.actionItems);
   const project = await resolveProject(itemInput.projectId, itemInput.project);
 
+  if (options.operationId) {
+    return createIdempotentWorkItemWithActions(
+      itemInput,
+      actionInputs,
+      project,
+      options.operationId,
+    );
+  }
+
   return prisma.$transaction(async (transaction) => {
-    const item = await transaction.workItem.create({
-      data: { ...itemInput, projectId: project.projectId, project: project.project },
-    });
-    const actionItems = await createActionItems(transaction, actionInputs, {
-      projectId: item.projectId,
-      workItemId: item.id,
-    });
-    return { item, actionItems };
+    return createWorkItemWithActionsInTransaction(transaction, itemInput, actionInputs, project);
   });
 }
 

@@ -21,6 +21,10 @@ import {
 } from "@/lib/projectMilestones";
 import { getLocalDateString, getWeekRange, isValidYmdDateString, toNullableString } from "@/lib/utils";
 import { excludeClosedItemsFromUpdatedItems } from "@/lib/todayBuckets";
+import {
+  isIdempotencyError,
+  resolveOperationId,
+} from "@/lib/idempotency";
 
 export const dynamic = "force-dynamic";
 
@@ -541,26 +545,49 @@ async function handleCreateProjectMember(input: Record<string, unknown>) {
   return jsonOk({ project: resolved.project, member }, 201);
 }
 
-async function handleCreateWorkItemWithActions(input: Record<string, unknown>) {
+async function handleCreateWorkItemWithActions(
+  input: Record<string, unknown>,
+  idempotencyKeyHeader?: string | null,
+) {
+  let operationId: string;
+  try {
+    operationId = resolveOperationId(input, idempotencyKeyHeader);
+  } catch (error) {
+    if (isIdempotencyError(error)) return jsonError(error.message, error.status, { code: error.code });
+    throw error;
+  }
+
   const resolved = await resolveProject(input);
   if ("needsConfirmation" in resolved) return jsonOk({ needsConfirmation: true, ...resolved });
   if ("error" in resolved) return jsonError(resolved.error || "Project lookup failed", resolved.status || 400);
   if (!("project" in resolved)) return jsonError("Project lookup failed");
 
   try {
-    const { item, actionItems } = await createWorkItemWithActions({
+    const result = await createWorkItemWithActions({
       ...input,
       projectId: resolved.project.id,
       project: resolved.project.name,
       sourceSystem: optionalString(input.sourceSystem) || "feishu-hermes",
       actionItems: input.actionItems ?? input.actions ?? input.todos,
-    });
+    }, { operationId }) as {
+      item: { id: string };
+      actionItems: unknown[];
+      operationId: string;
+      idempotentReplay: boolean;
+    };
 
-    revalidateWorkHubPaths({ itemId: item.id, projectId: resolved.project.id });
+    revalidateWorkHubPaths({ itemId: result.item.id, projectId: resolved.project.id });
 
-    return jsonOk({ project: resolved.project, item, actionItems }, 201);
+    return jsonOk({
+      project: resolved.project,
+      item: result.item,
+      actionItems: result.actionItems,
+      operationId: result.operationId,
+      idempotentReplay: result.idempotentReplay,
+    }, result.idempotentReplay ? 200 : 201);
   } catch (error) {
     if (isCompositeInputError(error)) return jsonError(error.message);
+    if (isIdempotencyError(error)) return jsonError(error.message, error.status, { code: error.code });
     throw error;
   }
 }
@@ -1346,7 +1373,9 @@ export async function POST(request: NextRequest) {
     if (tool === "update_project_link") return handleUpdateProjectLink(input);
     if (tool === "list_work_items") return handleListWorkItems(input);
     if (tool === "get_work_item") return handleGetWorkItem(input);
-    if (tool === "create_work_item_with_actions") return handleCreateWorkItemWithActions(input);
+    if (tool === "create_work_item_with_actions") {
+      return handleCreateWorkItemWithActions(input, request.headers.get("Idempotency-Key"));
+    }
     if (tool === "update_work_item") return handleUpdateWorkItem(input);
     if (tool === "close_work_item") return handleCloseWorkItem(input);
     if (tool === "list_work_logs") return handleListWorkLogs(input);
