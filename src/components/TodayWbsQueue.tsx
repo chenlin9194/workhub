@@ -7,7 +7,7 @@ export default async function TodayWbsQueue({ today }: { today: string }) {
   const horizon = new Date(`${today}T00:00:00`);
   horizon.setDate(horizon.getDate() + 14);
   const nodes = await prisma.projectWbsNode.findMany({
-    where: { plan: { status: "active" }, status: { notIn: ["done", "waived"] } },
+    where: { plan: { status: "active" }, removedAt: null, status: { notIn: ["done", "waived"] } },
     include: { project: { select: { id: true, name: true } }, milestone: { select: { targetDate: true } } },
     orderBy: [{ internalCheckDate: "asc" }, { sortOrder: "asc" }],
     take: 200,

@@ -20,5 +20,10 @@ export function revalidateWorkHubPaths(options?: { itemId?: string; logId?: stri
 
   if (options?.projectId) {
     revalidatePath(`/projects/${options.projectId}`);
+    revalidatePath(`/projects/${options.projectId}/snapshot`);
+    revalidatePath(`/projects/${options.projectId}/wbs`);
+    for (const gateKey of ["STR1", "STR2", "STR3", "STR4", "STR4A", "STR5"]) {
+      revalidatePath(`/projects/${options.projectId}/wbs/${gateKey}`);
+    }
   }
 }

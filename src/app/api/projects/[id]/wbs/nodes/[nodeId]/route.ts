@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 import {
   getProjectWbsSummary,
+  removeWbsTask,
   updateWbsNode,
   WbsInvalidNodeInputError,
   WbsNodeNotFoundError,
@@ -50,6 +51,27 @@ export async function PATCH(
       return NextResponse.json({ error: "请求体必须是 JSON 对象" }, { status: 400 });
     }
     const result = await updateWbsNode(id, nodeId, body as Record<string, unknown>);
+    revalidateWorkHubPaths({ projectId: id, itemId: result.executionItem?.id });
+    return NextResponse.json(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; nodeId: string }> },
+) {
+  try {
+    const { id, nodeId } = await params;
+    const body = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json({ error: "请求体必须是 JSON 对象" }, { status: 400 });
+    }
+    if (typeof body.reason !== "string" || !body.reason.trim()) {
+      return NextResponse.json({ error: "移除原因不能为空" }, { status: 400 });
+    }
+    const result = await removeWbsTask(id, nodeId, body.reason);
     revalidateWorkHubPaths({ projectId: id, itemId: result.executionItem?.id });
     return NextResponse.json(result);
   } catch (error) {

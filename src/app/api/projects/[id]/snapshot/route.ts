@@ -335,7 +335,7 @@ export async function GET(
             select: {
               profile: true,
               template: { select: { version: true } },
-              nodes: { select: { gateKey: true, code: true, title: true, kind: true, status: true, role: true, waiverReason: true, deliverables: { select: { required: true, status: true } } } },
+              nodes: { where: { removedAt: null }, select: { gateKey: true, code: true, title: true, kind: true, status: true, role: true, waiverReason: true, deliverables: { select: { required: true, status: true } } } },
             },
           }),
         ]);

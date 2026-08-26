@@ -26,7 +26,7 @@ type TemplateNodeRecord = Prisma.WbsTemplateNodeGetPayload<{ include: { parent: 
 type ProjectInitializationData = Prisma.ProjectGetPayload<{
   include: {
     milestones: true;
-    wbsPlan: { include: { _count: { select: { nodes: true } } } };
+    wbsPlan: { include: { nodes: { where: { removedAt: null }, select: { id: true } } } };
   };
 }>;
 
@@ -118,7 +118,7 @@ function existingPlanSummary(
     profile: plan.profile,
     status: plan.status,
     initializedAt: plan.initializedAt?.toISOString() ?? null,
-    nodeCount: plan._count.nodes,
+    nodeCount: plan.nodes.length,
   };
 }
 
@@ -219,7 +219,7 @@ async function loadInitializationData(projectId: string, templateVersion?: strin
       where: { id: projectId },
       include: {
         milestones: { orderBy: [{ sortOrder: "asc" }, { targetDate: "asc" }, { createdAt: "asc" }] },
-        wbsPlan: { include: { _count: { select: { nodes: true } } } },
+        wbsPlan: { include: { nodes: { where: { removedAt: null }, select: { id: true } } } },
       },
     }),
     prisma.wbsTemplate.findFirst({
@@ -410,10 +410,14 @@ export async function initializeProjectWbs(
         ownerName: null,
         sortOrder: node.sortOrder,
       };
+      const { ownerMemberId: _ownerMemberId, ownerName: _ownerName, ...nodeUpdateData } = nodeData;
+      void _ownerMemberId;
+      void _ownerName;
       const persisted = await tx.projectWbsNode.upsert({
         where: { planId_gateKey_code: { planId: plan.id, gateKey: node.gateKey, code: node.code } },
         create: { ...nodeData, status: node.kind === "package" ? null : "not_started" },
-        update: nodeData,
+        // Keep removal metadata and owner assignment out of the update so reinitialization retains both.
+        update: nodeUpdateData,
       });
       nodeIdByKey.set(`${node.stage}|${node.gateKey}|${node.code}`, persisted.id);
       if (node.kind === "package") packageCount += 1;
@@ -498,6 +502,7 @@ export async function getProjectWbsSummary(projectId: string) {
           include: {
             template: { select: { id: true, version: true, sourceFileName: true, sourceHash: true } },
             nodes: {
+              where: { removedAt: null },
               include: {
                 deliverables: true,
                 milestone: { include: { executionWorkItem: { select: { id: true, title: true, status: true, health: true } } } },
@@ -587,6 +592,62 @@ function executionItemStatus(readiness: ReturnType<typeof deriveStrReadiness>): 
   return "open";
 }
 
+async function syncWbsDerivedState(
+  tx: Prisma.TransactionClient,
+  node: { planId: string; gateKey: string; milestoneId: string },
+) {
+  const gateNodes = await tx.projectWbsNode.findMany({
+    where: { planId: node.planId, gateKey: node.gateKey, removedAt: null },
+    include: { deliverables: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  const readiness = deriveStrReadiness(node.gateKey as WbsGateKey, gateNodes.map((candidate) => ({
+    kind: candidate.kind as "package" | "task" | "gate",
+    status: candidate.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null,
+    requiredDeliverables: candidate.deliverables.map((deliverable) => ({
+      required: deliverable.required,
+      status: deliverable.status as "pending" | "delivered",
+    })),
+  })));
+  const milestone = await tx.projectMilestone.findUnique({ where: { id: node.milestoneId } });
+  if (!milestone) throw new WbsInvalidNodeInputError("WBS 关联里程碑不存在");
+  const milestoneStatus = deriveMilestoneStatus(
+    gateNodes.map((candidate) => ({
+      kind: candidate.kind as "package" | "task" | "gate",
+      status: candidate.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null,
+    })),
+    dateToYmd(milestone.targetDate),
+    getLocalDateString(),
+  );
+  const mappedMilestoneStatus = milestoneStatus === "not_started" ? "planned" : milestoneStatus;
+  const nextActualDate = milestoneStatus === "done"
+    ? milestone.actualDate ?? new Date()
+    : milestone.status === "done"
+      ? null
+      : milestone.actualDate;
+  const updatedMilestone = await tx.projectMilestone.update({
+    where: { id: milestone.id },
+    data: { status: mappedMilestoneStatus, actualDate: nextActualDate },
+  });
+
+  const executionItem = await tx.workItem.findUnique({ where: { executionMilestoneId: milestone.id } });
+  let updatedExecutionItem = executionItem;
+  if (executionItem) {
+    const nextItemStatus = executionItemStatus(readiness);
+    updatedExecutionItem = await tx.workItem.update({
+      where: { id: executionItem.id },
+      data: {
+        status: nextItemStatus,
+        health: readiness.status === "blocked" ? "red" : milestoneStatus === "delayed" ? "yellow" : "unknown",
+        nextAction: readiness.nextAction ?? `${node.gateKey} 执行跟进`,
+        closedAt: nextItemStatus === "closed" ? executionItem.closedAt ?? new Date() : null,
+      },
+    });
+  }
+
+  return { readiness, milestone: updatedMilestone, executionItem: updatedExecutionItem };
+}
+
 export async function updateWbsNode(
   projectId: string,
   nodeId: string,
@@ -594,7 +655,7 @@ export async function updateWbsNode(
 ) {
   return prisma.$transaction(async (tx) => {
     const node = await tx.projectWbsNode.findFirst({
-      where: { id: nodeId, projectId },
+      where: { id: nodeId, projectId, removedAt: null },
       include: {
         deliverables: { orderBy: { sortOrder: "asc" } },
         milestone: true,
@@ -694,54 +755,8 @@ export async function updateWbsNode(
       }
     }
 
-    const gateNodes = await tx.projectWbsNode.findMany({
-      where: { planId: node.planId, gateKey: node.gateKey },
-      include: { deliverables: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    });
-    const readiness = deriveStrReadiness(node.gateKey as WbsGateKey, gateNodes.map((candidate) => ({
-      kind: candidate.kind as "package" | "task" | "gate",
-      status: candidate.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null,
-      requiredDeliverables: candidate.deliverables.map((deliverable) => ({
-        required: deliverable.required,
-        status: deliverable.status as "pending" | "delivered",
-      })),
-    })));
-    const milestone = await tx.projectMilestone.findUnique({ where: { id: node.milestoneId } });
-    if (!milestone) throw new WbsInvalidNodeInputError("WBS 关联里程碑不存在");
-    const milestoneStatus = deriveMilestoneStatus(
-      gateNodes.map((candidate) => ({
-        kind: candidate.kind as "package" | "task" | "gate",
-        status: candidate.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null,
-      })),
-      dateToYmd(milestone.targetDate),
-      getLocalDateString(),
-    );
-    const mappedMilestoneStatus = milestoneStatus === "not_started" ? "planned" : milestoneStatus;
-    const nextActualDate = milestoneStatus === "done"
-      ? milestone.actualDate ?? new Date()
-      : milestone.status === "done"
-        ? null
-        : milestone.actualDate;
-    const updatedMilestone = await tx.projectMilestone.update({
-      where: { id: milestone.id },
-      data: { status: mappedMilestoneStatus, actualDate: nextActualDate },
-    });
-
-    const executionItem = await tx.workItem.findUnique({ where: { executionMilestoneId: milestone.id } });
-    let updatedExecutionItem = executionItem;
-    if (executionItem) {
-      const nextItemStatus = executionItemStatus(readiness);
-      updatedExecutionItem = await tx.workItem.update({
-        where: { id: executionItem.id },
-        data: {
-          status: nextItemStatus,
-          health: readiness.status === "blocked" ? "red" : milestoneStatus === "delayed" ? "yellow" : "unknown",
-          nextAction: readiness.nextAction ?? `${node.gateKey} 执行跟进`,
-          closedAt: nextItemStatus === "closed" ? executionItem.closedAt ?? new Date() : null,
-        },
-      });
-    }
+    const { readiness, milestone: updatedMilestone, executionItem: updatedExecutionItem } =
+      await syncWbsDerivedState(tx, node);
 
     const linkedOpenItemCount = node.originWorkItems.filter((item) => item.status !== "closed").length;
     return {
@@ -756,13 +771,90 @@ export async function updateWbsNode(
   });
 }
 
+export async function removeWbsTask(
+  projectId: string,
+  nodeId: string,
+  removalReason: string,
+) {
+  const reason = removalReason.trim();
+  if (!reason) throw new WbsInvalidNodeInputError("移除原因不能为空");
+
+  return prisma.$transaction(async (tx) => {
+    const node = await tx.projectWbsNode.findFirst({
+      where: { id: nodeId, projectId },
+      include: {
+        deliverables: { orderBy: { sortOrder: "asc" } },
+        milestone: true,
+        originWorkItems: { select: { id: true, title: true, status: true } },
+      },
+    });
+    if (!node) throw new WbsNodeNotFoundError(nodeId);
+    if (node.kind !== "task") {
+      throw new WbsInvalidNodeInputError("只有 WBS 执行任务可以软移除");
+    }
+    if (node.removedAt) {
+      if (!node.removalReason) throw new WbsInvalidNodeInputError("已移除节点缺少移除原因");
+      return {
+        node,
+        readiness: null,
+        milestone: node.milestone,
+        executionItem: null,
+        idempotent: true,
+        warnings: [],
+      };
+    }
+
+    const removedAt = new Date();
+    const marked = await tx.projectWbsNode.updateMany({
+      where: { id: node.id, projectId, removedAt: null },
+      data: { removedAt, removalReason: reason },
+    });
+    if (marked.count === 0) {
+      const current = await tx.projectWbsNode.findFirst({
+        where: { id: nodeId, projectId },
+        include: {
+          deliverables: { orderBy: { sortOrder: "asc" } },
+          milestone: true,
+          originWorkItems: { select: { id: true, title: true, status: true } },
+        },
+      });
+      if (!current) throw new WbsNodeNotFoundError(nodeId);
+      if (current.kind !== "task") throw new WbsInvalidNodeInputError("只有 WBS 执行任务可以软移除");
+      if (!current.removedAt || !current.removalReason) {
+        throw new WbsInvalidNodeInputError("WBS 节点移除状态无效，请重试");
+      }
+      return {
+        node: current,
+        readiness: null,
+        milestone: current.milestone,
+        executionItem: null,
+        idempotent: true,
+        warnings: [],
+      };
+    }
+
+    const { readiness, milestone, executionItem } = await syncWbsDerivedState(tx, node);
+    const linkedOpenItemCount = node.originWorkItems.filter((item) => item.status !== "closed").length;
+    return {
+      node: { ...node, removedAt, removalReason: reason },
+      readiness,
+      milestone,
+      executionItem,
+      idempotent: false,
+      warnings: node.originWorkItems.length > 0
+        ? [`已软移除 WBS 任务；${node.originWorkItems.length} 个关联普通事项保留不变${linkedOpenItemCount > 0 ? `，其中 ${linkedOpenItemCount} 个尚未关闭` : ""}`]
+        : [],
+    };
+  });
+}
+
 export async function splitWbsNodeIntoWorkItem(
   projectId: string,
   nodeId: string,
   input: Record<string, unknown>,
 ) {
   const node = await prisma.projectWbsNode.findFirst({
-    where: { id: nodeId, projectId },
+    where: { id: nodeId, projectId, removedAt: null },
     include: { project: true, milestone: true },
   });
   if (!node) throw new WbsNodeNotFoundError(nodeId);

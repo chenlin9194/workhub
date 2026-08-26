@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   findNode: vi.fn(),
   updateNode: vi.fn(),
+  updateManyNode: vi.fn(),
   findGateNodes: vi.fn(),
   findMilestone: vi.fn(),
   updateMilestone: vi.fn(),
@@ -13,10 +14,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { $transaction: mocks.transaction },
+  prisma: { $transaction: mocks.transaction, projectWbsNode: { findFirst: mocks.findNode } },
 }));
 
-import { updateWbsNode } from "@/lib/wbs/service";
+import { removeWbsTask, splitWbsNodeIntoWorkItem, updateWbsNode } from "@/lib/wbs/service";
 
 function currentNode() {
   return {
@@ -35,6 +36,8 @@ function currentNode() {
     deliverables: [{ id: "deliverable-1", required: true, status: "delivered", evidenceUrl: null, sortOrder: 0 }],
     milestone: { id: "milestone-1", status: "planned", targetDate: null, actualDate: null },
     originWorkItems: [],
+    removedAt: null,
+    removalReason: null,
   };
 }
 
@@ -44,6 +47,7 @@ beforeEach(() => {
     projectWbsNode: {
       findFirst: mocks.findNode,
       update: mocks.updateNode,
+      updateMany: mocks.updateManyNode,
       findMany: mocks.findGateNodes,
     },
     projectMilestone: {
@@ -97,5 +101,82 @@ describe("WBS execution transactions", () => {
     expect(mocks.updateDeliverable).not.toHaveBeenCalled();
     expect(mocks.updateMilestone).not.toHaveBeenCalled();
     expect(mocks.updateExecutionItem).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["in_progress", "in_progress"],
+    ["blocked", "open"],
+    ["done", "open"],
+  ] as const)("soft removes a %s task and recomputes active-node readiness", async (status, expectedReadiness) => {
+    const node = { ...currentNode(), status, originWorkItems: [{ id: "item-linked", title: "关联事项", status: "open" }] };
+    mocks.findNode.mockResolvedValue(node);
+    mocks.updateManyNode.mockResolvedValue({ count: 1 });
+    mocks.findGateNodes.mockResolvedValue([
+      { kind: "task", status: status === "in_progress" ? "in_progress" : "not_started", deliverables: [] },
+      { kind: "gate", status: "not_started", deliverables: [] },
+    ]);
+    mocks.findMilestone.mockResolvedValue({ ...node.milestone, status: status === "done" ? "done" : "in_progress", actualDate: status === "done" ? new Date("2026-08-20") : null });
+    mocks.updateMilestone.mockResolvedValue({ ...node.milestone, status: "planned", actualDate: null });
+    mocks.findExecutionItem.mockResolvedValue({ id: "item-str1", status: "open", closedAt: null });
+    mocks.updateExecutionItem.mockResolvedValue({ id: "item-str1", status: "open" });
+
+    const result = await removeWbsTask("project-1", node.id, "业务范围调整");
+
+    expect(result.idempotent).toBe(false);
+    expect(result.node.removedAt).toBeInstanceOf(Date);
+    expect(result.node.removalReason).toBe("业务范围调整");
+    expect(result.readiness?.status).toBe(expectedReadiness);
+    expect(result.warnings[0]).toContain("关联普通事项保留不变");
+    expect(mocks.findGateNodes).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ removedAt: null }),
+    }));
+    expect(mocks.updateManyNode).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: node.id, projectId: "project-1", removedAt: null },
+      data: expect.objectContaining({ removalReason: "业务范围调整" }),
+    }));
+    expect(mocks.updateNode).not.toHaveBeenCalled();
+    expect(mocks.updateDeliverable).not.toHaveBeenCalled();
+  });
+
+  it("rejects package and gate removal without issuing writes", async () => {
+    mocks.findNode.mockResolvedValue({ ...currentNode(), kind: "package", status: null });
+
+    await expect(removeWbsTask("project-1", "node-package-1", "不再适用"))
+      .rejects.toThrow("只有 WBS 执行任务可以软移除");
+
+    expect(mocks.updateManyNode).not.toHaveBeenCalled();
+    expect(mocks.updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("requires a non-empty removal reason", async () => {
+    await expect(removeWbsTask("project-1", "node-task-1", "  "))
+      .rejects.toThrow("移除原因不能为空");
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns the original removal on a conditional race without a second mutation", async () => {
+    const removedAt = new Date("2026-08-24T09:00:00.000Z");
+    const node = { ...currentNode(), removedAt, removalReason: "原始原因" };
+    mocks.findNode.mockResolvedValueOnce({ ...node, removedAt: null, removalReason: null }).mockResolvedValueOnce(node);
+    mocks.updateManyNode.mockResolvedValue({ count: 0 });
+
+    const result = await removeWbsTask("project-1", node.id, "新原因");
+
+    expect(result.idempotent).toBe(true);
+    expect(result.node.removedAt).toBe(removedAt);
+    expect(result.node.removalReason).toBe("原始原因");
+    expect(mocks.updateManyNode).toHaveBeenCalledTimes(1);
+    expect(mocks.findGateNodes).not.toHaveBeenCalled();
+    expect(mocks.updateMilestone).not.toHaveBeenCalled();
+    expect(mocks.updateExecutionItem).not.toHaveBeenCalled();
+  });
+
+  it("does not patch or split an already removed node", async () => {
+    mocks.findNode.mockResolvedValue(null);
+
+    await expect(updateWbsNode("project-1", "node-task-1", { status: "done" }))
+      .rejects.toThrow("WBS 节点不存在");
+    await expect(splitWbsNodeIntoWorkItem("project-1", "node-task-1", { title: "拆分" }))
+      .rejects.toThrow("WBS 节点不存在");
   });
 });

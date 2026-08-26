@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import Icon from "@/components/Icon";
@@ -54,6 +54,75 @@ function milestonePhase(milestone: ProjectMilestone, today: string) {
   return "future";
 }
 
+function milestoneDateTime(value?: Date | string | null) {
+  const time = toTime(value);
+  return time > 0 ? time : Number.POSITIVE_INFINITY;
+}
+
+function getMilestoneSortStart(milestone: ProjectMilestone) {
+  return milestoneDateTime(
+    milestone.actualStartDate ||
+      milestone.plannedStartDate ||
+      milestone.actualDate ||
+      milestone.targetDate ||
+      milestone.actualEndDate ||
+      milestone.plannedEndDate,
+  );
+}
+
+function getMilestoneSortEnd(milestone: ProjectMilestone) {
+  return milestoneDateTime(
+    milestone.actualEndDate ||
+      milestone.actualDate ||
+      milestone.plannedEndDate ||
+      milestone.targetDate ||
+      milestone.actualStartDate ||
+      milestone.plannedStartDate,
+  );
+}
+
+function compareMilestonesByStart(a: ProjectMilestone, b: ProjectMilestone) {
+  return (getMilestoneSortStart(a) - getMilestoneSortStart(b)) ||
+    (getMilestoneSortEnd(a) - getMilestoneSortEnd(b)) ||
+    (a.sortOrder - b.sortOrder) ||
+    a.title.localeCompare(b.title, "zh-CN");
+}
+
+function comparePastMilestones(a: ProjectMilestone, b: ProjectMilestone) {
+  return (getMilestoneSortEnd(b) - getMilestoneSortEnd(a)) ||
+    (getMilestoneSortStart(b) - getMilestoneSortStart(a)) ||
+    (a.sortOrder - b.sortOrder) ||
+    a.title.localeCompare(b.title, "zh-CN");
+}
+
+function selectCockpitMilestones(milestones: ProjectMilestone[], today: string) {
+  const current = milestones
+    .filter((milestone) => milestonePhase(milestone, today) === "current")
+    .sort(compareMilestonesByStart);
+  const future = milestones
+    .filter((milestone) => milestonePhase(milestone, today) === "future")
+    .sort(compareMilestonesByStart);
+  const past = milestones
+    .filter((milestone) => milestonePhase(milestone, today) === "past")
+    .sort(comparePastMilestones);
+
+  if (current.length === 0 && future.length === 0) {
+    return past.slice(0, 6).sort(compareMilestonesByStart);
+  }
+
+  const selected = [...current.slice(0, 6)];
+  let remaining = 6 - selected.length;
+  if (remaining > 0) {
+    selected.push(...future.slice(0, remaining));
+    remaining = 6 - selected.length;
+  }
+  if (remaining > 0 && past.length > 0) {
+    selected.push(past[0]);
+  }
+
+  return selected.sort(compareMilestonesByStart);
+}
+
 function isRangeMilestone(milestone: ProjectMilestone) {
   return milestone.dateMode === "range" || Boolean(milestone.plannedStartDate && (milestone.plannedEndDate || milestone.targetDate));
 }
@@ -76,6 +145,7 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params.id as string;
+  const actionInFlightRef = useRef(false);
   const manageModule = searchParams.get("manage");
   const [project, setProject] = useState<Project | null>(null);
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
@@ -84,6 +154,37 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [panelsLoading, setPanelsLoading] = useState(true);
   const [milestoneView, setMilestoneView] = useState<"timeline" | "list">("timeline");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!project || actionInFlightRef.current) return;
+    if (!confirm("确定删除此项目？关联事项和日志不会被删除。")) return;
+
+    const button = event.currentTarget;
+    actionInFlightRef.current = true;
+    button.disabled = true;
+    setDeleting(true);
+    let shouldRestoreButton = true;
+
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+      if (res.ok) {
+        shouldRestoreButton = false;
+        window.location.assign("/projects");
+        return;
+      }
+      alert("删除失败，请重试");
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("删除失败，请重试");
+    } finally {
+      if (shouldRestoreButton) {
+        actionInFlightRef.current = false;
+        button.disabled = false;
+        setDeleting(false);
+      }
+    }
+  };
 
   const fetchProject = useCallback(async () => {
     setLoading(true);
@@ -161,18 +262,13 @@ export default function ProjectDetailPage() {
     if (a.status !== "blocked" && b.status === "blocked") return 1;
     return toTime(b.updatedAt) - toTime(a.updatedAt);
   }).slice(0, 5);
-  const orderedMilestones = [...milestones].sort((a, b) => (a.sortOrder - b.sortOrder) || (toTime(a.targetDate) - toTime(b.targetDate)));
-  const stageMilestones = project.stage ? orderedMilestones.filter((milestone) => milestone.stage === project.stage) : [];
-  const activeStageMilestones = stageMilestones.length > 0 ? stageMilestones : orderedMilestones;
-  const cockpitMilestones = activeStageMilestones.slice(0, 6);
-  const extraMilestones = Math.max(0, activeStageMilestones.length - cockpitMilestones.length);
-  const milestonePhaseCounts = activeStageMilestones.reduce((counts, milestone) => {
+  const cockpitMilestones = selectCockpitMilestones(milestones, today);
+  const extraMilestones = Math.max(0, milestones.length - cockpitMilestones.length);
+  const milestonePhaseCounts = cockpitMilestones.reduce((counts, milestone) => {
     counts[milestonePhase(milestone, today)] += 1;
     return counts;
   }, { past: 0, current: 0, future: 0 });
-  const stageLabel = project.stage && stageMilestones.length > 0
-    ? PROJECT_MILESTONE_STAGE_LABELS[project.stage] || PROJECT_STAGE_LABELS[project.stage] || project.stage
-    : PROJECT_STAGE_LABELS[project.stage || ""] || "当前阶段";
+  const stageLabel = PROJECT_MILESTONE_STAGE_LABELS[project.stage || ""] || PROJECT_STAGE_LABELS[project.stage || ""] || "当前阶段";
   const coreMembers = members.filter((member) => member.isCore).length;
   const todayLogCount = logs.filter((log) => log.workDate === today).length;
   const yesterday = new Date(`${today}T00:00:00`);
@@ -186,7 +282,19 @@ export default function ProjectDetailPage() {
         <div className="project-cockpit-hero-main">
           <Link href="/projects" className="project-cockpit-back">← 项目列表</Link>
           <div className="project-cockpit-kicker">{project.code || "PROJECT"} · {PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</div>
-          <div className="project-cockpit-title-row"><h1>{project.name}</h1><Link href={`/projects/${project.id}/edit`} className="project-cockpit-edit-link"><Icon name="edit" size={13} /> 编辑项目资料</Link></div>
+          <div className="project-cockpit-title-row">
+            <h1>{project.name}</h1>
+            <Link href={`/projects/${project.id}/edit`} className="project-cockpit-edit-link">
+              <Icon name="edit" size={13} /> 编辑项目资料
+            </Link>
+            <button onClick={handleDelete} className="btn btn-danger item-delete-quiet" disabled={deleting}>
+              {deleting ? "删除中..." : (
+                <>
+                  <Icon name="trash" size={14} /> 删除项目
+                </>
+              )}
+            </button>
+          </div>
           <div className="project-cockpit-pills">
             <span className={`project-cockpit-pill is-${project.health}`}>健康 · {HEALTH_LABELS[project.health] || project.health}</span>
             <span className="project-cockpit-pill">{PROJECT_STATUS_LABELS[project.status] || project.status}</span>
@@ -212,8 +320,8 @@ export default function ProjectDetailPage() {
       </section>
 
       <section className="project-cockpit-panel project-cockpit-milestones">
-        <div className="project-cockpit-panel-head"><div><span>PLANS & NODES</span><h2>{stageLabel}阶段计划</h2></div><div className="project-cockpit-view-switch"><button type="button" className={milestoneView === "timeline" ? "is-active" : ""} onClick={() => setMilestoneView("timeline")}>时间轴</button><button type="button" className={milestoneView === "list" ? "is-active" : ""} onClick={() => setMilestoneView("list")}>列表</button><Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-action-link">维护计划</Link></div></div>
-        {panelsLoading ? <div className="project-cockpit-panel-loading">正在读取当前阶段的里程碑与计划…</div> : <>
+        <div className="project-cockpit-panel-head"><div><span>PLANS & NODES · {stageLabel}</span><h2>当前计划与节点</h2></div><div className="project-cockpit-view-switch"><button type="button" className={milestoneView === "timeline" ? "is-active" : ""} onClick={() => setMilestoneView("timeline")}>时间轴</button><button type="button" className={milestoneView === "list" ? "is-active" : ""} onClick={() => setMilestoneView("list")}>列表</button><Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-action-link">维护计划</Link></div></div>
+        {panelsLoading ? <div className="project-cockpit-panel-loading">正在读取里程碑与计划…</div> : <>
         <div className="project-cockpit-phase-legend"><span className="is-past">已完成 {milestonePhaseCounts.past}</span><span className="is-current">当前推进 {milestonePhaseCounts.current}</span><span className="is-future">后续计划 {milestonePhaseCounts.future}</span></div>
         {milestoneView === "timeline" ? (
           <div className="project-cockpit-axis" aria-label="里程碑时间轴">
@@ -222,13 +330,13 @@ export default function ProjectDetailPage() {
                 <i /><small>{milestoneScheduleLabel(milestone)}</small><strong>{milestone.title}</strong><em><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em>
               </div>
             ))}
-            {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看本阶段其余 {extraMilestones} 项 →</Link>}
+            {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看其余 {extraMilestones} 项 →</Link>}
           </div>
         ) : <div className="project-cockpit-timeline">
           {cockpitMilestones.length === 0 ? <p className="project-cockpit-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => (
             <div key={milestone.id} className={`project-cockpit-node is-${milestonePhase(milestone, today)}${isRangeMilestone(milestone) ? " is-range" : " is-point"}`}><i /><div><small><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{milestoneScheduleLabel(milestone)} · {milestonePhase(milestone, today) === "past" ? "已完成" : milestonePhase(milestone, today) === "current" ? "当前推进" : "后续计划"}</small><strong>{milestone.title}</strong><em>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em></div></div>
           ))}
-          {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看本阶段其余 {extraMilestones} 项 →</Link>}
+          {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看其余 {extraMilestones} 项 →</Link>}
         </div>}</>}
       </section>
 

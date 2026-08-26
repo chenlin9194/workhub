@@ -31,7 +31,7 @@ type Summary = {
   plan: { profile: string; template: { version: string }; nodes: NodeView[] } | null;
 };
 
-type FilterKey = "all" | "blocked" | "deliverable" | "waived";
+type FilterKey = "all" | "in_progress" | "blocked" | "not_started" | "done" | "deliverable" | "waived";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "未开始",
@@ -88,8 +88,15 @@ export default function WbsGateClient({ projectId, gateKey }: { projectId: strin
     ...gate.tasks,
     ...(gate.review ? [gate.review] : []),
   ].map((node) => node.role?.trim() || "").filter(Boolean))].sort((left, right) => left.localeCompare(right, "zh-CN")), [gate]);
+  const taskStatusCounts = useMemo(() => gate.tasks.reduce<Record<string, number>>((counts, node) => {
+    const status = node.status || "not_started";
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {}), [gate.tasks]);
+  const pendingDeliverableTaskCount = gate.tasks.filter((node) => node.deliverables.some((deliverable) => deliverable.required && deliverable.status !== "delivered")).length;
   const visibleTasks = gate.tasks.filter((node) => {
     if (roleFilters.length > 0) return roleFilters.includes(node.role?.trim() || "");
+    if (filter === "in_progress" || filter === "not_started" || filter === "done") return (node.status || "not_started") === filter;
     if (filter === "blocked") return node.status === "blocked";
     if (filter === "deliverable") return node.deliverables.some((deliverable) => deliverable.required && deliverable.status !== "delivered");
     if (filter === "waived") return node.status === "waived";
@@ -129,7 +136,7 @@ export default function WbsGateClient({ projectId, gateKey }: { projectId: strin
       </header>
 
       <section className="wbs-panel wbs-execution-toolbar">
-        <div className="wbs-filter-tabs"><button type="button" className={filter === "all" && roleFilters.length === 0 ? "is-active" : ""} onClick={() => { setFilter("all"); setRoleFilters([]); }}>全部</button>{(["blocked", "deliverable", "waived"] as FilterKey[]).map((key) => <button type="button" key={key} className={filter === key && roleFilters.length === 0 ? "is-active" : ""} onClick={() => { setFilter(key); setRoleFilters([]); }}>{key === "blocked" ? "阻塞" : key === "deliverable" ? "待交付" : "已豁免"}</button>)}<details className="wbs-role-filter"><summary>按角色 · {roleFilters.length > 0 ? `已选 ${roleFilters.length} 个` : "全部角色"}</summary><div className="wbs-role-menu"><button type="button" onClick={() => { setRoleFilters([]); setFilter("all"); }}>清除角色选择</button>{roleOptions.map((role) => <label key={role}><input type="checkbox" checked={roleFilters.includes(role)} onChange={(event) => { setRoleFilters((current) => event.target.checked ? [...current, role] : current.filter((selectedRole) => selectedRole !== role)); setFilter("all"); }} /><span>{role}</span></label>)}</div></details></div>
+        <div className="wbs-filter-tabs"><button type="button" className={filter === "all" && roleFilters.length === 0 ? "is-active" : ""} onClick={() => { setFilter("all"); setRoleFilters([]); }}>全部 {gate.tasks.length}</button>{(["in_progress", "blocked", "not_started", "done", "deliverable", "waived"] as FilterKey[]).map((key) => <button type="button" key={key} className={filter === key && roleFilters.length === 0 ? "is-active" : ""} onClick={() => { setFilter(key); setRoleFilters([]); }}>{key === "in_progress" ? "进行中" : key === "blocked" ? "阻塞" : key === "not_started" ? "未开始" : key === "done" ? "已完成" : key === "deliverable" ? "待交付" : "已豁免"} {key === "deliverable" ? pendingDeliverableTaskCount : taskStatusCounts[key] || 0}</button>)}<details className="wbs-role-filter"><summary>按角色 · {roleFilters.length > 0 ? `已选 ${roleFilters.length} 个` : "全部角色"}</summary><div className="wbs-role-menu"><button type="button" onClick={() => { setRoleFilters([]); setFilter("all"); }}>清除角色选择</button>{roleOptions.map((role) => <label key={role}><input type="checkbox" checked={roleFilters.includes(role)} onChange={(event) => { setRoleFilters((current) => event.target.checked ? [...current, role] : current.filter((selectedRole) => selectedRole !== role)); setFilter("all"); }} /><span>{role}</span></label>)}</div></details></div>
         <div className="wbs-readiness-line"><span>待交付物 {gate.readiness.pendingRequiredDeliverables}</span><span>阻塞 {gate.readiness.blockedNodes}</span><span>{gate.readiness.nextAction || "继续推进执行任务"}</span></div>
       </section>
 
@@ -141,13 +148,13 @@ export default function WbsGateClient({ projectId, gateKey }: { projectId: strin
             const allChildren = gate.tasks.filter((node) => node.parentId === pkg.id);
             const packageStatus = derivePackageStatus(allChildren.map((node) => ({ kind: "task" as const, status: node.status as "not_started" | "in_progress" | "blocked" | "done" | "waived" | null })));
             if (children.length === 0) return null;
-            return <div className="wbs-package" key={pkg.id}><div className="wbs-package-head"><div><strong>{pkg.code} {pkg.title}</strong><span>{pkg.role || "WBS 角色由子任务定义"}</span></div><b className={`is-${packageStatus}`}>{STATUS_LABELS[packageStatus]}</b></div><div className="wbs-task-list">{children.map((node) => <WbsTaskEditor key={node.id} node={node} onUpdate={updateNode} onError={setError} onMessage={setMessage} projectId={projectId} />)}</div></div>;
+            return <div className={`wbs-package is-${packageStatus}`} key={pkg.id}><div className="wbs-package-head"><div><strong>{pkg.code} {pkg.title}</strong><span>{pkg.role || "WBS 角色由子任务定义"}</span></div><b className={`wbs-package-status is-${packageStatus}`}>{STATUS_LABELS[packageStatus]}</b></div><div className="wbs-task-list">{children.map((node) => <WbsTaskEditor key={node.id} node={node} onUpdate={updateNode} onError={setError} onMessage={setMessage} onRemoved={load} projectId={projectId} />)}</div></div>;
           })}
           {visibleTasks.length === 0 && <p className="wbs-empty">当前筛选没有匹配任务。</p>}
         </div>
       </section>
 
-      {gate.review && <section className="wbs-panel wbs-review-panel"><div className="wbs-panel-head"><div><span className="wbs-eyebrow">REVIEW GATE</span><h2>{gate.review.code} · {gate.review.title}</h2></div><WbsTaskEditor node={gate.review} onUpdate={updateNode} onError={setError} onMessage={setMessage} projectId={projectId} /></div></section>}
+      {gate.review && <section className="wbs-panel wbs-review-panel"><div className="wbs-panel-head"><div><span className="wbs-eyebrow">REVIEW GATE</span><h2>{gate.review.code} · {gate.review.title}</h2></div><WbsTaskEditor node={gate.review} onUpdate={updateNode} onError={setError} onMessage={setMessage} onRemoved={load} projectId={projectId} /></div></section>}
       {message && <p className="wbs-success">{message}</p>}
       {error && <p className="wbs-error">{error}</p>}
     </main>
@@ -159,12 +166,14 @@ function WbsTaskEditor({
   onUpdate,
   onError,
   onMessage,
+  onRemoved,
   projectId,
 }: {
   node: NodeView;
   onUpdate: (nodeId: string, payload: Record<string, unknown>) => Promise<void>;
   onError: (message: string) => void;
   onMessage: (message: string) => void;
+  onRemoved: () => Promise<void>;
   projectId: string;
 }) {
   const [status, setStatus] = useState(node.status || "not_started");
@@ -174,6 +183,7 @@ function WbsTaskEditor({
   const [internalCheckDate, setInternalCheckDate] = useState(node.internalCheckDate || "");
   const [deliverables, setDeliverables] = useState(node.deliverables.map((deliverable) => ({ id: deliverable.id, status: deliverable.status, evidenceUrl: deliverable.evidenceUrl || "" })));
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     setStatus(node.status || "not_started");
@@ -208,9 +218,37 @@ function WbsTaskEditor({
     }
   };
 
+  const removeTask = async () => {
+    if (node.kind !== "task" || removing) return;
+    if (!window.confirm(`确定软移除 WBS 任务“${node.code} ${node.title}”吗？仅影响当前项目 WBS；全局 WBS 模板保持不变；移除后不再计入 STR 进度和就绪度；关联的普通 WorkItem 不会被删除。`)) return;
+    const reason = window.prompt("请输入移除原因（必填）", "");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      onError("移除原因不能为空");
+      return;
+    }
+    setRemoving(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/wbs/nodes/${node.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "软移除 WBS 任务失败");
+      const warningText = Array.isArray(data.warnings) && data.warnings.length > 0 ? ` ${data.warnings.join("；")}` : "";
+      onMessage(`已软移除 ${node.code}。${warningText}`);
+      await onRemoved();
+    } catch (nextError) {
+      onError(nextError instanceof Error ? nextError.message : "软移除 WBS 任务失败");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   return (
-    <details className="wbs-task" open={node.status === "blocked"}>
-      <summary><span className={`wbs-status-dot is-${node.status || "not_started"}`} /><span className="wbs-task-code">{node.code}</span><strong>{node.title}</strong><small>{node.role || "未设置角色"}</small><b>{STATUS_LABELS[node.status || "not_started"]}</b></summary>
+    <details className={`wbs-task is-${node.status || "not_started"}`} open={node.status === "blocked"}>
+      <summary><span className={`wbs-status-dot is-${node.status || "not_started"}`} /><span className="wbs-task-code">{node.code}</span><strong>{node.title}</strong><small>{node.role || "未设置角色"}</small><b className={`wbs-task-status is-${node.status || "not_started"}`}>{STATUS_LABELS[node.status || "not_started"]}</b></summary>
       <div className="wbs-task-body">
         <div className="wbs-task-meta"><span>WBS 角色：{node.role || "未设置"}</span><span>内部检查：{dateLabel(node.internalCheckDate)}</span></div>
         <label>状态<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="not_started">未开始</option><option value="in_progress">进行中</option><option value="blocked">阻塞</option><option value="done">已完成</option><option value="waived">已豁免</option></select></label>
@@ -220,7 +258,7 @@ function WbsTaskEditor({
         <label>内部检查日期<input type="date" value={internalCheckDate} onChange={(event) => setInternalCheckDate(event.target.value)} /></label>
         {node.deliverables.length > 0 && <div className="wbs-deliverable-list"><strong>交付物</strong>{node.deliverables.map((deliverable, index) => <div key={deliverable.id}><span>{deliverable.required ? "必需" : "可选"} · {deliverable.title}</span><select value={deliverables[index]?.status || deliverable.status} onChange={(event) => setDeliverables((current) => current.map((entry) => entry.id === deliverable.id ? { ...entry, status: event.target.value } : entry))}><option value="pending">待交付</option><option value="delivered">已交付</option></select><input value={deliverables[index]?.evidenceUrl || ""} onChange={(event) => setDeliverables((current) => current.map((entry) => entry.id === deliverable.id ? { ...entry, evidenceUrl: event.target.value } : entry))} placeholder="证据链接（可选）" /></div>)}</div>}
         {node.originWorkItems.length > 0 && <div className="wbs-related-items"><strong>关联普通事项</strong>{node.originWorkItems.map((item) => <Link key={item.id} href={`/items/${item.id}`}>{item.title}<small>{item.status}</small></Link>)}</div>}
-        <div className="wbs-task-actions"><button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "保存中…" : "保存节点"}</button>{node.kind === "task" && <button type="button" className="btn btn-secondary" onClick={splitItem}>拆分为普通事项</button>}</div>
+        <div className="wbs-task-actions"><button type="button" className="btn btn-primary" onClick={save} disabled={saving || removing}>{saving ? "保存中…" : "保存节点"}</button>{node.kind === "task" && <><button type="button" className="btn btn-secondary" onClick={splitItem} disabled={saving || removing}>拆分为普通事项</button><button type="button" className="btn btn-danger item-delete-quiet" onClick={removeTask} disabled={saving || removing}>{removing ? "移除中…" : "软移除任务"}</button></>}</div>
       </div>
     </details>
   );

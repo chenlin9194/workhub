@@ -5,7 +5,7 @@ import { deriveStrReadiness } from "@/lib/wbs/readiness";
 export default async function WbsReportFacts() {
   const plans = await prisma.projectWbsPlan.findMany({
     where: { status: "active" },
-    include: { project: { select: { id: true, name: true } }, nodes: { include: { deliverables: true } } },
+    include: { project: { select: { id: true, name: true } }, nodes: { where: { removedAt: null }, include: { deliverables: true } } },
     orderBy: { updatedAt: "desc" },
     take: 12,
   });
