@@ -37,6 +37,9 @@ model WorkItem {
   projectId  String?
   projectRef Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  milestoneId String?
+  milestone   ProjectMilestone? @relation("WorkItemMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
+
   executionMilestoneId String?           @unique
   executionMilestone   ProjectMilestone? @relation("WbsExecutionMilestone", fields: [executionMilestoneId], references: [id], onDelete: SetNull)
   originWbsNodeId      String?
@@ -49,6 +52,8 @@ model WorkItem {
 
   logs        WorkLog[]
   actionItems ActionItem[]
+
+  @@index([milestoneId])
 }
 
 model WorkLog {
@@ -56,6 +61,7 @@ model WorkLog {
   workDate String
   title    String
   content  String
+  note     String?
 
   type   String @default("note")
   source String @default("manual")
@@ -74,10 +80,15 @@ model WorkLog {
   itemId String?
   item   WorkItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
+  actionItemId String?
+  actionItem   ActionItem? @relation("ActionItemProgressLogs", fields: [actionItemId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  actionItems ActionItem[]
+  actionItems ActionItem[] @relation("LegacyActionItemSourceLog")
+
+  @@index([actionItemId])
 }
 
 model Project {
@@ -137,7 +148,8 @@ model ActionItem {
   updatedAt  DateTime  @updatedAt
 
   workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  workLog  WorkLog?  @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+  workLog      WorkLog?  @relation("LegacyActionItemSourceLog", fields: [workLogId], references: [id], onDelete: Cascade)
+  progressLogs WorkLog[]  @relation("ActionItemProgressLogs")
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([workItemId])
@@ -184,6 +196,7 @@ model ProjectMilestone {
 
   gateKey           String?
   executionWorkItem WorkItem?        @relation("WbsExecutionMilestone")
+  workItems         WorkItem[]       @relation("WorkItemMilestone")
   wbsNodes          ProjectWbsNode[]
 
   @@unique([projectId, gateKey])

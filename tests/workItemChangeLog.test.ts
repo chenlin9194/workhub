@@ -20,6 +20,7 @@ function currentItem(): WorkItem {
     description: null,
     project: "项目 A",
     projectId: "project-1",
+    milestoneId: null,
     executionMilestoneId: null,
     originWbsNodeId: null,
     managedBy: null,

@@ -40,6 +40,7 @@ export interface ActionItem {
   sortOrder: number;
   workItemId?: string | null;
   workLogId?: string | null;
+  progressLogs?: WorkLog[];
   projectId?: string | null;
   doneAt?: string | Date | null;
   doneNote?: string | null;
@@ -111,6 +112,7 @@ export interface ProjectMilestone {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  workItems?: WorkItem[];
 }
 
 export interface ProjectMember {
@@ -323,6 +325,8 @@ export interface WorkItem {
   project?: string | null;
   projectId?: string | null;
   projectRef?: Project | null;
+  milestoneId?: string | null;
+  milestone?: ProjectMilestone | null;
   module?: string | null;
   type: 'requirement' | 'milestone' | 'commitment' | 'action' | 'change' | 'risk' | 'issue' | 'decision' | 'blocker' | 'other';
   priority: 'P0' | 'P1' | 'P2' | 'P3';
@@ -351,6 +355,7 @@ export interface WorkLog {
   workDate: string;
   title: string;
   content: string;
+  note?: string | null;
   type: 'note' | 'meeting' | 'update' | 'risk' | 'decision' | 'todo' | 'feishu' | 'issue' | 'blocker' | 'other';
   source: 'manual' | 'meeting' | 'feishu' | 'phone' | 'mail' | 'other';
   project?: string | null;
@@ -362,6 +367,8 @@ export interface WorkLog {
   sourceUrl?: string | null;
   itemId?: string | null;
   item?: WorkItem | null;
+  actionItemId?: string | null;
+  actionItem?: ActionItem | null;
   createdAt: Date;
   updatedAt: Date;
   actionItems?: ActionItem[];

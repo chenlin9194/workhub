@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore-check": "node scripts/restore-check-db.mjs",
+    "db:migrate:phase1": "node scripts/migrate-v3-phase1.mjs",
     "wbs:template:preview": "node --import tsx scripts/import-wbs-template.mjs --dry-run",
     "wbs:template:import": "node --import tsx scripts/import-wbs-template.mjs --apply",
     "postinstall": "prisma generate",
