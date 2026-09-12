@@ -14,19 +14,23 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 3 已完成（PASS）**
-- 下一阶段：**Phase 4：Report Aggregator V3（等待用户确认）**
-- Phase 3：**已完成；本轮未进入 Phase 4**
+- 当前阶段：**Phase 4 已完成（PASS）**
+- 下一阶段：**Phase 5：核心页面 V3 信息架构（等待用户确认）**
+- Phase 4：**已完成；本轮未进入 Phase 5**
 - 当前分支：`main`
-- 当前 HEAD：`b8b89ab feat: establish WorkHub V3 data compatibility layer`
+- 当前 HEAD：`7254356 refactor: remove WBS gate execution work items`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
-  - `M src/app/api/projects/[id]/wbs/nodes/[nodeId]/route.ts`
-  - `M src/components/WbsGateClient.tsx`
-  - `M src/components/WbsOverviewClient.tsx`
-  - `M src/lib/wbs/service.ts`
-  - `M tests/wbsInitializationRetention.test.ts`
-  - `M tests/wbsTransaction.test.ts`
+  - `M docs/workhub-v3-progress.md`
+  - `M src/app/api/export/range/route.ts`
+  - `M src/app/api/export/today/route.ts`
+  - `M src/app/export/range/page.tsx`
+  - `M src/app/export/today/page.tsx`
+  - `M src/app/reports/page.tsx`
+  - `M src/lib/export.ts`
+  - `?? src/lib/reportAggregator.ts`
+  - `M tests/exportQuality.test.ts`
+  - `?? tests/reportAggregator.test.ts`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -807,3 +811,124 @@ Phase 2 验收通过。下一阶段为 Phase 3：事项 → 行动项 → 日志
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。
+
+
+---
+
+# Phase 4：Report Aggregator V3
+
+## RESULT
+
+PASS
+
+Phase 4 已完成并验证通过。本轮只替换汇报与导出的状态桶式事实包为统一的 `Project → STR/里程碑 → WorkItem → ActionItem → WorkLog` 聚合；未进入 Phase 5，未执行 schema/data migration。
+
+## WHAT CHANGED
+
+- 新增 `src/lib/reportAggregator.ts`，提供可测试的 `buildReportAggregate` 纯构建层和数据库 `aggregateReport` 查询层，输入为 `startDate`、`endDate`、可选 `projectId`。
+- 聚合严格按 WorkItem 的 `milestoneId` 归属 STR/里程碑；`milestoneId` 为空的事项进入“未归属 STR / 项目级事项”，不根据标题推断。
+- 时间范围基于 `WorkLog.workDate`，同时纳入事项记录、ActionItem progress logs、区间内完成的 ActionItem、当前开放 ActionItem 上下文和延期/计划调整日志；不再以 `updatedAt` 作为主体。
+- 事项日志与 ActionItem 日志按真实 WorkLog ID 去重；Phase 1 的 29 条 `actionItemId` 日志继续可读，且不因 `reportable=false` 被过滤。
+- 历史系统日志按标题规则确定性识别，保留在聚合数据和数据库中但不展开为正文；ActionItem progress logs 不按该规则降级。
+- `/reports` 支持今天、本周、本月、自定义范围和项目筛选，按层级展示当前状态、ActionItem 状态/负责人/截止日期及最近进展。
+- `/export/today`、`/export/range` 及对应 API 和 Markdown generator 统一使用同一聚合结果；`scripts/export-today.mjs`、`scripts/export-week.mjs` 均实际运行成功。旧 reportable/legacy 字段未删除，Hermes/MCP contract 未修改。
+- 移除旧的今日/区间独立状态桶 Markdown 生成算法；项目快照 Markdown 保持兼容。
+
+## DATA MIGRATION
+
+无。Phase 4 未修改 `prisma/schema.prisma`，未写入、删除或迁移业务数据。
+
+开始前备份及恢复校验：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T08-12-47-904Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+最终备份及恢复校验：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T08-32-11-888Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+## FILES CHANGED
+
+- `docs/workhub-v3-progress.md`
+- `src/app/api/export/range/route.ts`
+- `src/app/api/export/today/route.ts`
+- `src/app/export/range/page.tsx`
+- `src/app/export/today/page.tsx`
+- `src/app/reports/page.tsx`
+- `src/lib/export.ts`
+- `src/lib/reportAggregator.ts`
+- `tests/exportQuality.test.ts`
+- `tests/reportAggregator.test.ts`
+
+未修改 Prisma schema、WorkItem/ActionItem/WorkLog 业务写入 API、WBS service、`docs/hermes-workhub-v1.md`。后者继续保持用户原有 deleted dirty 状态。
+
+## BEHAVIOR BEFORE / AFTER
+
+| 项目 | Before | After |
+| --- | --- | --- |
+| 汇报组织 | 今日新增/关闭/更新/风险等状态桶 | Project → STR/里程碑 → WorkItem → ActionItem → logs |
+| 时间口径 | 混用当日日志、`closedAt`、`updatedAt` | 统一按 `workDate`，另显式纳入 ActionItem 完成和开放上下文 |
+| STR 归属 | 旧桶不稳定聚合 | 只使用 `milestoneId`；空值明确为项目级事项 |
+| 日志来源 | 事项日志和行动项日志可能重复 | 按 WorkLog ID 去重，并显示“事项记录/行动项进展” |
+| 系统日志 | 可能混入正文 | 保留且统计，确定性降级，不展开正文 |
+| reportable | 汇报入口使用 reportable 过滤 | Phase 4 聚合不读取、不筛选 `reportable` |
+
+真实项目范围验收（`2026-06-22` 至 `2026-07-27`，项目 `tOS17.1`）：项目 1、事项 3、ActionItem 18、日志 25，其中系统变化日志 10 条；报告日志 ID 25/25 唯一。事项 `17.1 规划KO` 在同一事项上下文聚合 12 条事项记录；当前开放 ActionItem“沟通17.1的首发项目”保留状态 `pending`、负责人“孙仁海”和截止日期 `2026-07-24`。该真实范围内 12 条 `reportable=false` 项目日志全部存在于聚合结果。
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，20 个测试文件通过、1 个跳过；80 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS，无 warning/error
+- `npm.cmd run build`：PASS
+- `npx prisma migrate diff --from-url file:./prisma/dev.db --to-schema-datamodel prisma/schema.prisma`：`No difference detected.`
+- `PRAGMA integrity_check`：`ok`
+- `PRAGMA foreign_key_check`：`[]`
+- 数据库数量：Project 2、ProjectMilestone 12、WorkItem 9、ActionItem 38、WorkLog 58、ProjectWbsNode 157、ProjectWbsDeliverable 146；WBS gate fake WorkItem 0
+- Phase 1 历史 progress logs：29 条；历史 `doneNote` 非空记录：29 条
+- 旧导出脚本：`npm.cmd run export:today`、`npm.cmd run export:week` 均成功生成 Markdown
+- API 实测：项目范围 JSON 与 Markdown 均由同一聚合器生成；系统日志不出现在 Markdown 正文
+
+## REAL DATA ACCEPTANCE
+
+- 已使用真实项目完成至少 3 天范围验收：多条同事项日志归入同一事项，ActionItem 状态/负责人/截止日期可见，日志无重复。
+- 当前开放 ActionItem 可在事项上下文中读取。
+- `reportable=false` 日志未丢失。
+- 系统变化日志仅统计、不压过人工事实；ActionItem progress logs 保持正常正文路径。
+- 当前真实数据库没有现成的“计划调整：旧日期 → 新日期”日志，因此未为验收污染真实数据；延期原因/下一步的展示和同一聚合路径由纯构建测试覆盖。
+
+## KNOWN RISKS
+
+- 当前真实库的 9 个 WorkItem 中有 4 个没有 `projectId`；为避免错误归属，Phase 4 的 Project 树不把它们伪装归入任一项目，后续如需汇报项目外事项需另行定义产品口径。
+- 当前 12 个 ProjectMilestone 没有被现有真实 WorkItem 通过 `milestoneId` 使用，因此真实项目范围显示“未归属 STR / 项目级事项”；系统没有根据标题猜测 STR。
+- `reportable`、`doneNote`、`workLogId` 和其他 legacy 字段仍存在于旧页面/API/Hermes 兼容边界；Phase 4 只让新聚合路径退出 `reportable`，没有提前退休字段。
+- 真实数据未包含延期事务样本，延期原因/下一步的端到端页面验收留待实际用户操作时确认；本轮未新增测试数据。
+
+## NEXT PHASE READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 4 验收通过。下一阶段为 Phase 5：核心页面 V3 信息架构；本轮未执行，需用户明确确认后再开始。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/api/export/range/route.ts
+ M src/app/api/export/today/route.ts
+ M src/app/export/range/page.tsx
+ M src/app/export/today/page.tsx
+ M src/app/reports/page.tsx
+ M src/lib/export.ts
+?? src/lib/reportAggregator.ts
+ M tests/exportQuality.test.ts
+?? tests/reportAggregator.test.ts
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。未进入 Phase 5。

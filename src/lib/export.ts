@@ -17,13 +17,11 @@ import {
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
   WORK_LOG_TYPE_LABELS,
-  WORK_ITEM_TYPE_LABELS,
   PRIORITY_LABELS,
   STATUS_LABELS,
   SOURCE_LABELS,
 } from "@/lib/constants";
 import { getMilestoneActualEnd, getMilestoneDateMode, getMilestonePlannedEnd } from "@/lib/projectMilestones";
-import { excludeClosedItemsFromUpdatedItems } from "@/lib/todayBuckets";
 import { formatDate, getLocalDateString } from "@/lib/utils";
 import { getOptionalProjectDisplayName } from "@/lib/projectDisplay";
 import type {
@@ -35,62 +33,94 @@ import type {
   ProjectSnapshotMember,
   ProjectSnapshotSummary,
 } from "@/lib/types";
+import type { ReportAggregate, ReportActionItem, ReportLog, ReportWorkItem } from "@/lib/reportAggregator";
 
-// ---------------------------------------------------------------------------
-// Shared sub-types (minimal shape expected by the generators)
-// ---------------------------------------------------------------------------
+// Phase 4 report aggregation Markdown
 
-interface LogEntry {
-  id?: string;
-  title: string;
-  workDate: string;
-  type: string;
-  source: string;
-  project?: string | null;
-  projectRef?: { name: string } | null;
-  module?: string | null;
-  tags?: string | null;
-  content: string;
-  reportable?: boolean;
-  sourceUrl?: string | null;
-  item?: { id?: string; title: string } | null;
+function reportLogText(log: ReportLog) {
+  return log.note?.trim() || log.content.trim() || log.title;
 }
 
-interface ItemEntry {
-  id?: string;
-  title: string;
-  type: string;
-  priority: string;
-  status: string;
-  owner?: string | null;
-  dueDate?: string | null;
-  nextAction?: string | null;
-  trackingReason?: string | null;
-  sourceUrl?: string | null;
-  health?: string | null;
-  currentSummary?: string | null;
-  nextCheckpoint?: string | null;
-  reportLevel?: string | null;
-  tags?: string | null;
-  description?: string | null;
-  closedAt?: Date | null;
-  updatedAt?: Date | null;
+function renderReportLog(log: ReportLog, indent = "") {
+  let md = `${indent}- ${log.workDate} · ${log.sourceKind === "actionItem" ? "行动项进展" : log.sourceKind === "project" ? "项目记录" : "事项记录"} · ${log.title}\n`;
+  md += `${indent}  ${reportLogText(log).replace(/\n/g, `\n${indent}  `)}\n`;
+  return md;
 }
 
-// ---------------------------------------------------------------------------
-// Today export
-// ---------------------------------------------------------------------------
+function renderReportAction(action: ReportActionItem, indent = "") {
+  let md = `${indent}### ${action.title}\n`;
+  md += `${indent}- 状态: ${action.status}`;
+  if (action.owner) md += ` | 负责人: ${action.owner}`;
+  if (action.dueDate) md += ` | 截止日期: ${action.dueDate}`;
+  if (action.doneAt) md += ` | 完成日期: ${action.doneAt}`;
+  md += "\n";
+  if (action.logs.length > 0) {
+    md += `${indent}- 进展日志:\n`;
+    action.logs.forEach((log) => { md += renderReportLog(log, `${indent}  `); });
+  } else if (action.latestLog) {
+    md += `${indent}- 区间内无新增进展日志；最近记录: ${action.latestLog.workDate}\n`;
+  }
+  md += "\n";
+  return md;
+}
 
-export interface TodayExportData {
-  today: string;
-  workLogs: LogEntry[];
-  closedItems: ItemEntry[];
-  updatedItems: ItemEntry[];
-  openHighPriorityItems: ItemEntry[];
-  dueTodayItems: ItemEntry[];
-  overdueItems: ItemEntry[];
-  riskAndBlockerLogs: LogEntry[];
-  decisionLogs: LogEntry[];
+function renderReportWorkItem(item: ReportWorkItem) {
+  let md = `### ${item.title}\n`;
+  md += `- 状态: ${item.status} | 优先级: ${item.priority} | 健康度: ${item.health}`;
+  if (item.owner) md += ` | 负责人: ${item.owner}`;
+  if (item.dueDate) md += ` | 截止日期: ${item.dueDate}`;
+  md += "\n";
+  if (item.currentSummary) md += `- 当前摘要: ${item.currentSummary}\n`;
+  if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
+  if (item.itemLogs.filter((log) => !log.isSystemLog).length > 0) {
+    md += "\n事项记录:\n";
+    item.itemLogs.filter((log) => !log.isSystemLog).forEach((log) => { md += renderReportLog(log, "  "); });
+  }
+  if (item.actionItems.length > 0) {
+    md += "\n行动项:\n\n";
+    item.actionItems.forEach((action) => { md += renderReportAction(action, ""); });
+  }
+  md += "\n";
+  return md;
+}
+
+/** The Phase 4 report/export format. All report UI and export routes use this generator. */
+export function generateReportMarkdown(report: ReportAggregate) {
+  let md = `# 工作事实汇总 - ${report.startDate} 至 ${report.endDate}\n\n`;
+  md += `> 按项目 → STR/里程碑 → 事项 → 行动项 → 日志组织；只整理已记录事实，不推断管理结论。\n\n`;
+  md += `## 概览\n\n`;
+  md += `- 项目: ${report.summary.projects} | STR/里程碑: ${report.summary.milestones} | 事项: ${report.summary.workItems} | 行动项: ${report.summary.actionItems} | 区间日志: ${report.summary.logs}\n`;
+  if (report.summary.systemLogs > 0) md += `- 历史系统变化日志: ${report.summary.systemLogs} 条（保留在数据库，正文不展开）\n`;
+  md += "\n";
+
+  if (report.projects.length === 0) return `${md}区间内暂无已关联项目的事项、行动项或日志事实。\n`;
+
+  for (const project of report.projects) {
+    md += `## 项目：${project.name}\n\n`;
+    md += `- 状态: ${project.status} | 健康度: ${project.health}`;
+    if (project.owner) md += ` | 负责人: ${project.owner}`;
+    if (project.pm) md += ` | PM: ${project.pm}`;
+    md += "\n\n";
+    if (project.projectLogs.length > 0) {
+      md += "### 项目记录\n\n";
+      project.projectLogs.filter((log) => !log.isSystemLog).forEach((log) => { md += renderReportLog(log); });
+      md += "\n";
+    }
+    for (const milestone of project.milestones) {
+      md += `### STR/里程碑：${milestone.title}\n\n`;
+      md += `- 状态: ${milestone.status}`;
+      if (milestone.targetDate) md += ` | 目标日期: ${milestone.targetDate}`;
+      if (milestone.actualDate) md += ` | 实际日期: ${milestone.actualDate}`;
+      if (milestone.actualEndDate) md += ` | 实际结束: ${milestone.actualEndDate}`;
+      md += "\n\n";
+      milestone.workItems.forEach((item) => { md += renderReportWorkItem(item); });
+    }
+    if (project.projectItems.length > 0) {
+      md += "### 未归属 STR / 项目级事项\n\n";
+      project.projectItems.forEach((item) => { md += renderReportWorkItem(item); });
+    }
+  }
+  return md;
 }
 
 function hasText(value?: unknown) {
@@ -106,376 +136,6 @@ function percentText(done: number, total: number) {
   if (total === 0) return "无样本";
   return `${done}/${total}`;
 }
-
-function uniqueItemCount(items: ItemEntry[]) {
-  return new Set(items.map((item) => item.id || item.title)).size;
-}
-
-function renderTodayQualitySection(data: TodayExportData) {
-  const {
-    workLogs,
-    closedItems,
-    updatedItems,
-    openHighPriorityItems,
-    dueTodayItems,
-    overdueItems,
-    riskAndBlockerLogs,
-    decisionLogs,
-  } = data;
-
-  const activeAttentionItems = [...openHighPriorityItems, ...dueTodayItems, ...overdueItems].filter(
-    (item, index, all) => all.findIndex((candidate) => (candidate.id || candidate.title) === (item.id || item.title)) === index
-  );
-  const logsWithItem = workLogs.filter((log) => log.item).length;
-  const logsWithSourceUrl = workLogs.filter((log) => hasText(log.sourceUrl)).length;
-  const logsWithProjectOrModule = workLogs.filter(
-    (log) => hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) || hasText(log.module)
-  ).length;
-  const itemsWithOwner = activeAttentionItems.filter((item) => hasText(item.owner)).length;
-  const itemsWithNextAction = activeAttentionItems.filter((item) => hasText(item.nextAction)).length;
-  const itemsWithDueDate = activeAttentionItems.filter((item) => hasText(item.dueDate)).length;
-  const missing: string[] = [];
-  const followUpReminders = openHighPriorityItems
-    .filter(
-      (item) =>
-        !workLogs.some(
-          (log) => log.item && ((item.id && log.item.id === item.id) || log.item.title === item.title)
-        )
-    )
-    .map((item) => `P0/P1 事项「${item.title}」当日无日志，请确认是否需要跟进记录`);
-
-  workLogs.forEach((log, index) => {
-    const gaps: string[] = [];
-    if (!hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) && !hasText(log.module)) {
-      gaps.push("项目/模块");
-    }
-    if (!hasText(log.content)) gaps.push("内容");
-    if (gaps.length > 0) missing.push(`${traceId("LOG", index)} ${log.title}: 缺少 ${gaps.join("、")}`);
-  });
-
-  activeAttentionItems.forEach((item, index) => {
-    const gaps: string[] = [];
-    if (!hasText(item.owner)) gaps.push("责任人");
-    if (!hasText(item.nextAction)) gaps.push("下一步");
-    if (!hasText(item.dueDate) && (item.priority === "P0" || item.priority === "P1" || item.status === "blocked")) gaps.push("截止日期");
-    if (gaps.length > 0) missing.push(`${traceId("ATTN", index)} ${item.title}: 缺少 ${gaps.join("、")}`);
-  });
-
-  let md = `## 事实包质量检查\n\n`;
-  md += `- 事实规模: 日志 ${workLogs.length} 条 | 关闭事项 ${closedItems.length} 项 | 更新事项 ${updatedItems.length} 项\n`;
-  md += `- 重点覆盖: P0/P1 未关闭 ${openHighPriorityItems.length} 项 | 今日到期 ${dueTodayItems.length} 项 | 逾期 ${overdueItems.length} 项 | 风险/阻塞日志 ${riskAndBlockerLogs.length} 条 | 决策 ${decisionLogs.length} 条\n`;
-  md += `- 可追溯性: 日志关联事项 ${percentText(logsWithItem, workLogs.length)} | 日志来源链接 ${percentText(logsWithSourceUrl, workLogs.length)} | 日志项目/模块 ${percentText(logsWithProjectOrModule, workLogs.length)}\n`;
-  md += `- 重点事项完整性: 责任人 ${percentText(itemsWithOwner, activeAttentionItems.length)} | 下一步 ${percentText(itemsWithNextAction, activeAttentionItems.length)} | 截止日期 ${percentText(itemsWithDueDate, activeAttentionItems.length)} | 去重后重点事项 ${uniqueItemCount(activeAttentionItems)} 项\n\n`;
-  md += `### 待确认信息\n\n`;
-  md += missing.length > 0 ? `${missing.slice(0, 12).map((item) => `- ${item}`).join("\n")}\n\n` : `- 字段完整，未发现必填字段缺口\n\n`;
-  md += `### 跟进提醒\n\n`;
-  md += followUpReminders.length > 0
-    ? `${followUpReminders.slice(0, 12).map((item) => `- ${item}`).join("\n")}\n\n`
-    : `- 当前 P0/P1 事项均有当日关联日志\n\n`;
-
-  return md;
-}
-
-export function generateTodayMarkdown(data: TodayExportData): string {
-  const normalizedData: TodayExportData = {
-    ...data,
-    updatedItems: excludeClosedItemsFromUpdatedItems(data.closedItems, data.updatedItems),
-  };
-  const {
-    today,
-    workLogs,
-    closedItems,
-    updatedItems,
-    openHighPriorityItems,
-    dueTodayItems,
-    overdueItems,
-    riskAndBlockerLogs,
-    decisionLogs,
-  } = normalizedData;
-
-  let md = `# 今日工作汇总 - ${today}\n\n`;
-
-  // Fact package usage rules
-  md += `## 日报事实包使用规则\n\n`;
-  md += `- 这是今日工作事实包，只能使用下方事实整理日报表达。\n`;
-  md += `- 不要补写未提供的信息，不要推断明日计划或事项结论。\n`;
-  md += `- 缺失信息请标记为“待确认”。\n`;
-  md += `- 可以调整措辞和结构，但所有结论必须能回溯到下方日志、事项、风险或决策。\n`;
-  md += `- 风险、阻塞、逾期、P0/P1、今日决策需要优先保留。\n`;
-  md += `- 外部工具不得新增事实、背景、原因或未记录的进展。\n\n`;
-
-  md += renderTodayQualitySection(normalizedData);
-
-  // Overview
-  md += `## 概览\n\n`;
-  md += `- 今日新增日志: ${workLogs.length} 条\n`;
-  md += `- 今日关闭事项: ${closedItems.length} 项\n`;
-  md += `- 今日更新事项: ${updatedItems.length} 项\n`;
-  md += `- P0/P1 未关闭: ${openHighPriorityItems.length} 项\n`;
-  md += `- 今日到期: ${dueTodayItems.length} 项\n`;
-  md += `- 逾期未关闭: ${overdueItems.length} 项\n\n`;
-
-  // 一、今日新增日志
-  if (workLogs.length > 0) {
-    md += `## 一、今日新增日志\n\n`;
-    workLogs.forEach((log, index) => {
-      md += `### [${traceId("LOG", index)}] ${log.title}\n`;
-      md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-      if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
-      if (projectName) md += `- 项目: ${projectName}`;
-      if (log.module) md += ` | 模块: ${log.module}`;
-      if (projectName || log.module) md += "\n";
-      if (log.tags) md += `- 标签: ${log.tags}\n`;
-      if (log.item) md += `- 关联事项: ${log.item.title}\n`;
-      md += `\n${log.content}\n\n`;
-    });
-  }
-
-  // 二、今日关闭事项
-  if (closedItems.length > 0) {
-    md += `## 二、今日关闭事项\n\n`;
-    closedItems.forEach((item, index) => {
-      md += `### [${traceId("CLOSED", index)}] ${item.title}\n`;
-      md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
-      if (item.sourceUrl) md += `- 来源链接: <${item.sourceUrl}>\n`;
-      if (item.owner) md += `- 责任人: ${item.owner}\n`;
-      if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
-      if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
-      if (item.tags) md += `- 标签: ${item.tags}\n`;
-      if (item.description) md += `\n${item.description}\n`;
-      md += "\n";
-    });
-  }
-
-  // 三、今日更新事项
-  if (updatedItems.length > 0) {
-    md += `## 三、今日更新事项\n\n`;
-    updatedItems.forEach((item, index) => {
-      md += `### [${traceId("UPDATED", index)}] ${item.title}\n`;
-      md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
-      if (item.sourceUrl) md += `- 来源链接: <${item.sourceUrl}>\n`;
-      if (item.owner) md += `- 责任人: ${item.owner}\n`;
-      if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
-      if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
-      if (item.tags) md += `- 标签: ${item.tags}\n`;
-      md += "\n";
-    });
-  }
-
-  // 四、当前 P0/P1 未关闭事项
-  if (openHighPriorityItems.length > 0) {
-    md += `## 四、当前 P0/P1 未关闭事项\n\n`;
-    openHighPriorityItems.forEach((item, index) => {
-      md += `### [${traceId("P", index)}] ${item.title}\n`;
-      md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority} | 状态: ${STATUS_LABELS[item.status] || item.status}\n`;
-      if (item.health) md += `- 健康: ${HEALTH_LABELS[item.health] || item.health}\n`;
-      if (item.sourceUrl) md += `- 来源链接: <${item.sourceUrl}>\n`;
-      if (item.owner) md += `- 责任人: ${item.owner}\n`;
-      if (item.dueDate) md += `- 截止日期: ${item.dueDate}\n`;
-      if (item.nextAction) md += `- 下一步: ${item.nextAction}\n`;
-      if (item.tags) md += `- 标签: ${item.tags}\n`;
-      if (item.description) md += `\n${item.description}\n`;
-      md += "\n";
-    });
-  }
-
-  // 五、今日到期事项
-  if (dueTodayItems.length > 0) {
-    md += `## 五、今日到期事项\n\n`;
-    dueTodayItems.forEach((item, index) => {
-      md += `- **[${traceId("DUE", index)}] ${item.title}** (${PRIORITY_LABELS[item.priority] || item.priority}) - ${STATUS_LABELS[item.status] || item.status}`;
-      if (item.owner) md += ` - 责任人: ${item.owner}`;
-      if (item.sourceUrl) md += ` - 来源: <${item.sourceUrl}>`;
-      md += "\n";
-    });
-    md += "\n";
-  }
-
-  // 六、逾期未关闭事项
-  if (overdueItems.length > 0) {
-    md += `## 六、逾期未关闭事项\n\n`;
-    overdueItems.forEach((item, index) => {
-      md += `- **[${traceId("OVERDUE", index)}] ${item.title}** - 截止: ${item.dueDate} (${PRIORITY_LABELS[item.priority] || item.priority}) - ${STATUS_LABELS[item.status] || item.status}`;
-      if (item.owner) md += ` - 责任人: ${item.owner}`;
-      if (item.sourceUrl) md += ` - 来源: <${item.sourceUrl}>`;
-      md += "\n";
-    });
-    md += "\n";
-  }
-
-  // 七、今日风险/阻塞
-  if (riskAndBlockerLogs.length > 0) {
-    md += `## 七、今日风险/阻塞\n\n`;
-    riskAndBlockerLogs.forEach((log, index) => {
-      md += `### [${traceId("RISK", index)}] ${log.title}\n`;
-      md += `- 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-      if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
-      if (projectName) md += `- 项目: ${projectName}\n`;
-      if (log.item) md += `- 关联事项: ${log.item.title}\n`;
-      md += `\n${log.content}\n\n`;
-    });
-  }
-
-  // 八、今日决策
-  if (decisionLogs.length > 0) {
-    md += `## 八、今日决策\n\n`;
-    decisionLogs.forEach((log, index) => {
-      md += `### [${traceId("DECISION", index)}] ${log.title}\n`;
-      md += `- 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-      if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-      const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
-      if (projectName) md += `- 项目: ${projectName}\n`;
-      if (log.item) md += `- 关联事项: ${log.item.title}\n`;
-      md += `\n${log.content}\n\n`;
-    });
-  }
-
-  return md;
-}
-
-// ---------------------------------------------------------------------------
-// Range export
-// ---------------------------------------------------------------------------
-
-export interface RangeExportData {
-  start: string;
-  end: string;
-  workLogs: LogEntry[];
-  closedItems: ItemEntry[];
-  updatedItems: ItemEntry[];
-}
-
-function renderRangeQualitySection(data: RangeExportData) {
-  const { workLogs, closedItems, updatedItems } = data;
-  const logsWithItem = workLogs.filter((log) => log.item).length;
-  const logsWithSourceUrl = workLogs.filter((log) => hasText(log.sourceUrl)).length;
-  const logsWithProjectOrModule = workLogs.filter(
-    (log) => hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) || hasText(log.module)
-  ).length;
-  const closedWithOwner = closedItems.filter((item) => hasText(item.owner)).length;
-  const updatedWithNextAction = updatedItems.filter((item) => hasText(item.nextAction)).length;
-  const importantLogs = workLogs.filter((log) => ["risk", "blocker", "decision"].includes(log.type)).length;
-  const missing: string[] = [];
-
-  workLogs.forEach((log, index) => {
-    const gaps: string[] = [];
-    if (!hasText(getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project })) && !hasText(log.module)) {
-      gaps.push("项目/模块");
-    }
-    if (!hasText(log.content)) gaps.push("内容");
-    if (gaps.length > 0) missing.push(`${traceId("LOG", index)} ${log.title}: 缺少 ${gaps.join("、")}`);
-  });
-
-  updatedItems.forEach((item, index) => {
-    const needsOwner = item.priority === "P0" || item.priority === "P1" || item.status === "blocked";
-    const gaps: string[] = [];
-    if (needsOwner && !hasText(item.owner)) gaps.push("责任人");
-    if (needsOwner && !hasText(item.nextAction)) gaps.push("下一步");
-    if (gaps.length > 0) missing.push(`${traceId("UPDATED", index)} ${item.title}: 缺少 ${gaps.join("、")}`);
-  });
-
-  let md = `## 事实包质量检查\n\n`;
-  md += `- 事实规模: 日志 ${workLogs.length} 条 | 关闭事项 ${closedItems.length} 项 | 更新事项 ${updatedItems.length} 项\n`;
-  md += `- 重点事实: 风险/阻塞/决策日志 ${importantLogs} 条\n`;
-  md += `- 可追溯性: 日志关联事项 ${percentText(logsWithItem, workLogs.length)} | 日志来源链接 ${percentText(logsWithSourceUrl, workLogs.length)} | 日志项目/模块 ${percentText(logsWithProjectOrModule, workLogs.length)}\n`;
-  md += `- 事项完整性: 关闭事项责任人 ${percentText(closedWithOwner, closedItems.length)} | 更新事项下一步 ${percentText(updatedWithNextAction, updatedItems.length)}\n\n`;
-  md += `### 待确认信息\n\n`;
-  md += missing.length > 0 ? `${missing.slice(0, 16).map((item) => `- ${item}`).join("\n")}\n\n` : `- 字段完整，未发现必填字段缺口\n\n`;
-
-  return md;
-}
-
-export function generateRangeMarkdown(data: RangeExportData): string {
-  const normalizedData: RangeExportData = {
-    ...data,
-    updatedItems: excludeClosedItemsFromUpdatedItems(data.closedItems, data.updatedItems),
-  };
-  const { start, end, workLogs, closedItems, updatedItems } = normalizedData;
-
-  let md = `# 工作汇总 - ${start} 至 ${end}\n\n`;
-
-  // Fact package usage rules
-  md += `## 周报事实包使用规则\n\n`;
-  md += `- 这是区间 / 周报事实包，只能使用下方事实整理周报表达。\n`;
-  md += `- 不要补写未提供的信息，不要推断下周计划、关键成果或里程碑结论。\n`;
-  md += `- 缺失信息请标记为“待确认”。\n`;
-  md += `- 可以调整措辞和结构，但所有结论必须能回溯到下方日志、关闭事项或更新事项。\n`;
-  md += `- 风险、阻塞、逾期、P0/P1、决策如在事实中出现，需要优先保留。\n`;
-  md += `- 外部工具不得新增事实、背景、原因或未记录的进展。\n\n`;
-
-  md += renderRangeQualitySection(normalizedData);
-
-  // Summary
-  md += `## 概览\n\n`;
-  md += `- 日志数量: ${workLogs.length} 条\n`;
-  md += `- 关闭事项: ${closedItems.length} 项\n`;
-  md += `- 更新事项: ${updatedItems.length} 项\n\n`;
-
-  // Group logs by date
-  const logsByDate = workLogs.reduce((acc, log) => {
-    if (!acc[log.workDate]) acc[log.workDate] = [];
-    acc[log.workDate].push(log);
-    return acc;
-  }, {} as Record<string, LogEntry[]>);
-
-  const dates = Object.keys(logsByDate).sort((a, b) => b.localeCompare(a));
-
-  // 一、工作日志
-  if (dates.length > 0) {
-    md += `## 一、工作日志\n\n`;
-    dates.forEach((date) => {
-      md += `### ${date}\n\n`;
-      logsByDate[date].forEach((log) => {
-        const logIndex = workLogs.findIndex((candidate) => (candidate.id || candidate.title) === (log.id || log.title));
-        md += `#### [${traceId("LOG", logIndex >= 0 ? logIndex : 0)}] ${log.title}\n`;
-        md += `- 日期: ${log.workDate} | 类型: ${WORK_LOG_TYPE_LABELS[log.type] || log.type} | 来源: ${SOURCE_LABELS[log.source] || log.source}\n`;
-        if (log.sourceUrl) md += `- 来源链接: <${log.sourceUrl}>\n`;
-        const projectName = getOptionalProjectDisplayName({ relationName: log.projectRef?.name, legacyName: log.project });
-        if (projectName) md += `- 项目: ${projectName}`;
-        if (log.module) md += ` | 模块: ${log.module}`;
-        if (projectName || log.module) md += "\n";
-        if (log.tags) md += `- 标签: ${log.tags}\n`;
-        if (log.item) md += `- 关联事项: ${log.item.title}\n`;
-        md += `\n${log.content}\n\n`;
-      });
-    });
-  }
-
-  // 二、关闭事项
-  if (closedItems.length > 0) {
-    md += `## 二、关闭事项\n\n`;
-    closedItems.forEach((item, index) => {
-      md += `### [${traceId("CLOSED", index)}] ${item.title}\n`;
-      md += `- 类型: ${WORK_ITEM_TYPE_LABELS[item.type] || item.type} | 优先级: ${PRIORITY_LABELS[item.priority] || item.priority}\n`;
-      if (item.sourceUrl) md += `- 来源链接: <${item.sourceUrl}>\n`;
-      if (item.owner) md += `- 责任人: ${item.owner}\n`;
-      if (item.closedAt) md += `- 关闭时间: ${item.closedAt.toISOString().split("T")[0]}\n`;
-      if (item.description) md += `\n${item.description}\n`;
-      md += "\n";
-    });
-  }
-
-  // 三、更新事项
-  if (updatedItems.length > 0) {
-    md += `## 三、更新事项\n\n`;
-    updatedItems.forEach((item, index) => {
-      md += `- **[${traceId("UPDATED", index)}] ${item.title}** - ${STATUS_LABELS[item.status] || item.status} (${PRIORITY_LABELS[item.priority] || item.priority})`;
-      if (item.owner) md += ` - 责任人: ${item.owner}`;
-      if (item.nextAction) md += ` - 下一步: ${item.nextAction}`;
-      if (item.sourceUrl) md += ` - 来源: <${item.sourceUrl}>`;
-      md += "\n";
-    });
-    md += "\n";
-  }
-
-  return md;
-}
-
-const PROJECT_LINK_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  PROJECT_LINK_CATEGORIES.map((category) => [category.value, category.label])
-);
 
 function normalizeMarkdownText(value?: string | null) {
   return value ? value.replace(/\r\n/g, "\n").trim() : "";
@@ -515,7 +175,7 @@ function renderMarkdownList(items: string[]) {
 }
 
 function renderProjectLinkLine(link: ProjectSnapshotLink) {
-  const categoryLabel = PROJECT_LINK_CATEGORY_LABELS[link.category] || link.category;
+  const categoryLabel = PROJECT_LINK_CATEGORIES.find((category) => category.value === link.category)?.label || link.category;
   const title = escapeMarkdownInline(link.title);
   const url = link.url ? `<${link.url}>` : "-";
   const category = escapeMarkdownInline(categoryLabel);
