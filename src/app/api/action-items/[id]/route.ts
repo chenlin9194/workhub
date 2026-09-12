@@ -4,6 +4,12 @@ import { toNullableString } from "@/lib/utils";
 import { revalidateWorkHubPaths } from "@/lib/revalidate";
 import { ACTION_ITEM_STATUS_VALUES, optionalYmdDate, requireText } from "@/lib/inputValidation";
 import { validateActionItemCompletion } from "@/lib/actionItemCompletion";
+import {
+  completeActionItem,
+  findActionItemContext,
+  isActionItemWorkflowError,
+  rescheduleActionItem,
+} from "@/lib/actionItemWorkflow";
 
 const VALID_STATUSES = ACTION_ITEM_STATUS_VALUES;
 
@@ -35,7 +41,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const actionItem = await prisma.actionItem.findUnique({ where: { id } });
+    const actionItem = await prisma.actionItem.findUnique({
+      where: { id },
+      include: {
+        progressLogs: {
+          orderBy: [{ workDate: "desc" }, { createdAt: "desc" }],
+        },
+      },
+    });
 
     if (!actionItem) {
       return NextResponse.json({ error: "Action Item 不存在" }, { status: 404 });
@@ -55,19 +68,42 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const currentActionItem = await prisma.actionItem.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-        workItemId: true,
-        workLogId: true,
-        projectId: true,
-      },
-    });
+    const currentActionItem = await findActionItemContext(prisma, id);
 
     if (!currentActionItem) {
       return NextResponse.json({ error: "Action Item 不存在" }, { status: 404 });
+    }
+
+    if ("dueDate" in body) {
+      const dueDateResult = optionalYmdDate(body.dueDate, "dueDate");
+      if (dueDateResult.error) {
+        return NextResponse.json({ error: dueDateResult.error }, { status: 400 });
+      }
+      if (dueDateResult.value !== currentActionItem.dueDate) {
+        const result = await rescheduleActionItem(id, body);
+        revalidateWorkHubPaths({
+          itemId: currentActionItem.workItemId || undefined,
+          projectId: currentActionItem.projectId || undefined,
+        });
+        return NextResponse.json(result);
+      }
+    }
+
+    if (body.status === "done" && currentActionItem.status !== "done") {
+      const completionResult = validateActionItemCompletion(
+        currentActionItem.status,
+        "done",
+        body.doneNote ?? body.completionNote,
+      );
+      if (completionResult.error) {
+        return NextResponse.json({ error: completionResult.error }, { status: 400 });
+      }
+      const result = await completeActionItem(id, body);
+      revalidateWorkHubPaths({
+        itemId: currentActionItem.workItemId || undefined,
+        projectId: currentActionItem.projectId || undefined,
+      });
+      return NextResponse.json(result);
     }
 
     const data: Record<string, unknown> = {};
@@ -81,14 +117,6 @@ export async function PUT(
 
     if ("owner" in body) {
       data.owner = toNullableString(body.owner);
-    }
-
-    if ("dueDate" in body) {
-      const dueDateResult = optionalYmdDate(body.dueDate, "dueDate");
-      if (dueDateResult.error) {
-        return NextResponse.json({ error: dueDateResult.error }, { status: 400 });
-      }
-      data.dueDate = dueDateResult.value;
     }
 
     if ("sortOrder" in body) {
@@ -137,12 +165,14 @@ export async function PUT(
 
     revalidateWorkHubPaths({
       itemId: actionItem.workItemId || undefined,
-      logId: actionItem.workLogId || undefined,
       projectId: actionItem.projectId || undefined,
     });
 
     return NextResponse.json(actionItem);
   } catch (error) {
+    if (isActionItemWorkflowError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Error updating action item:", error);
     return NextResponse.json({ error: "更新 Action Item 失败" }, { status: 500 });
   }

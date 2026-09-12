@@ -14,20 +14,19 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 1 已完成（PASS）**
-- 下一阶段：**Phase 2：WBS fake WorkItem 清理（等待用户确认）**
-- Phase 2：**尚未开始；本轮未自动进入**
+- 当前阶段：**Phase 3 已完成（PASS）**
+- 下一阶段：**Phase 4：Report Aggregator V3（等待用户确认）**
+- Phase 3：**已完成；本轮未进入 Phase 4**
 - 当前分支：`main`
-- 当前 HEAD：`e037137 feat: improve project cockpit and WBS execution`
+- 当前 HEAD：`b8b89ab feat: establish WorkHub V3 data compatibility layer`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
-  - `M package.json`
-  - `M prisma/schema.prisma`
-  - `M src/lib/types.ts`
-  - `M tests/workItemChangeLog.test.ts`
-  - `?? docs/workhub-v3-deployment-plan.md`
-  - `?? docs/workhub-v3-progress.md`
-  - `?? scripts/migrate-v3-phase1.mjs`
+  - `M src/app/api/projects/[id]/wbs/nodes/[nodeId]/route.ts`
+  - `M src/components/WbsGateClient.tsx`
+  - `M src/components/WbsOverviewClient.tsx`
+  - `M src/lib/wbs/service.ts`
+  - `M tests/wbsInitializationRetention.test.ts`
+  - `M tests/wbsTransaction.test.ts`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -512,6 +511,299 @@ M tests/workItemChangeLog.test.ts
 ?? docs/workhub-v3-deployment-plan.md
 ?? docs/workhub-v3-progress.md
 ?? scripts/migrate-v3-phase1.mjs
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。
+
+---
+
+# Phase 3：事项 → 行动项 → 日志主链路
+
+## RESULT
+
+PASS
+
+Phase 3 已完成并验证通过。本轮只实现 `WorkItem → ActionItem → WorkLog` 主链路，未进入 Phase 4；未修改 Prisma schema、旧日志字段、汇报聚合或 Hermes/MCP contract。
+
+## WHAT CHANGED
+
+- 新建 ActionItem 的 API 与事项内 UI 必须提供 `workItemId`；项目关系从父 WorkItem 推导，若请求显式项目与父事项不一致则拒绝。
+- 从 WorkLog 创建新 ActionItem 的 UI 已移除，`createWorkLogWithContext` 对新的 `actionItems` 输入拒绝；legacy `workLogId` 字段和历史数据保留。
+- 新增 ActionItem progress log API：`POST /api/action-items/[id]/progress`。日志写入 `workDate`、`note`、`actionItemId`、父事项 `itemId`，并填充 legacy title/content/type/source/project/module/tags/reportable/sourceUrl 字段。
+- 普通“记录进展”只创建日志，不改变 ActionItem、WorkItem 的状态及其他管理字段。
+- 新增逾期调整计划事务 API：`POST /api/action-items/[id]/reschedule`。逾期未完成事项必须提供原因和下一步，事务内同时更新 dueDate 和创建 progress WorkLog。
+- 新增完成事务 API：`POST /api/action-items/[id]/complete`。事务内写入 `status=done`、`doneAt`；填写完成结果时同时创建 ActionItem progress WorkLog，并继续兼容写入 `doneNote`。
+- ActionItemSection 改为轻量原地交互：记录进展、调整计划、完成、编辑；显示负责人、截止日期、状态和最近进展。逾期且原截止日期之后没有 ActionItem progress log 时动态显示“已逾期 · 缺少延期说明”。
+- 事项详情时间线合并事项自身 WorkLog 与所有 ActionItem progress WorkLog，并用“事项记录 / 行动项 · …”区分来源；同一条同时拥有 itemId/actionItemId 的迁移日志只显示一次。
+
+## DATA MIGRATION
+
+本阶段没有 schema/data migration。开始前已执行备份和 restore-check：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T07-45-56-022Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+真实接口场景验收使用了带 `[Phase3验收]` 标记的临时事项、两个临时 ActionItem 和三条临时 progress logs。验证完成后先删除临时 ActionItem/WorkItem，再按精确日志 ID 删除残留的三条测试日志；未触碰历史业务数据。最终标记日志数量为 0。
+
+## FILES CHANGED
+
+- `src/app/api/action-items/route.ts`
+- `src/app/api/action-items/[id]/route.ts`
+- `src/app/api/action-items/[id]/progress/route.ts`
+- `src/app/api/action-items/[id]/reschedule/route.ts`
+- `src/app/api/action-items/[id]/complete/route.ts`
+- `src/app/api/items/[id]/route.ts`
+- `src/app/logs/[id]/page.tsx`
+- `src/components/ActionItemSection.tsx`
+- `src/components/Timeline.tsx`
+- `src/lib/actionItemWorkflow.ts`
+- `src/lib/recordingTransaction.ts`
+- `tests/actionItemApi.test.ts`
+- `tests/actionItemWorkflow.test.ts`
+- `tests/recordingTransaction.test.ts`
+- `docs/workhub-v3-progress.md`
+
+未修改 `prisma/schema.prisma`；未处理用户已有 deleted dirty 文件 `docs/hermes-workhub-v1.md`。
+
+## BEHAVIOR BEFORE / AFTER
+
+| 能力 | Phase 3 前 | Phase 3 后 |
+| --- | --- | --- |
+| 新建 ActionItem | 可仅关联 WorkLog | 必须关联 WorkItem，项目从 WorkItem 推导 |
+| WorkLog → ActionItem | 旧复合入口仍可创建 | 新 UI/API 使用路径失效，legacy schema 保留 |
+| ActionItem 进展 | 无清晰主链 API | 独立 progress API，双归属字段可追溯 |
+| 记录普通进展 | 交互不清晰 | 只创建日志，状态不自动变化 |
+| 逾期改期 | 仅改日期 | 原因/下一步必填，并与日志同事务提交 |
+| 完成 ActionItem | 依赖 doneNote 更新 | done/doneAt 与可选完成日志同事务提交 |
+| 事项时间线 | 只显示事项自身日志 | 合并事项日志和行动项日志，来源可区分且去重 |
+| legacy 字段 | 保留 | `doneNote`、`workLogId`、`reportable`、WorkLog legacy 字段继续保留 |
+
+## VERIFICATION
+
+测试与构建：
+
+```text
+npm.cmd run typecheck  PASS
+npm.cmd run test       PASS — 19 test files passed, 1 skipped; 75 tests passed, 9 skipped
+npm.cmd run lint       PASS
+npm.cmd run build      PASS
+```
+
+新增/调整测试覆盖：
+
+- 无 `workItemId` 创建 ActionItem 失败；WorkLog-only 新建路径失败。
+- ActionItem 项目关系从父 WorkItem 正确推导。
+- progress log 的 `actionItemId`、`itemId`、note 和 legacy 字段正确写入。
+- 普通进展不调用 ActionItem 更新。
+- 逾期改期原因/下一步缺失时拒绝；成功时日期和日志在同一事务回调中提交，日志失败会向外抛出以触发回滚。
+- 完成时写入 done、doneAt 和可选完成日志。
+- Phase 1 历史 progress logs 仍能通过事项详情/ActionItem 查询读取。
+- WBS fake WorkItem 仍为 0。
+
+数据库最终校验：
+
+```text
+Project                         2
+ProjectMilestone               12
+WorkItem                        9
+ActionItem                     38
+WorkLog                        58
+ProjectWbsNode                157
+ProjectWbsDeliverable         146
+Phase 1 progress logs          29
+Phase 2 WBS fake WorkItem       0
+PRAGMA integrity_check          ok
+PRAGMA foreign_key_check        无违规
+schema diff                     空迁移
+测试标记临时日志               0
+```
+
+人工验收（真实本地 API + 事项详情页面读取）PASS：创建临时事项和 ActionItem；普通进展后状态保持 pending；逾期调整同时生成包含原因/下一步的日志；完成后写入 done、doneAt 和完成日志；事项接口返回统一日志；刷新事项详情后时间线显示行动项来源且不重复；临时数据已安全清理。
+
+最终数据库备份及 restore-check：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T08-02-04-435Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+## KNOWN RISKS
+
+- `ActionItem.workItemId` 在 Prisma schema 中仍为 nullable，以兼容历史记录；V3 新入口已强制要求，旧数据仍需后续清理评估。
+- `doneNote`、`workLogId`、`reportable` 及 WorkLog legacy 字段仍保留；字段退休属于后续 legacy cleanup，不在本阶段处理。
+- 事项时间线仍复用旧日志详情链接和 type 展示，只新增来源标识；完整日志页面/汇报聚合重构属于 Phase 4 及以后。
+- 删除临时父事项时，现有删除语义会解除日志关联而保留日志；本轮已识别该行为并通过精确测试日志 ID 完成清理，后续如需改变保留策略应单独设计。
+
+## NEXT PHASE READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 3 验收通过。下一阶段为 Phase 4：Report Aggregator V3；本轮未执行，需用户明确确认后再开始。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/api/action-items/route.ts
+ M src/app/api/action-items/[id]/route.ts
+?? src/app/api/action-items/[id]/complete/route.ts
+?? src/app/api/action-items/[id]/progress/route.ts
+?? src/app/api/action-items/[id]/reschedule/route.ts
+ M src/app/api/items/[id]/route.ts
+ M src/app/api/projects/[id]/wbs/nodes/[nodeId]/route.ts
+ M src/app/logs/[id]/page.tsx
+ M src/app/items/[id]/page.tsx
+ M src/components/ActionItemSection.tsx
+ M src/components/Timeline.tsx
+?? src/lib/actionItemWorkflow.ts
+ M src/lib/recordingTransaction.ts
+ M src/components/WbsGateClient.tsx
+ M src/components/WbsOverviewClient.tsx
+ M src/lib/wbs/service.ts
+?? tests/actionItemApi.test.ts
+?? tests/actionItemWorkflow.test.ts
+ M tests/recordingTransaction.test.ts
+ M tests/wbsInitializationRetention.test.ts
+ M tests/wbsTransaction.test.ts
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。
+
+---
+
+# Phase 2：WBS fake WorkItem 清理
+
+## RESULT
+
+PASS
+
+Phase 2 已完成。WBS gate 不再自动创建或同步 `[STRx] 节点准备与评审` WorkItem；本轮未进入 Phase 3。
+
+## PRE-DELETE BACKUP
+
+删除前执行了实时数据库备份与 restore-check：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T05-52-08-304Z.db
+Backup verified: projects=2, items=15, logs=58
+```
+
+## DELETION CANDIDATES
+
+删除前重新读取实时数据库。候选集合数量为 6，且全部满足：`managedBy="wbs"`、`executionMilestoneId IS NOT NULL`、来源 WBS 节点 `kind="gate"`、ActionItem=0、WorkLog=0，标题/描述/sourceSystem/sourceId 与 gate execution item 证据一致。
+
+| id | title | projectId | executionMilestoneId | originWbsNodeId | origin kind | ActionItem | WorkLog |
+| --- | --- | --- | --- | --- | --- | ---: | ---: |
+| `cmrvr1ket00gxs1ukccypg21w` | `[STR1] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8otmd90007s1vk34lykeks` | `cmrvr1k5w000ls1uksklg6uw1` | `gate` | 0 | 0 |
+| `cmrvr1kew00gzs1uk37qkfxyp` | `[STR2] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8otzrw0009s1vkp00gvtzf` | `cmrvr1k6b0015s1ukitq42dj8` | `gate` | 0 | 0 |
+| `cmrvr1kez00h1s1ukvefychds` | `[STR3] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8oubct000bs1vk1x1tnyiu` | `cmrvr1k6g001fs1uk6oqjdzcg` | `gate` | 0 | 0 |
+| `cmrvr1kf200h3s1ukap52naqd` | `[STR4] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8ove7g000fs1vk0b14d56y` | `cmrvr1k6q001ts1uktr2jlo8l` | `gate` | 0 | 0 |
+| `cmrvr1kf500h5s1uk6bcc5qup` | `[STR4A] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8ovve5000hs1vk63ehopjr` | `cmrvr1k6z0025s1uk32j0g314` | `gate` | 0 | 0 |
+| `cmrvr1kf800h7s1ukscz5gkpm` | `[STR5] 节点准备与评审` | `cmqz4m9gg0000s1douq1oyfby` | `cmr8ow9ug000js1vkkdk2klpe` | `cmrvr1k73002bs1uk80yquup7` | `gate` | 0 | 0 |
+
+候选集合通过后，使用上述精确 ID 集合删除，实际删除数量为 **6**。未使用宽泛条件删除普通 WorkItem。
+
+## CODE CHANGES
+
+- `initializeProjectWbs` 保留 WBS plan/node/deliverable 初始化和 ProjectMilestone gateKey 绑定，不再创建或更新 gate execution WorkItem。
+- `generatedExecutionItemData()` 已删除。
+- `syncWbsDerivedState` 继续计算 readiness 和 ProjectMilestone.status，不再查询或更新 execution WorkItem 的 status、health、nextAction、closedAt。
+- `ProjectMilestone.actualDate` 与 `actualEndDate` 在 done 时同步设置，在 reopen 时同步清除；既有里程碑状态行为保持。
+- `getProjectWbsSummary` 不再读取 `executionWorkItem`。
+- WBS 页面仅做最小文案调整，明确 STR 事项由人工管理。
+- `splitWbsNodeIntoWorkItem()` 保留，普通 `kind="task"` 仍可拆分为 WorkItem，并保留 `originWbsNodeId`。
+- 未删除 `executionMilestoneId`、`executionMilestone`、`managedBy`、`originWbsNodeId` 等 legacy schema 字段。
+
+## DATA COUNT AFTER DELETE
+
+| 数据项 | 删除前 | 删除后 |
+| --- | ---: | ---: |
+| Project | 2 | 2 |
+| ProjectMilestone | 12 | 12 |
+| WorkItem | 15 | 9 |
+| WBS fake gate WorkItem | 6 | 0 |
+| ActionItem | 38 | 38 |
+| WorkLog | 58 | 58 |
+| ProjectWbsNode | 157 | 157 |
+| ProjectWbsDeliverable | 146 | 146 |
+
+ActionItem、WorkLog、ProjectMilestone、ProjectWbsNode、ProjectWbsDeliverable 的 ID 集合均与删除前备份一致。
+
+## REGRESSION VERIFICATION
+
+新增/调整测试覆盖：
+
+- 初始化 WBS 不创建 `[STRx] 节点准备与评审`，不产生 `managedBy="wbs" + executionMilestoneId` gate WorkItem。
+- 重新初始化已有 WBS 不恢复已清理的 fake WorkItem。
+- 更新 WBS node 仍正确计算 readiness 和 ProjectMilestone.status。
+- done 时 `actualDate / actualEndDate` 正确同步，reopen 时正确清除。
+- WBS task split 仍创建普通 WorkItem，保留 `originWbsNodeId`，且不设置 `executionMilestoneId`。
+
+项目原生验证：
+
+```text
+npx prisma validate   PASS
+schema diff            空迁移
+npm.cmd run typecheck  PASS
+npm.cmd run test       PASS — 17 test files passed, 1 skipped; 66 tests passed, 9 skipped
+npm.cmd run lint       PASS
+npm.cmd run build      PASS
+```
+
+数据库验证：
+
+```text
+fake WorkItem remaining  0
+PRAGMA integrity_check   ok
+PRAGMA foreign_key_check  无违规
+```
+
+## POST-PHASE BACKUP
+
+执行了最终数据库备份及 restore-check：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T05-59-06-041Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+## FILES CHANGED
+
+- `src/lib/wbs/service.ts`
+- `src/app/api/projects/[id]/wbs/nodes/[nodeId]/route.ts`
+- `src/components/WbsGateClient.tsx`
+- `src/components/WbsOverviewClient.tsx`
+- `tests/wbsInitializationRetention.test.ts`
+- `tests/wbsTransaction.test.ts`
+- `docs/workhub-v3-progress.md`
+
+## KNOWN RISKS
+
+- legacy execution relation字段仍保留，仅停止运行时自动创建和同步；最终 schema cleanup 不属于本阶段。
+- WBS task split 仍会创建普通 WorkItem；后续必须继续区分 task split 与 gate fake。
+- `ActionItem.doneNote`、`workLogId`、`reportable` 仍处于兼容阶段，未在本阶段处理。
+- Hermes/MCP legacy contract 未修改；`docs/hermes-workhub-v1.md` 的既有 dirty 状态保持不变。
+
+## PHASE 3 READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 2 验收通过。下一阶段为 Phase 3：事项 → 行动项 → 日志主链路；本轮未执行，需用户明确确认后再开始。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/api/projects/[id]/wbs/nodes/[nodeId]/route.ts
+ M src/components/WbsGateClient.tsx
+ M src/components/WbsOverviewClient.tsx
+ M src/lib/wbs/service.ts
+ M tests/wbsInitializationRetention.test.ts
+ M tests/wbsTransaction.test.ts
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。

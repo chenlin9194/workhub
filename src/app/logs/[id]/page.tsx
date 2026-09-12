@@ -7,7 +7,6 @@ import Icon from "@/components/Icon";
 import { WORK_LOG_TYPE_LABELS, SOURCE_LABELS } from "@/lib/constants";
 import { generateWorkLogMarkdown, splitCommaSeparatedText } from "@/lib/utils";
 import AutoLinkText from "@/components/AutoLinkText";
-import ActionItemSection from "@/components/ActionItemSection";
 import PageLoadingState from "@/components/PageLoadingState";
 import { getProjectDisplayName } from "@/lib/projectDisplay";
 
@@ -173,11 +172,6 @@ export default function LogDetailPage() {
             </div>
           </div>
 
-          <ActionItemSection
-            workLogId={log.id}
-            workItemId={log.itemId ?? undefined}
-            projectId={log.projectId ?? undefined}
-          />
         </main>
 
         <aside className="log-detail-sidebar">

@@ -12,6 +12,7 @@ interface TimelineProps {
     content: string;
     type: string;
     createdAt: Date;
+    sourceLabel?: string;
   }[];
 }
 
@@ -84,6 +85,7 @@ export default function Timeline({ logs }: TimelineProps) {
                     <span className="badge" style={{ fontSize: 10, background: "var(--accent-purple)", color: "white" }}>
                       {WORK_LOG_TYPE_LABELS[log.type] || log.type}
                     </span>
+                    {log.sourceLabel && <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{log.sourceLabel}</span>}
                     <Link href={`/logs/${log.id}`} style={{ fontSize: 12, color: "var(--accent-blue)", textDecoration: "none" }}>
                       查看详情
                     </Link>

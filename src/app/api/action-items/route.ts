@@ -24,9 +24,8 @@ function parseStatus(value: unknown, fallback: string) {
   return { status };
 }
 
-function applyRelationFilters(where: Record<string, unknown>, workItemId: string | null, workLogId: string | null, projectId: string | null) {
+function applyRelationFilters(where: Record<string, unknown>, workItemId: string | null, projectId: string | null) {
   if (workItemId) where.workItemId = workItemId;
-  if (workLogId) where.workLogId = workLogId;
   if (projectId) where.projectId = projectId;
 }
 
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const workItemId = searchParams.get("workItemId");
-    const workLogId = searchParams.get("workLogId");
     const projectId = searchParams.get("projectId");
     const status = searchParams.get("status");
 
@@ -42,11 +40,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid action item status" }, { status: 400 });
     }
 
-    const hasRelationFilter = Boolean(workItemId || workLogId || projectId);
+    const hasRelationFilter = Boolean(workItemId || projectId);
     const where: Record<string, unknown> = {};
 
     if (hasRelationFilter) {
-      applyRelationFilters(where, workItemId, workLogId, projectId);
+      applyRelationFilters(where, workItemId, projectId);
     }
 
     if (status) {
@@ -63,6 +61,12 @@ export async function GET(request: NextRequest) {
         { sortOrder: "asc" },
         { createdAt: "asc" },
       ],
+      include: {
+        progressLogs: {
+          orderBy: [{ workDate: "desc" }, { createdAt: "desc" }],
+          take: 1,
+        },
+      },
     });
 
     return NextResponse.json({ actionItems });
@@ -97,28 +101,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: doneNoteResult.error }, { status: 400 });
     }
 
-    if (!workItemId && !workLogId) {
-      return NextResponse.json({ error: "Action Item 需要关联事项或日志" }, { status: 400 });
+    if (!workItemId) {
+      return NextResponse.json({ error: "新建 Action Item 必须关联事项" }, { status: 400 });
     }
 
-    const [workItem, workLog, project] = await Promise.all([
-      workItemId
-        ? prisma.workItem.findUnique({ where: { id: workItemId }, select: { id: true, projectId: true } })
-        : Promise.resolve(null),
-      workLogId
-        ? prisma.workLog.findUnique({ where: { id: workLogId }, select: { id: true, projectId: true } })
-        : Promise.resolve(null),
+    if (workLogId) {
+      return NextResponse.json({ error: "不能从 WorkLog 创建新的 Action Item" }, { status: 400 });
+    }
+
+    const [workItem, project] = await Promise.all([
+      prisma.workItem.findUnique({ where: { id: workItemId }, select: { id: true, projectId: true } }),
       projectId
         ? prisma.project.findUnique({ where: { id: projectId }, select: { id: true } })
         : Promise.resolve(null),
     ]);
 
-    if (workItemId && !workItem) {
+    if (!workItem) {
       return NextResponse.json({ error: "事项不存在" }, { status: 400 });
-    }
-
-    if (workLogId && !workLog) {
-      return NextResponse.json({ error: "日志不存在" }, { status: 400 });
     }
 
     if (projectId && !project) {
@@ -129,11 +128,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Action Item 项目与事项项目不一致" }, { status: 400 });
     }
 
-    if (projectId && workLog?.projectId && workLog.projectId !== projectId) {
-      return NextResponse.json({ error: "Action Item 项目与日志项目不一致" }, { status: 400 });
+    if (projectId && projectId !== workItem.projectId) {
+      return NextResponse.json({ error: "Action Item 项目必须从事项推导且保持一致" }, { status: 400 });
     }
 
-    const resolvedProjectId = projectId || workLog?.projectId || workItem?.projectId || null;
+    const resolvedProjectId = workItem.projectId || null;
     const doneAt = statusResult.status === "done" ? new Date() : null;
 
     const actionItem = await prisma.actionItem.create({
@@ -143,8 +142,8 @@ export async function POST(request: NextRequest) {
         owner: toNullableString(body.owner),
         dueDate: dueDateResult.value,
         sortOrder: parseOptionalSortOrder(body.sortOrder),
-        workItemId,
-        workLogId,
+        workItemId: workItem.id,
+        workLogId: null,
         projectId: resolvedProjectId,
         doneAt,
         doneNote: doneNoteResult.value,
@@ -152,8 +151,7 @@ export async function POST(request: NextRequest) {
     });
 
     revalidateWorkHubPaths({
-      itemId: workItemId || undefined,
-      logId: workLogId || undefined,
+      itemId: workItemId,
       projectId: resolvedProjectId || undefined,
     });
 

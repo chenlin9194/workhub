@@ -58,6 +58,12 @@ interface WorkItem {
     content: string;
     type: string;
     createdAt: Date;
+    actionItemId?: string | null;
+  }[];
+  actionItems?: {
+    id: string;
+    title: string;
+    progressLogs?: WorkItem["logs"];
   }[];
 }
 
@@ -214,12 +220,24 @@ export default function ItemDetailPage() {
 
   const overdue = isOverdue(item.dueDate, item.status);
   const addLogHref = itemToAddLogHref(item.id, item.projectId ?? undefined);
-  const systemLogs = item.logs.filter(isSystemLog);
+  const timelineEntries = [
+    ...item.logs.filter((log) => !log.actionItemId).map((log) => ({ ...log, sourceLabel: "事项记录" })),
+    ...(item.actionItems || []).flatMap((actionItem) =>
+      (actionItem.progressLogs || []).map((log) => ({
+        ...log,
+        sourceLabel: `行动项 · ${actionItem.title}`,
+      }))
+    ),
+  ].sort((a, b) => {
+    const dateOrder = b.workDate.localeCompare(a.workDate);
+    return dateOrder || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  const systemLogs = timelineEntries.filter(isSystemLog);
   const visibleLogs = timelineFilter === "system"
-    ? item.logs.filter(isSystemLog)
+    ? timelineEntries.filter(isSystemLog)
     : timelineFilter === "manual"
-      ? item.logs.filter((log) => !isSystemLog(log))
-      : item.logs;
+      ? timelineEntries.filter((log) => !isSystemLog(log))
+      : timelineEntries;
   const timelineLogs = showAllLogs ? visibleLogs : visibleLogs.slice(0, 3);
   const projectName = getProjectDisplayName({ relationName: item.projectRef?.name, legacyName: item.project });
 
@@ -466,8 +484,8 @@ export default function ItemDetailPage() {
               {showAllLogs ? "收起日志" : "展开全部日志"}（{visibleLogs.length}）
             </button>
           )}
-          <button type="button" className={`btn ${timelineFilter === "all" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("all")}>全部（{item.logs.length}）</button>
-          <button type="button" className={`btn ${timelineFilter === "manual" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("manual")}>仅人工（{item.logs.length - systemLogs.length}）</button>
+          <button type="button" className={`btn ${timelineFilter === "all" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("all")}>全部（{timelineEntries.length}）</button>
+          <button type="button" className={`btn ${timelineFilter === "manual" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("manual")}>仅人工（{timelineEntries.length - systemLogs.length}）</button>
           {systemLogs.length > 0 && <button type="button" className={`btn ${timelineFilter === "system" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("system")}>仅系统（{systemLogs.length}）</button>}
         </div>
         <Timeline logs={timelineLogs} />

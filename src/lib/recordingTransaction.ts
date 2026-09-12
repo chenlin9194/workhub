@@ -413,6 +413,9 @@ export async function createWorkLogWithContext(
   input: Record<string, unknown>,
   options: { defaultSource?: string; requireItemContext?: boolean } = {}
 ) {
+  if (Array.isArray(input.actionItems) && input.actionItems.length > 0) {
+    throw new CompositeInputError("不能从 WorkLog 创建新的 Action Item，请先关联事项");
+  }
   const logInput = parseWorkLog(input, options.defaultSource || "manual");
   const actionInputs = parseActionItems(input.actionItems);
   const existingItemId = toNullableString(input.itemId);

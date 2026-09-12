@@ -30,6 +30,14 @@ export async function GET(
         logs: {
           orderBy: { workDate: "desc" },
         },
+        actionItems: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          include: {
+            progressLogs: {
+              orderBy: [{ workDate: "desc" }, { createdAt: "desc" }],
+            },
+          },
+        },
       },
     });
 
