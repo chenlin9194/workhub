@@ -111,7 +111,7 @@ export default function WbsOverviewClient({ projectId }: { projectId: string }) 
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "初始化 WBS 失败");
-      setMessage(`初始化完成：${data.nodeCount} 个节点，${data.executionItemCreatedCount} 个新 STR 事项。`);
+      setMessage(`初始化完成：${data.nodeCount} 个节点；STR 事项不再由 WBS 自动生成。`);
       setPreview(null);
       await loadSummary();
     } catch (nextError) {

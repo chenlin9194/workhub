@@ -23,7 +23,7 @@ type NodeView = {
   completedAt: string | null;
   deliverables: DeliverableView[];
   originWorkItems: RelatedItem[];
-  milestone: { title: string; targetDate: string | null; status: string; actualDate: string | null; executionWorkItem?: { id: string; title: string; status: string; health: string } | null };
+  milestone: { title: string; targetDate: string | null; status: string; actualDate: string | null };
 };
 
 type Summary = {
@@ -130,7 +130,7 @@ export default function WbsGateClient({ projectId, gateKey }: { projectId: strin
           <Link href={`/projects/${projectId}/wbs`} className="wbs-back">← 返回 WBS 总览</Link>
           <span className="wbs-eyebrow">STR EXECUTION</span>
           <h1>{gateKey} · {gate.milestone?.title || "执行页"}</h1>
-          <p>目标日期 {dateLabel(gate.milestone?.targetDate || null)} · STR 事项 {gate.milestone?.executionWorkItem?.status || "未生成"} · 评审任务是本 STR 最后一条必做任务。</p>
+          <p>目标日期 {dateLabel(gate.milestone?.targetDate || null)} · STR 事项由人工管理 · 评审任务是本 STR 最后一条必做任务。</p>
         </div>
         <div className={`wbs-readiness-badge is-${gate.readiness.status}`}><strong>{STATUS_LABELS[gate.readiness.status] || gate.readiness.status}</strong><span>{gate.readiness.completedExecutionNodes}/{gate.readiness.totalExecutionNodes} 完成</span></div>
       </header>

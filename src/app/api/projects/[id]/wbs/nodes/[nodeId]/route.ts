@@ -51,7 +51,7 @@ export async function PATCH(
       return NextResponse.json({ error: "请求体必须是 JSON 对象" }, { status: 400 });
     }
     const result = await updateWbsNode(id, nodeId, body as Record<string, unknown>);
-    revalidateWorkHubPaths({ projectId: id, itemId: result.executionItem?.id });
+    revalidateWorkHubPaths({ projectId: id });
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
@@ -72,7 +72,7 @@ export async function DELETE(
       return NextResponse.json({ error: "移除原因不能为空" }, { status: 400 });
     }
     const result = await removeWbsTask(id, nodeId, body.reason);
-    revalidateWorkHubPaths({ projectId: id, itemId: result.executionItem?.id });
+    revalidateWorkHubPaths({ projectId: id });
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);

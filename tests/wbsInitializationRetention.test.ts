@@ -109,6 +109,18 @@ beforeEach(() => {
 });
 
 describe("WBS initialization soft-removal retention", () => {
+  it("does not create or restore gate execution WorkItems during initialization", async () => {
+    const first = await initializeProjectWbs("project-1", "v2");
+    const second = await initializeProjectWbs("project-1", "v2");
+
+    expect(mocks.txWorkItemFindUnique).not.toHaveBeenCalled();
+    expect(mocks.txWorkItemCreate).not.toHaveBeenCalled();
+    expect(first.executionItemCreatedCount).toBe(0);
+    expect(first.executionItemUpdatedCount).toBe(0);
+    expect(second.executionItemCreatedCount).toBe(0);
+    expect(second.executionItemUpdatedCount).toBe(0);
+  });
+
   it("retains removal metadata and owner assignment on same-key reinitialize", async () => {
     const removedAt = new Date("2026-08-20T00:00:00.000Z");
     for (const rule of WBS_GATE_RULES) {

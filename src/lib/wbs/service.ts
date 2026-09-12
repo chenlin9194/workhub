@@ -241,8 +241,6 @@ function buildPreviewFromData(
   const gateResult = buildGatePreviews(project, nodes);
   const roleSummaryResult = roleSummary(nodes);
   const deliverables = nodes.reduce((count, node) => count + splitDeliverables(node.deliverableSpec).length, 0);
-  const executionItems = gateResult.gates.filter((gate) => gate.milestoneId).length;
-
   return {
     project: { id: project.id, name: project.name, type: project.type },
     template: {
@@ -260,7 +258,7 @@ function buildPreviewFromData(
       tasks: nodes.filter((node) => node.kind === "task").length,
       reviews: nodes.filter((node) => node.kind === "gate").length,
       deliverables,
-      executionItems,
+      executionItems: 0,
     },
     roleSummary: roleSummaryResult,
     existingPlan: existingPlanSummary(project.wbsPlan),
@@ -281,43 +279,6 @@ function gateMapFromPreview(preview: WbsInitializationPreview): Map<WbsGateKey, 
   return new Map(preview.gates.map((gate) => [gate.gateKey, gate]));
 }
 
-function generatedExecutionItemData(args: {
-  project: { id: string; name: string };
-  templateVersion: string;
-  milestoneId: string;
-  gateKey: WbsGateKey;
-  dueDate: string | null;
-  originWbsNodeId: string;
-  status: string;
-  closedAt: Date | null;
-}) {
-  return {
-    title: `[${args.gateKey}] 节点准备与评审`,
-    description: `由 WBS ${args.gateKey} 里程碑初始化生成`,
-    project: args.project.name,
-    projectId: args.project.id,
-    type: "milestone",
-    priority: "P2",
-    status: args.status,
-    owner: null,
-    dueDate: args.dueDate,
-    nextAction: `${args.gateKey} 评审准备与问题闭环`,
-    trackingReason: "WBS 模板节点执行",
-    sourceSystem: "wbs",
-    sourceId: `wbs-${args.templateVersion}-${args.gateKey}`,
-    sourceUrl: null,
-    health: "unknown",
-    currentSummary: null,
-    nextCheckpoint: null,
-    reportLevel: "project",
-    tags: "WBS",
-    executionMilestoneId: args.milestoneId,
-    originWbsNodeId: args.originWbsNodeId,
-    managedBy: "wbs",
-    closedAt: args.closedAt,
-  };
-}
-
 export async function initializeProjectWbs(
   projectId: string,
   templateVersion?: string,
@@ -335,7 +296,6 @@ export async function initializeProjectWbs(
       where: { id: projectId },
       select: {
         id: true,
-        name: true,
       },
     });
     if (!project) throw new WbsProjectNotFoundError(projectId);
@@ -380,7 +340,6 @@ export async function initializeProjectWbs(
     let taskCount = 0;
     let reviewCount = 0;
     let deliverableCreatedCount = 0;
-    const persistedGateNodes = new Map<WbsGateKey, { id: string; milestoneId: string }>();
 
     for (const node of orderedNodes(templateNodes)) {
       const milestone = milestoneByGate.get(node.gateKey);
@@ -422,10 +381,7 @@ export async function initializeProjectWbs(
       nodeIdByKey.set(`${node.stage}|${node.gateKey}|${node.code}`, persisted.id);
       if (node.kind === "package") packageCount += 1;
       else if (node.kind === "task") taskCount += 1;
-      else {
-        reviewCount += 1;
-        persistedGateNodes.set(node.gateKey, { id: persisted.id, milestoneId: milestone.id });
-      }
+      else reviewCount += 1;
 
       const existingDeliverables = await tx.projectWbsDeliverable.findMany({
         where: { nodeId: persisted.id },
@@ -441,34 +397,14 @@ export async function initializeProjectWbs(
       }
     }
 
-    let executionItemCreatedCount = 0;
-    let executionItemUpdatedCount = 0;
+    let linkedGateCount = 0;
     for (const gate of WBS_GATE_RULES) {
       const milestone = milestoneByGate.get(gate.gateKey);
-      const reviewNode = persistedGateNodes.get(gate.gateKey);
-      if (!milestone || !reviewNode) throw new Error(`${gate.gateKey} 缺少评审节点或项目里程碑`);
+      if (!milestone) throw new Error(`${gate.gateKey} 缺少项目里程碑`);
 
       if (milestone.gateKey === null) {
         await tx.projectMilestone.update({ where: { id: milestone.id }, data: { gateKey: gate.gateKey } });
-      }
-
-      const existingItem = await tx.workItem.findUnique({ where: { executionMilestoneId: milestone.id } });
-      const itemData = generatedExecutionItemData({
-        project,
-        templateVersion: template.version,
-        milestoneId: milestone.id,
-        gateKey: gate.gateKey,
-        dueDate: dateToYmd(milestone.targetDate),
-        originWbsNodeId: reviewNode.id,
-        status: existingItem?.status ?? "open",
-        closedAt: existingItem?.closedAt ?? null,
-      });
-      if (existingItem) {
-        await tx.workItem.update({ where: { id: existingItem.id }, data: itemData });
-        executionItemUpdatedCount += 1;
-      } else {
-        await tx.workItem.create({ data: itemData });
-        executionItemCreatedCount += 1;
+        linkedGateCount += 1;
       }
     }
 
@@ -481,9 +417,9 @@ export async function initializeProjectWbs(
       taskCount,
       reviewCount,
       deliverableCreatedCount,
-      executionItemCreatedCount,
-      executionItemUpdatedCount,
-      linkedGateCount: WBS_GATE_RULES.filter((gate) => milestoneByGate.get(gate.gateKey)?.gateKey === null).length,
+      executionItemCreatedCount: 0,
+      executionItemUpdatedCount: 0,
+      linkedGateCount,
       initializedAt: plan.initializedAt?.toISOString() ?? now.toISOString(),
     };
   });
@@ -505,7 +441,7 @@ export async function getProjectWbsSummary(projectId: string) {
               where: { removedAt: null },
               include: {
                 deliverables: true,
-                milestone: { include: { executionWorkItem: { select: { id: true, title: true, status: true, health: true } } } },
+                milestone: true,
                 ownerMember: true,
                 originWorkItems: { select: { id: true, title: true, status: true } },
               },
@@ -585,13 +521,6 @@ function patchTextInput(input: Record<string, unknown>, field: string, fallback:
   return value.trim() || null;
 }
 
-function executionItemStatus(readiness: ReturnType<typeof deriveStrReadiness>): "open" | "following" | "blocked" | "closed" {
-  if (readiness.status === "blocked") return "blocked";
-  if (readiness.status === "closed") return "closed";
-  if (readiness.status === "in_progress") return "following";
-  return "open";
-}
-
 async function syncWbsDerivedState(
   tx: Prisma.TransactionClient,
   node: { planId: string; gateKey: string; milestoneId: string },
@@ -625,27 +554,17 @@ async function syncWbsDerivedState(
     : milestone.status === "done"
       ? null
       : milestone.actualDate;
+  const nextActualEndDate = milestoneStatus === "done"
+    ? milestone.actualEndDate ?? nextActualDate
+    : milestone.status === "done"
+      ? null
+      : milestone.actualEndDate;
   const updatedMilestone = await tx.projectMilestone.update({
     where: { id: milestone.id },
-    data: { status: mappedMilestoneStatus, actualDate: nextActualDate },
+    data: { status: mappedMilestoneStatus, actualDate: nextActualDate, actualEndDate: nextActualEndDate },
   });
 
-  const executionItem = await tx.workItem.findUnique({ where: { executionMilestoneId: milestone.id } });
-  let updatedExecutionItem = executionItem;
-  if (executionItem) {
-    const nextItemStatus = executionItemStatus(readiness);
-    updatedExecutionItem = await tx.workItem.update({
-      where: { id: executionItem.id },
-      data: {
-        status: nextItemStatus,
-        health: readiness.status === "blocked" ? "red" : milestoneStatus === "delayed" ? "yellow" : "unknown",
-        nextAction: readiness.nextAction ?? `${node.gateKey} 执行跟进`,
-        closedAt: nextItemStatus === "closed" ? executionItem.closedAt ?? new Date() : null,
-      },
-    });
-  }
-
-  return { readiness, milestone: updatedMilestone, executionItem: updatedExecutionItem };
+  return { readiness, milestone: updatedMilestone, executionItem: null };
 }
 
 export async function updateWbsNode(

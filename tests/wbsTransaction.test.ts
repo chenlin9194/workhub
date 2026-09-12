@@ -10,11 +10,16 @@ const mocks = vi.hoisted(() => ({
   updateMilestone: vi.fn(),
   findExecutionItem: vi.fn(),
   updateExecutionItem: vi.fn(),
+  createWorkItem: vi.fn(),
   updateDeliverable: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { $transaction: mocks.transaction, projectWbsNode: { findFirst: mocks.findNode } },
+  prisma: {
+    $transaction: mocks.transaction,
+    projectWbsNode: { findFirst: mocks.findNode },
+    workItem: { create: mocks.createWorkItem },
+  },
 }));
 
 import { removeWbsTask, splitWbsNodeIntoWorkItem, updateWbsNode } from "@/lib/wbs/service";
@@ -34,7 +39,7 @@ function currentNode() {
     completedAt: null,
     internalCheckDate: null,
     deliverables: [{ id: "deliverable-1", required: true, status: "delivered", evidenceUrl: null, sortOrder: 0 }],
-    milestone: { id: "milestone-1", status: "planned", targetDate: null, actualDate: null },
+    milestone: { id: "milestone-1", status: "planned", targetDate: null, actualDate: null, actualEndDate: null },
     originWorkItems: [],
     removedAt: null,
     removalReason: null,
@@ -63,7 +68,7 @@ beforeEach(() => {
 });
 
 describe("WBS execution transactions", () => {
-  it("updates the node, deliverables, milestone, and STR item through one transaction client", async () => {
+  it("updates the node, deliverables, and milestone without touching a STR WorkItem", async () => {
     const node = currentNode();
     mocks.findNode.mockResolvedValue(node);
     mocks.updateNode.mockResolvedValue({ ...node, status: "done", completionNote: "已完成" });
@@ -73,8 +78,6 @@ describe("WBS execution transactions", () => {
     ]);
     mocks.findMilestone.mockResolvedValue(node.milestone);
     mocks.updateMilestone.mockResolvedValue({ ...node.milestone, status: "in_progress" });
-    mocks.findExecutionItem.mockResolvedValue({ id: "item-str1", status: "open", closedAt: null });
-    mocks.updateExecutionItem.mockResolvedValue({ id: "item-str1", status: "following" });
 
     const result = await updateWbsNode("project-1", "node-task-1", {
       status: "done",
@@ -83,12 +86,48 @@ describe("WBS execution transactions", () => {
     });
 
     expect(result.readiness.status).toBe("in_progress");
-    expect(result.executionItem?.status).toBe("following");
+    expect(result.executionItem).toBeNull();
     expect(mocks.transaction).toHaveBeenCalledTimes(1);
     expect(mocks.updateNode).toHaveBeenCalledTimes(1);
     expect(mocks.updateDeliverable).toHaveBeenCalledTimes(1);
     expect(mocks.updateMilestone).toHaveBeenCalledTimes(1);
-    expect(mocks.updateExecutionItem).toHaveBeenCalledTimes(1);
+    expect(mocks.findExecutionItem).not.toHaveBeenCalled();
+    expect(mocks.updateExecutionItem).not.toHaveBeenCalled();
+  });
+
+  it("keeps milestone actual dates synchronized when done and reopened", async () => {
+    const doneNode = { ...currentNode(), status: "in_progress" };
+    const reopenedNode = { ...currentNode(), status: "done", completionNote: "已完成" };
+    const doneAt = new Date("2026-08-21T00:00:00.000Z");
+    mocks.findNode.mockResolvedValueOnce(doneNode).mockResolvedValueOnce(reopenedNode);
+    mocks.updateNode.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...reopenedNode, ...data }));
+    mocks.findGateNodes
+      .mockResolvedValueOnce([
+        { kind: "task", status: "done", deliverables: doneNode.deliverables },
+        { kind: "gate", status: "done", deliverables: [] },
+      ])
+      .mockResolvedValueOnce([
+        { kind: "task", status: "in_progress", deliverables: doneNode.deliverables },
+        { kind: "gate", status: "not_started", deliverables: [] },
+      ]);
+    const plannedMilestone = { ...doneNode.milestone, status: "planned" };
+    const completedMilestone = { ...plannedMilestone, status: "done", actualDate: doneAt, actualEndDate: doneAt };
+    mocks.findMilestone.mockResolvedValueOnce(plannedMilestone).mockResolvedValueOnce(completedMilestone);
+    mocks.updateMilestone.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...completedMilestone, ...data }));
+
+    const completed = await updateWbsNode("project-1", doneNode.id, {
+      status: "done",
+      completionNote: "已完成",
+      deliverables: [{ id: "deliverable-1", status: "delivered" }],
+    });
+    const reopened = await updateWbsNode("project-1", reopenedNode.id, { status: "in_progress" });
+
+    expect(completed.milestone.actualDate).toEqual(expect.any(Date));
+    expect(completed.milestone.actualEndDate).toEqual(completed.milestone.actualDate);
+    expect(reopened.milestone.actualDate).toBeNull();
+    expect(reopened.milestone.actualEndDate).toBeNull();
+    expect(mocks.findExecutionItem).not.toHaveBeenCalled();
+    expect(mocks.updateExecutionItem).not.toHaveBeenCalled();
   });
 
   it("rejects an incomplete done transition before issuing writes", async () => {
@@ -117,8 +156,6 @@ describe("WBS execution transactions", () => {
     ]);
     mocks.findMilestone.mockResolvedValue({ ...node.milestone, status: status === "done" ? "done" : "in_progress", actualDate: status === "done" ? new Date("2026-08-20") : null });
     mocks.updateMilestone.mockResolvedValue({ ...node.milestone, status: "planned", actualDate: null });
-    mocks.findExecutionItem.mockResolvedValue({ id: "item-str1", status: "open", closedAt: null });
-    mocks.updateExecutionItem.mockResolvedValue({ id: "item-str1", status: "open" });
 
     const result = await removeWbsTask("project-1", node.id, "业务范围调整");
 
@@ -168,6 +205,7 @@ describe("WBS execution transactions", () => {
     expect(mocks.updateManyNode).toHaveBeenCalledTimes(1);
     expect(mocks.findGateNodes).not.toHaveBeenCalled();
     expect(mocks.updateMilestone).not.toHaveBeenCalled();
+    expect(mocks.findExecutionItem).not.toHaveBeenCalled();
     expect(mocks.updateExecutionItem).not.toHaveBeenCalled();
   });
 
@@ -178,5 +216,27 @@ describe("WBS execution transactions", () => {
       .rejects.toThrow("WBS 节点不存在");
     await expect(splitWbsNodeIntoWorkItem("project-1", "node-task-1", { title: "拆分" }))
       .rejects.toThrow("WBS 节点不存在");
+  });
+
+  it("still splits a task node into a normal WorkItem with its WBS origin", async () => {
+    const node = {
+      ...currentNode(),
+      project: { name: "项目 A" },
+      originWorkItems: [],
+    };
+    mocks.findNode.mockResolvedValue(node);
+    mocks.createWorkItem.mockResolvedValue({ id: "split-item" });
+
+    await splitWbsNodeIntoWorkItem("project-1", node.id, { title: "拆分事项" });
+
+    expect(mocks.createWorkItem).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "拆分事项",
+        projectId: "project-1",
+        sourceSystem: "wbs",
+        originWbsNodeId: node.id,
+      }),
+    });
+    expect(mocks.createWorkItem.mock.calls[0][0].data).not.toHaveProperty("executionMilestoneId");
   });
 });
