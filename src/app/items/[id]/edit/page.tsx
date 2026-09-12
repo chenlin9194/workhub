@@ -19,6 +19,12 @@ interface ProjectOption {
   code?: string | null;
 }
 
+interface MilestoneOption {
+  id: string;
+  title: string;
+  gateKey?: string | null;
+}
+
 function hasAdvancedItemValues(value: {
   description?: string | null;
   module?: string | null;
@@ -54,11 +60,13 @@ export default function EditItemPage() {
   const [fetching, setFetching] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneOption[]>([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
     project: "",
     projectId: "",
+    milestoneId: "",
     module: "",
     type: "action",
     priority: "P2",
@@ -99,6 +107,7 @@ export default function EditItemPage() {
           description: item.description || "",
           project: item.project || "",
           projectId: item.projectId || "",
+          milestoneId: item.milestoneId || "",
           module: item.module || "",
           type: item.type || "action",
           priority: item.priority || "P2",
@@ -149,14 +158,26 @@ export default function EditItemPage() {
     setForm((prev) => (prev.project === project.name ? prev : { ...prev, project: project.name }));
   }, [form.projectId, projects]);
 
+  useEffect(() => {
+    if (!form.projectId) {
+      setMilestones([]);
+      return;
+    }
+    fetch(`/api/projects/${form.projectId}/milestones`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setMilestones(Array.isArray(data) ? data : []))
+      .catch(() => setMilestones([]));
+  }, [form.projectId]);
+
   const handleProjectChange = (projectId: string) => {
     const project = projects.find((option) => option.id === projectId);
     if (project) {
-      setForm((prev) => ({ ...prev, projectId, project: project.name }));
+      setForm((prev) => ({ ...prev, projectId, project: project.name, milestoneId: "" }));
       return;
     }
 
-    setForm((prev) => ({ ...prev, projectId: "", project: "" }));
+    setMilestones([]);
+    setForm((prev) => ({ ...prev, projectId: "", project: "", milestoneId: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,7 +277,22 @@ export default function EditItemPage() {
                         {project.code ? ` (${project.code})` : ""}
                       </option>
                     ))}
-                  </select>
+                </select>
+                {form.projectId && (
+                  <>
+                    <label className="form-field-label" style={{ marginTop: 12 }}>所属 STR</label>
+                    <select
+                      value={form.milestoneId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, milestoneId: e.target.value }))}
+                      className="form-field-control"
+                    >
+                      <option value="">项目级事项（未归属 STR）</option>
+                      {milestones.map((milestone) => (
+                        <option key={milestone.id} value={milestone.id}>{milestone.gateKey ? `${milestone.gateKey} · ` : ""}{milestone.title}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
                 </div>
             </section>
 

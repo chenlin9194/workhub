@@ -6,15 +6,10 @@ import Icon from "./Icon";
 import { useSidebarCounts } from "./SidebarCountsContext";
 
 const mainItems = [
-  { href: "/", label: "工作台", icon: "home", exact: true },
+  { href: "/today", label: "今日", icon: "zap", exact: true },
   { href: "/projects", label: "项目", icon: "folder" },
   { href: "/items", label: "事项", icon: "list", count: "openItems" as const },
   { href: "/reports", label: "汇报", icon: "chart", exact: true },
-];
-
-const inboxItems = [
-  { href: "/logs?hasItem=false&view=all", label: "未归档事实", icon: "inbox", count: "unarchivedFacts" as const },
-  { href: "/today", label: "今日行动项", icon: "zap", count: "openActionItems" as const },
 ];
 
 const toolItems = [
@@ -56,20 +51,6 @@ export default function SidebarNavigation() {
               <Icon name={item.icon} size={15} />
               <span>{item.label}</span>
               {count !== undefined && <small className="cockpit-nav-count">{count}</small>}
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="cockpit-nav-group">
-        <span className="cockpit-nav-label">INBOXES</span>
-        {inboxItems.map((item) => {
-          const count = counts[item.count];
-          return (
-            <Link key={item.href} href={item.href} className="cockpit-nav-item">
-              <Icon name={item.icon} size={15} />
-              <span>{item.label}</span>
-              <small className="cockpit-nav-count">{count}</small>
             </Link>
           );
         })}

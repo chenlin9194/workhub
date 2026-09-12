@@ -99,7 +99,17 @@ export async function GET(request: NextRequest) {
     const [items, total] = await Promise.all([
       prisma.workItem.findMany({
         where,
-        include: { projectRef: { select: { id: true, name: true } } },
+        include: {
+          projectRef: { select: { id: true, name: true } },
+          milestone: { select: { id: true, projectId: true, title: true, gateKey: true } },
+          actionItems: {
+            select: {
+              status: true,
+              dueDate: true,
+              progressLogs: { orderBy: [{ workDate: "desc" }, { createdAt: "desc" }], take: 1, select: { id: true, workDate: true, note: true, content: true } },
+            },
+          },
+        },
         orderBy: { updatedAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -138,6 +148,7 @@ export async function POST(request: NextRequest) {
       currentSummary,
       nextCheckpoint,
       reportLevel,
+      milestoneId,
     } = body;
 
     const titleResult = requireText(title, "标题");
@@ -174,12 +185,24 @@ export async function POST(request: NextRequest) {
       projectName = proj.name;
     }
 
+    const nextMilestoneId = toNullableString(milestoneId);
+    const milestone = nextMilestoneId
+      ? await prisma.projectMilestone.findUnique({ where: { id: nextMilestoneId }, select: { projectId: true } })
+      : null;
+    if (nextMilestoneId && !milestone) {
+      return NextResponse.json({ error: "STR 不存在" }, { status: 400 });
+    }
+    if (nextMilestoneId && (!nextProjectId || milestone?.projectId !== nextProjectId)) {
+      return NextResponse.json({ error: "事项只能关联所属项目的 STR" }, { status: 400 });
+    }
+
     const item = await prisma.workItem.create({
       data: {
         title: titleResult.value,
         description: toNullableString(description),
         project: projectName,
         projectId: nextProjectId,
+        milestoneId: nextMilestoneId,
         module: toNullableString(mod),
         type: typeResult.value,
         priority: priorityResult.value,

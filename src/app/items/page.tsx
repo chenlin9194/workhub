@@ -49,6 +49,8 @@ interface WorkItem {
   description?: string | null;
   project?: string | null;
   projectRef?: { name: string } | null;
+  projectId?: string | null;
+  milestone?: { title: string; gateKey?: string | null } | null;
   module?: string | null;
   type: string;
   priority: string;
@@ -67,6 +69,7 @@ interface WorkItem {
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
+  actionItems?: Array<{ status: string; dueDate?: string | null; progressLogs?: Array<{ note?: string | null; content: string }> }>;
 }
 
 const DEFAULT_FILTERS: ItemFilters = {

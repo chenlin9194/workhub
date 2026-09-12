@@ -29,6 +29,7 @@ interface WorkItem {
   project?: string | null;
   projectId?: string | null;
   projectRef?: { name: string } | null;
+  milestone?: { title: string; gateKey?: string | null; projectId?: string } | null;
   module?: string | null;
   type: string;
   priority: string;
@@ -340,6 +341,12 @@ export default function ItemDetailPage() {
               <div className="detail-meta-item">
                 <span>项目</span>
                 <strong>{projectName}</strong>
+              </div>
+            )}
+            {item.projectId && (
+              <div className="detail-meta-item">
+                <span>STR</span>
+                <strong>{item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）"}</strong>
               </div>
             )}
             {item.module && (

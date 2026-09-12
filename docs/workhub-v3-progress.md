@@ -14,23 +14,15 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 4 已完成（PASS）**
-- 下一阶段：**Phase 5：核心页面 V3 信息架构（等待用户确认）**
-- Phase 4：**已完成；本轮未进入 Phase 5**
+- 当前阶段：**Phase 5 已完成（PASS）**
+- 下一阶段：**Phase 6：视觉系统统一与旧逻辑清理（等待用户确认）**
+- Phase 5：**已完成；本轮未进入 Phase 6**
 - 当前分支：`main`
-- 当前 HEAD：`7254356 refactor: remove WBS gate execution work items`
+- 当前 HEAD：`66f7ac6 feat: unify WorkHub V3 reporting pipeline`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
   - `M docs/workhub-v3-progress.md`
-  - `M src/app/api/export/range/route.ts`
-  - `M src/app/api/export/today/route.ts`
-  - `M src/app/export/range/page.tsx`
-  - `M src/app/export/today/page.tsx`
-  - `M src/app/reports/page.tsx`
-  - `M src/lib/export.ts`
-  - `?? src/lib/reportAggregator.ts`
-  - `M tests/exportQuality.test.ts`
-  - `?? tests/reportAggregator.test.ts`
+  - Phase 5 页面/API/测试改动（详见本文末尾 Phase 5 FILES CHANGED）
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -932,3 +924,153 @@ Phase 4 验收通过。下一阶段为 Phase 5：核心页面 V3 信息架构；
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未处理 `docs/hermes-workhub-v1.md`。未进入 Phase 5。
+
+---
+
+# Phase 5：核心页面 V3 信息架构
+
+## RESULT
+
+PASS
+
+Phase 5 已完成并验证通过。本轮只调整核心页面的信息架构和 WorkItem 的真实 STR 归属入口，未进入 Phase 6；未修改 Prisma schema、未迁移或删除数据、未改动 Hermes/MCP contract。
+
+## WHAT CHANGED
+
+- 首页 `/` 收敛为 WorkHub V3 工作台：今日行动、项目当前/下一 STR、最近进展；移除旧 KPI 墙和旧事实桶作为首页主路径。
+- 顶部主导航调整为“今日 / 项目 / 事项 / 汇报”；“未归档事实”退出主导航，日志页面和 API 保留兼容。
+- 项目详情增加当前/下一 STR 的确定性展示、STR/项目级事项归属提示和 WBS readiness 主路径；STR 归属只读取真实 `WorkItem.milestoneId`，不按标题、日期或类型推断。
+- 事项详情显示真实 STR 或“项目级事项（未归属 STR）”，继续保留 ActionItemSection 和事项 + ActionItem progress 的统一时间线。
+- 今日页收敛为 ActionItem 处理队列，按已逾期、今日到期、即将到期/未设置日期分组；保留完成交互和事项上下文。
+- 事项列表增加项目/STR 及行动进展摘要；新建/编辑事项增加当前项目 STR 选择器，切换项目会清空旧 STR。
+- `/api/items`、`/api/items/[id]`、复合新建路径均校验 `milestone.projectId === workItem.projectId`；项目级事项使用 nullable `milestoneId`。
+- 新增纯函数测试覆盖合法/跨项目/null STR、项目切换清空以及当前/下一 STR 确定性选择；Phase 3 ActionItem 主链与 Phase 4 汇报测试保持通过。
+
+## DATA MIGRATION
+
+本阶段没有 schema/data migration，没有创建、删除或重归属真实业务数据。
+
+开始前备份及 restore-check：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T14-47-27-063Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+Phase 5 数据核对：
+
+```text
+Project             2
+ProjectMilestone   12
+WorkItem            9
+ActionItem         38
+WorkLog            58
+ProjectWbsNode    157
+Deliverable       146
+WBS fake WorkItem   0
+integrity_check     ok
+foreign_key_check   []
+```
+
+## FILES CHANGED
+
+- `docs/workhub-v3-progress.md`
+- `src/app/api/items/[id]/route.ts`
+- `src/app/api/items/route.ts`
+- `src/app/api/projects/[id]/route.ts`
+- `src/app/items/[id]/edit/page.tsx`
+- `src/app/items/[id]/page.tsx`
+- `src/app/items/new/page.tsx`
+- `src/app/items/page.tsx`
+- `src/app/page.tsx`
+- `src/app/projects/[id]/page.tsx`
+- `src/app/today/page.tsx`
+- `src/components/SidebarNavigation.tsx`
+- `src/components/TodayActionQueue.tsx`
+- `src/components/redesign/ItemsTable.tsx`
+- `src/lib/actionItemQueue.ts`
+- `src/lib/projectMilestoneView.ts`
+- `src/lib/recordingTransaction.ts`
+- `src/lib/workItemMilestone.ts`
+- `tests/recordingTransaction.test.ts`
+- `tests/workItemMilestone.test.ts`
+
+## BEHAVIOR BEFORE / AFTER
+
+| 场景 | Before | After |
+| --- | --- | --- |
+| 首页 | KPI、事项关注和事实桶混合 | 今日行动 → 项目 STR → 最近进展 |
+| 主导航 | 工作台 + 未归档事实 + 今日行动项 | 今日 / 项目 / 事项 / 汇报 |
+| WorkItem STR | 只能看到项目，真实事项基本无法管理 STR 归属 | 新建/编辑按当前项目选择真实 STR；空值明确为项目级事项 |
+| 项目详情 | 事项未按 STR 主链呈现 | 当前/下一 STR、WBS readiness、STR/项目级事项上下文可见 |
+| 今日 | 日志、事项、风险、决策等多种桶 | ActionItem 队列，按处理时限分组 |
+| 事项时间线 | Phase 3 已有统一时间线 | 继续保留事项记录与行动项进展来源区分，无重复展示 |
+| WBS | gate 不生成 fake WorkItem | 仍保持 fake WorkItem 为 0，task split 未改动 |
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- `npm.cmd run db:push`：PASS，数据库已与 Prisma schema 同步；停止开发服务器后重新生成 Prisma Client 成功
+- `PRAGMA integrity_check`：`ok`
+- `PRAGMA foreign_key_check`：`[]`
+- `WBS fake WorkItem`：0
+- 页面 HTTP smoke：`/`、`/today`、`/projects/cmqz4m9gg0000s1douq1oyfby`、`/items/cmwfake`、`/reports` 均返回 HTTP 200；未为验收创建或修改数据
+- 最终备份：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-12T15-00-57-414Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+- 最终备份 restore-check：PASS
+
+## REAL DATA ACCEPTANCE
+
+- 真实数据读取确认 2 个项目、12 个 STR、9 个事项、38 个 ActionItem、58 个 WorkLog；当前 9 个事项的 `milestoneId` 为空，因此页面显示为项目级事项/未归属 STR，没有进行推断归属。
+- 首页、今日、项目详情、事项详情和汇报入口均完成真实本地服务访问检查；页面检查未写入数据库。
+- 事项新建/编辑的合法、跨项目、null STR 规则由 API 复用的纯函数和复合事务测试覆盖；ActionItem/WorkLog Phase 3 行为及 Phase 4 aggregator 测试均未回归。
+- 未生成截图文件：本机浏览器自动化状态读取失败，因此未保留截图路径；已用本地服务 HTTP smoke 完成无数据写入的页面可达性检查。
+
+## KNOWN RISKS
+
+- 当前真实 9 个 WorkItem 全部没有 `milestoneId`；Phase 5 不擅自把它们归属到任何 STR，项目详情会诚实显示项目级事项，后续需由用户按真实业务事实维护。
+- 项目详情仍保留部分旧信号/元数据组件，Phase 5 只完成主信息架构收口，视觉 token 和 legacy cleanup 留到 Phase 6。
+- 旧日志独立页面、legacy WorkLog 字段、`reportable`、`ActionItem.doneNote/workLogId` 仍保留兼容；本轮没有删除或改变这些边界。
+- 本轮未完成真实浏览器点击式交互验收，仅完成本地服务页面可达性和不写库的数据核对；需要进入 Phase 6 前，可由用户在浏览器补做一次手工点击确认。
+
+## NEXT PHASE READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 5 验收通过。下一阶段为 Phase 6：视觉系统统一与旧逻辑清理；本轮未执行，需用户明确确认后再开始。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/api/items/[id]/route.ts
+ M src/app/api/items/route.ts
+ M src/app/api/projects/[id]/route.ts
+ M src/app/items/[id]/edit/page.tsx
+ M src/app/items/[id]/page.tsx
+ M src/app/items/new/page.tsx
+ M src/app/items/page.tsx
+ M src/app/page.tsx
+ M src/app/projects/[id]/page.tsx
+ M src/app/today/page.tsx
+ M src/components/SidebarNavigation.tsx
+ M src/components/TodayActionQueue.tsx
+ M src/components/redesign/ItemsTable.tsx
+ M src/lib/actionItemQueue.ts
+?? src/lib/projectMilestoneView.ts
+ M src/lib/recordingTransaction.ts
+?? src/lib/workItemMilestone.ts
+ M tests/recordingTransaction.test.ts
+?? tests/workItemMilestone.test.ts
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。

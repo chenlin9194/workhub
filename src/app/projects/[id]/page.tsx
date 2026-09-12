@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
 import type { Project, ProjectLink, ProjectMember, ProjectMilestone, WorkItem, WorkLog } from "@/lib/types";
+import { selectCurrentAndNextMilestones } from "@/lib/projectMilestoneView";
 
 function toTime(value?: Date | string | null) {
   const time = value ? new Date(value).getTime() : 0;
@@ -253,7 +254,6 @@ export default function ProjectDetailPage() {
   const blockedCount = items.filter((item) => item.status === "blocked").length;
   const overdueCount = items.filter((item) => Boolean(item.dueDate && item.dueDate < today)).length;
   const riskCount = items.filter((item) => item.health === "red" || item.health === "yellow").length;
-  const reportableCount = logs.filter((log) => log.reportable).length;
   const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
   const cockpitItems = [...items].sort((a, b) => {
     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -263,6 +263,13 @@ export default function ProjectDetailPage() {
     return toTime(b.updatedAt) - toTime(a.updatedAt);
   }).slice(0, 5);
   const cockpitMilestones = selectCockpitMilestones(milestones, today);
+  const { current: currentMilestone, next: nextMilestone } = selectCurrentAndNextMilestones(milestones, today);
+  const projectLevelItems = items.filter((item) => !item.milestoneId);
+  const milestoneItems = items.filter((item) => Boolean(item.milestoneId));
+  const recentProgress = Array.from(new Map([
+    ...logs.map((log) => [log.id, { log, itemTitle: log.item?.title || null }] as const),
+    ...items.flatMap((item) => (item.logs || []).map((log) => [log.id, { log, itemTitle: item.title }] as const)),
+  ]).values()).sort((a, b) => toTime(b.log.createdAt) - toTime(a.log.createdAt)).slice(0, 8);
   const extraMilestones = Math.max(0, milestones.length - cockpitMilestones.length);
   const milestonePhaseCounts = cockpitMilestones.reduce((counts, milestone) => {
     counts[milestonePhase(milestone, today)] += 1;
@@ -303,7 +310,6 @@ export default function ProjectDetailPage() {
             <span className="project-cockpit-signal is-warning">阻塞 {blockedCount}</span>
             <span className="project-cockpit-signal is-critical">逾期 {overdueCount}</span>
             <span className="project-cockpit-signal">P1 {p1Count}</span>
-            <span className="project-cockpit-signal is-positive">可汇报 {reportableCount}</span>
           </div>
           <p className="project-cockpit-summary">{project.currentSummary || project.description || project.nextAction || "暂未补充项目进展摘要。"}</p>
         </div>
@@ -347,7 +353,14 @@ export default function ProjectDetailPage() {
           <div><span className="is-critical">阻塞</span><strong>{blockedCount}</strong><small>等待外部条件或决策</small></div>
           <div><span className="is-critical">逾期</span><strong>{overdueCount}</strong><small>超过截止日期的开放事项</small></div>
           <div><span className="is-warning">红黄风险</span><strong>{riskCount}</strong><small>健康度需跟踪</small></div>
-          <div><span className="is-positive">可汇报</span><strong>{reportableCount}</strong><small>可进入项目汇报的事实</small></div>
+        </div>
+      </section>
+
+      <section className="project-cockpit-panel project-cockpit-str-context">
+        <div className="project-cockpit-panel-head"><div><span>STR CONTEXT</span><h2>当前 / 下一 STR</h2></div></div>
+        <div className="project-cockpit-signal-list">
+          <div><span>当前 STR</span><strong>{currentMilestone?.title || "暂无当前 STR"}</strong><small>{currentMilestone ? `状态：${PROJECT_MILESTONE_STATUS_LABELS[currentMilestone.status] || currentMilestone.status}` : "按真实状态、日期和排序计算"}</small></div>
+          <div><span>下一 STR</span><strong>{nextMilestone?.title || "暂无下一 STR"}</strong><small>{nextMilestone ? milestoneScheduleLabel(nextMilestone) : "暂无未来计划"}</small></div>
         </div>
       </section>
 
@@ -363,21 +376,25 @@ export default function ProjectDetailPage() {
       </div>
 
       <section className="project-cockpit-panel project-cockpit-items">
-        <div className="project-cockpit-panel-head"><div><span>ITEMS</span><h2>本项目事项 · {items.length} open</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
+        <div className="project-cockpit-panel-head"><div><span>ITEMS · STR</span><h2>事项主链 · {items.length} open</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
         <div className="project-cockpit-item-list">
           {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>)}
         </div>
+        <div className="project-cockpit-module-summary"><strong>STR 事项 {milestoneItems.length} · 项目级事项 {projectLevelItems.length}</strong><span>事项的 STR 归属只来自 milestoneId；未归属事项保持项目级。</span></div>
+      </section>
+
+      <section className="project-cockpit-panel project-cockpit-items">
+        <div className="project-cockpit-panel-head"><div><span>WBS READINESS</span><h2>{currentMilestone ? `${currentMilestone.title} · WBS readiness` : "当前 STR · WBS readiness"}</h2></div></div>
+        <ProjectWbsSummarySection projectId={project.id} />
       </section>
 
       <section className="project-cockpit-panel project-cockpit-facts">
         <div className="project-cockpit-panel-head"><div><span>FACTS</span><h2>最近事实（本项目）</h2></div><small>今日 {todayLogCount} · 昨日 {yesterdayLogCount}</small></div>
         <div className="project-cockpit-fact-list">
-          {logs.slice(0, 5).map((log) => <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{logTime(log, today)}</time><span className={`project-cockpit-kind is-${log.type}`}>{factKind(log)}</span><div><strong>{log.title}</strong><em>{log.item?.title || log.module || log.source}</em></div></Link>)}
-          {logs.length === 0 && <p className="project-cockpit-empty">暂无项目事实记录</p>}
+          {recentProgress.map(({ log, itemTitle }) => <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{logTime(log, today)}</time><span className={`project-cockpit-kind is-${log.type}`}>{itemTitle ? "事项进展" : factKind(log)}</span><div><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || log.item?.title || log.module || "项目记录"}</em></div></Link>)}
+          {recentProgress.length === 0 && <p className="project-cockpit-empty">暂无项目进展记录</p>}
         </div>
       </section>
-
-      <ProjectWbsSummarySection projectId={project.id} />
     </main>
   );
 }

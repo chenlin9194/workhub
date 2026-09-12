@@ -22,6 +22,12 @@ interface ProjectOption {
   code?: string | null;
 }
 
+interface MilestoneOption {
+  id: string;
+  title: string;
+  gateKey?: string | null;
+}
+
 function hasAdvancedItemValues(value: {
   description?: string | null;
   module?: string | null;
@@ -71,6 +77,7 @@ function NewItemForm() {
   const submittingRef = useRef(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneOption[]>([]);
   const [actionItemsEnabled, setActionItemsEnabled] = useState(initialActionItemsEnabled);
   const [actionItemDrafts, setActionItemDrafts] = useState<ActionItemDraft[]>(() =>
     initialActionItemsEnabled ? [createActionItemDraft()] : []
@@ -80,6 +87,7 @@ function NewItemForm() {
     description: "",
     project: "",
     projectId: initialProjectId,
+    milestoneId: "",
     module: "",
     type: "action",
     priority: "P2",
@@ -122,8 +130,20 @@ function NewItemForm() {
   };
 
   const handleProjectChange = (projectId: string) => {
-    setForm((prev) => ({ ...prev, ...resolveProjectSelection(projectId, projects) }));
+    setMilestones([]);
+    setForm((prev) => ({ ...prev, ...resolveProjectSelection(projectId, projects), milestoneId: "" }));
   };
+
+  useEffect(() => {
+    if (!form.projectId) {
+      setMilestones([]);
+      return;
+    }
+    fetch(`/api/projects/${form.projectId}/milestones`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setMilestones(Array.isArray(data) ? data : []))
+      .catch(() => setMilestones([]));
+  }, [form.projectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,6 +259,21 @@ function NewItemForm() {
                     </option>
                   ))}
                 </select>
+                {form.projectId && (
+                  <>
+                    <label className="form-field-label" style={{ marginTop: 12 }}>所属 STR</label>
+                    <select
+                      value={form.milestoneId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, milestoneId: e.target.value }))}
+                      className="form-field-control"
+                    >
+                      <option value="">项目级事项（未归属 STR）</option>
+                      {milestones.map((milestone) => (
+                        <option key={milestone.id} value={milestone.id}>{milestone.gateKey ? `${milestone.gateKey} · ` : ""}{milestone.title}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
               </div>
             </section>
 

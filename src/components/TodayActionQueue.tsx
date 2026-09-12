@@ -15,7 +15,7 @@ export type TodayAction = {
   dueDate?: string | null;
   workItemId?: string | null;
   workLogId?: string | null;
-  workItem?: { id: string; title: string } | null;
+  workItem?: { id: string; title: string; milestone?: { title: string; gateKey?: string | null } | null } | null;
   workLog?: { id: string; title: string } | null;
   project?: { id: string; name: string; code?: string | null } | null;
 };
@@ -90,6 +90,7 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
             {item.owner && <span>负责人：{item.owner}</span>}
             {item.dueDate && <span>{isOverdue ? "已逾期" : item.dueDate === today ? "今日截止" : "截止"}：{item.dueDate}</span>}
             {item.project && <span>项目：{item.project.code || item.project.name}</span>}
+            {item.workItem?.milestone && <span>STR：{item.workItem.milestone.gateKey ? `${item.workItem.milestone.gateKey} · ` : ""}{item.workItem.milestone.title}</span>}
             {contextTitle && <span>来源：{contextTitle}</span>}
           </div>
         </div>
@@ -149,7 +150,7 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
   const sections = [
     { key: "overdue", title: "已逾期", items: groups.overdue },
     { key: "dueToday", title: "今日到期", items: groups.dueToday },
-    { key: "other", title: "其他待处理", items: groups.other },
+    { key: "upcoming", title: "即将到期 / 未设置日期", items: groups.upcoming },
   ];
 
   return (

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   findProject: vi.fn(),
   findItem: vi.fn(),
+  findMilestone: vi.fn(),
   createItem: vi.fn(),
   createLog: vi.fn(),
   createAction: vi.fn(),
@@ -14,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
     $transaction: mocks.transaction,
     project: { findUnique: mocks.findProject },
     workItem: { findUnique: mocks.findItem },
+    projectMilestone: { findUnique: mocks.findMilestone },
   },
 }));
 
@@ -42,7 +44,8 @@ describe("atomic recording transactions", () => {
   it("creates an item and every action item through one transaction", async () => {
     mocks.createItem.mockResolvedValue({ id: "item-1", projectId: "project-1" });
     mocks.createAction.mockResolvedValue({ id: "action-1" });
-    mocks.findProject.mockResolvedValue({ id: "project-1", name: "项目 A" });
+  mocks.findProject.mockResolvedValue({ id: "project-1", name: "项目 A" });
+  mocks.findMilestone.mockResolvedValue({ id: "milestone-1", projectId: "project-1" });
 
     const result = await createWorkItemWithActions({
       title: "发布跟进",
@@ -192,6 +195,13 @@ describe("atomic recording transactions", () => {
 
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.createItem).not.toHaveBeenCalled();
+  });
+
+  it("validates a selected STR against the resolved project", async () => {
+    mocks.findProject.mockResolvedValue({ id: "project-1", name: "项目 A" });
+    mocks.findMilestone.mockResolvedValue({ id: "milestone-1", projectId: "project-2" });
+    await expect(createWorkItemWithActions({ title: "跨项目事项", projectId: "project-1", milestoneId: "milestone-1" })).rejects.toThrow("事项只能关联所属项目的 STR");
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 
   it("propagates an action write failure so the transaction can roll back all writes", async () => {

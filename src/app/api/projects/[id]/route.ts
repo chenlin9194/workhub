@@ -17,6 +17,17 @@ export async function GET(
         items: {
           orderBy: { updatedAt: "desc" },
           take: 50,
+          include: {
+            milestone: { select: { id: true, title: true, gateKey: true, projectId: true } },
+            logs: { orderBy: [{ workDate: "desc" }, { createdAt: "desc" }], take: 1 },
+            actionItems: {
+              select: {
+                status: true,
+                dueDate: true,
+                progressLogs: { orderBy: [{ workDate: "desc" }, { createdAt: "desc" }], take: 1 },
+              },
+            },
+          },
         },
         logs: {
           orderBy: [{ workDate: "desc" }, { createdAt: "desc" }],

@@ -56,6 +56,7 @@ type CreateWorkItemInput = {
   currentSummary: string | null;
   nextCheckpoint: string | null;
   reportLevel: string;
+  milestoneId: string | null;
 };
 
 type CreateWorkLogInput = {
@@ -170,6 +171,7 @@ function parseWorkItem(input: Record<string, unknown>): CreateWorkItemInput {
     currentSummary: toNullableString(input.currentSummary),
     nextCheckpoint: nextCheckpointResult.value,
     reportLevel: reportLevelResult.value,
+    milestoneId: toNullableString(input.milestoneId),
   };
 }
 
@@ -205,6 +207,15 @@ async function resolveProject(projectId: string | null, projectName: string | nu
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true, name: true } });
   if (!project) throw new CompositeInputError("项目不存在");
   return { projectId: project.id, project: project.name };
+}
+
+async function resolveMilestone(milestoneId: string | null, projectId: string | null) {
+  if (!milestoneId) return null;
+  if (!projectId) throw new CompositeInputError("关联 STR 前必须先选择项目");
+  const milestone = await prisma.projectMilestone.findUnique({ where: { id: milestoneId }, select: { projectId: true } });
+  if (!milestone) throw new CompositeInputError("STR 不存在");
+  if (milestone.projectId !== projectId) throw new CompositeInputError("事项只能关联所属项目的 STR");
+  return milestoneId;
 }
 
 async function resolveExistingItem(itemId: string | null) {
@@ -394,6 +405,7 @@ export async function createWorkItemWithActions(
   const itemInput = parseWorkItem(input);
   const actionInputs = parseActionItems(input.actionItems);
   const project = await resolveProject(itemInput.projectId, itemInput.project);
+  itemInput.milestoneId = await resolveMilestone(itemInput.milestoneId, project.projectId);
 
   if (options.operationId) {
     return createIdempotentWorkItemWithActions(
@@ -443,6 +455,9 @@ export async function createWorkLogWithContext(
     newItemProject,
   });
   const { projectId, project: projectName } = finalProject;
+  if (newItemInput) {
+    newItemInput.milestoneId = await resolveMilestone(newItemInput.milestoneId, projectId);
+  }
 
   return prisma.$transaction(async (transaction) => {
     const item = newItemInput

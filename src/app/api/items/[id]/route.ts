@@ -16,6 +16,7 @@ import {
 } from "@/lib/inputValidation";
 import { updateWorkItemWithChangeLog } from "@/lib/workItemChangeLog";
 import { resolveWorkItemProjectUpdate } from "@/lib/workItemProject";
+import { validateWorkItemMilestone } from "@/lib/workItemMilestone";
 
 export async function GET(
   request: NextRequest,
@@ -27,6 +28,7 @@ export async function GET(
       where: { id },
       include: {
         projectRef: { select: { id: true, name: true } },
+        milestone: { select: { id: true, projectId: true, title: true, gateKey: true } },
         logs: {
           orderBy: { workDate: "desc" },
         },
@@ -63,7 +65,10 @@ export async function PUT(
     // Get current item
     const currentItem = await prisma.workItem.findUnique({
       where: { id },
-      include: { projectRef: { select: { id: true, name: true } } },
+      include: {
+        projectRef: { select: { id: true, name: true } },
+        milestone: { select: { id: true, projectId: true, title: true, gateKey: true } },
+      },
     });
 
     if (!currentItem) {
@@ -108,6 +113,24 @@ export async function PUT(
         resolvedProjectName,
       })
     );
+    const nextProjectId = "projectId" in body
+      ? requestedProjectId
+      : currentItem.projectId;
+    const requestedMilestoneId = "milestoneId" in body
+      ? toNullableString(body.milestoneId)
+      : currentItem.milestoneId;
+    const milestone = requestedMilestoneId
+      ? await prisma.projectMilestone.findUnique({ where: { id: requestedMilestoneId }, select: { projectId: true } })
+      : null;
+    if (requestedMilestoneId && !milestone) {
+      return NextResponse.json({ error: "STR 不存在" }, { status: 400 });
+    }
+    if (requestedMilestoneId && validateWorkItemMilestone(nextProjectId, requestedMilestoneId, milestone)) {
+      return NextResponse.json({ error: "事项只能关联所属项目的 STR" }, { status: 400 });
+    }
+    if ("milestoneId" in body || ("projectId" in body && currentItem.milestoneId && currentItem.milestone?.projectId !== nextProjectId)) {
+      data.milestoneId = requestedMilestoneId && milestone?.projectId === nextProjectId ? requestedMilestoneId : null;
+    }
     if ("module" in body) data.module = toNullableString(body.module);
     if ("type" in body) {
       const result = requireEnum(body.type, WORK_ITEM_TYPE_VALUES, "事项类型");
