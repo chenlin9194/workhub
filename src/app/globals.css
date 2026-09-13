@@ -13493,3 +13493,191 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
   .item-detail-command-page .detail-meta-grid { grid-template-columns: 1fr; }
   .reports-page .report-summary-strip { grid-template-columns: 1fr 1fr; }
 }
+
+/* ===== Phase 6.1 Design System Foundation ===== */
+:root {
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-7: 32px;
+  --ds-space-8: 40px;
+  --ds-page-gutter: clamp(16px, 3vw, 40px);
+  --ds-card-radius: 16px;
+  --ds-card-padding: 20px;
+  --ds-surface: var(--bg-elevated);
+  --ds-border: var(--border-primary);
+  --ds-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+  --ds-font-page-title: clamp(28px, 2.2vw, 36px);
+  --ds-font-section-title: 20px;
+  --ds-font-content: 15px;
+  --ds-font-body: 14px;
+  --ds-font-meta: 13px;
+  --ds-font-caption: 12px;
+}
+
+[data-theme="dark"] {
+  --ds-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+body {
+  font-size: var(--ds-font-body);
+  line-height: 1.55;
+}
+
+.page-shell,
+.detail-page,
+.form-card {
+  gap: var(--ds-space-5);
+}
+
+.card,
+.form-card,
+.cockpit-card,
+.detail-main-card,
+.detail-section-card,
+.action-item-section,
+.project-cockpit-v2 .project-cockpit-panel:not(.project-cockpit-wbs) {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-card-radius);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-card-shadow);
+}
+
+.command-page-header h1,
+.command-form-header h1,
+.reports-header h1,
+.redesign-page-header h1,
+.detail-page h1,
+.project-cockpit-hero h1 {
+  font-size: var(--ds-font-page-title) !important;
+  line-height: 1.18;
+}
+
+.dashboard-section-title h2,
+.detail-section-heading h2,
+.project-cockpit-panel-head h2,
+.form-section-header h2 {
+  font-size: var(--ds-font-section-title) !important;
+  line-height: 1.3;
+}
+
+.detail-body-text,
+.project-cockpit-summary,
+.report-log-row p,
+.report-item-meta,
+.today-action-item-title,
+.detail-copy-block,
+.feedback-note {
+  font-size: var(--ds-font-content);
+  line-height: 1.65;
+}
+
+.detail-meta-item span,
+.detail-side-entry > span,
+.project-cockpit-panel-head > small,
+.project-cockpit-item-list em,
+.project-cockpit-item-list small,
+.project-cockpit-fact-list em,
+.report-tree-row > span,
+.report-milestone-heading > span,
+.field-help,
+.field-note {
+  font-size: var(--ds-font-meta);
+  line-height: 1.5;
+}
+
+.badge,
+.entity-pill {
+  min-height: 24px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: var(--ds-font-meta);
+  line-height: 1.25;
+}
+
+.badge-p3,
+.badge-other,
+.entity-pill--muted {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+}
+
+.badge-open,
+.badge-p2,
+.entity-pill--blue {
+  color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue-light) 70%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent-blue) 22%, var(--border-primary));
+}
+
+.badge-following,
+.badge-todo,
+.entity-pill--warning {
+  color: var(--accent-orange);
+  background: color-mix(in srgb, var(--accent-orange-light) 70%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent-orange) 22%, var(--border-primary));
+}
+
+.badge-closed,
+.badge-decision,
+.entity-pill--success {
+  color: var(--accent-green);
+  background: color-mix(in srgb, var(--accent-green-light) 70%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent-green) 22%, var(--border-primary));
+}
+
+.badge-blocked,
+.badge-overdue,
+.badge-risk,
+.badge-blocker,
+.entity-pill--danger {
+  color: var(--accent-red);
+  background: color-mix(in srgb, var(--accent-red-light) 72%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent-red) 24%, var(--border-primary));
+}
+
+.dashboard-section-title,
+.detail-section-heading {
+  margin-bottom: var(--ds-space-4);
+}
+
+.project-cockpit-item-list,
+.project-cockpit-fact-list,
+.timeline-list,
+.report-log-list,
+.empty-actions {
+  gap: var(--ds-space-3);
+}
+
+.empty-state,
+.redesign-empty,
+.project-cockpit-empty,
+.report-quiet-empty {
+  color: var(--text-secondary);
+  font-size: var(--ds-font-body);
+  line-height: 1.65;
+}
+
+.empty-state {
+  gap: var(--ds-space-3);
+  min-height: 128px;
+  padding: var(--ds-space-7) var(--ds-space-6);
+}
+
+.empty-state strong {
+  font-size: var(--ds-font-content);
+}
+
+.empty-state p {
+  font-size: var(--ds-font-body);
+}
+
+.section-eyebrow,
+.wbs-eyebrow {
+  font-size: var(--ds-font-caption);
+  letter-spacing: 0.08em;
+}

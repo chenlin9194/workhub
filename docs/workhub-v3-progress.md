@@ -14,20 +14,15 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 5.5.1 已完成（PASS_WITH_USER_CONFIRMATION，等待人工截图验收）**
-- 下一阶段：**Phase 6：视觉系统统一与旧逻辑清理（等待用户确认）**
-- Phase 5：**已完成；Phase 5.5.1 已完成，本轮未进入 Phase 6**
+- 当前阶段：**Phase 6.1 已完成（PASS）**
+- 下一阶段：**Phase 6.2：Home Cockpit（等待用户确认）**
+- Phase 5：**已完成；Phase 5.5.1 与 Phase 6.1 已完成，本轮未进入 Phase 6.2**
 - 当前分支：`main`
-- 当前 HEAD：`da0b60b feat: restructure WorkHub V3 core workspace`
+- 当前 HEAD：`74cb51c docs: add WorkHub V3 Phase 6 design plan`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
-  - `M docs/workhub-v3-deployment-plan.md`
   - `M docs/workhub-v3-progress.md`
   - `M src/app/globals.css`
-  - `M src/app/items/[id]/page.tsx`
-  - `M src/app/page.tsx`
-  - `M src/app/projects/[id]/page.tsx`
-  - `M src/app/reports/page.tsx`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1079,6 +1074,81 @@ Phase 5 验收通过。下一阶段为 Phase 6：视觉系统统一与旧逻辑�
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。
+
+---
+
+# Phase 6.1：Design System Foundation
+
+## RESULT
+
+PASS
+
+Phase 6.1 已完成。本轮只建立统一视觉基础，未进入 Phase 6.2/6.3/6.4/6.5，未改变页面信息结构、模块顺序、数据查询或业务逻辑。
+
+## PHASE
+
+Phase 6.1 Design System Foundation
+
+## FILES CHANGED
+
+- `src/app/globals.css`
+- `docs/workhub-v3-progress.md`
+
+## DESIGN CHANGES
+
+- 建立统一的 typography token：Page Title、Section Title、Content、Body、Metadata、Caption。
+- 建立 4px 基准 spacing token，并统一页面容器、section、card、列表和空状态的间距基线。
+- 统一通用 card 的 border、radius、background 和 shadow 基础表现，同时保留 Phase 5.5 页面专用层级规则。
+- 统一 success、warning、danger、neutral 四类 badge/entity pill 的尺寸、圆角、文字和状态色基础表现；不改变状态逻辑。
+- 统一 `empty-state` 以及首页、项目、汇报页的常见空状态文字层级和留白。
+- 正文基础字号提升到 14px，主要内容和 metadata 分别使用 15px 与 13px；未新增 UI framework 或依赖。
+
+## BUSINESS IMPACT
+
+无业务逻辑变化。未修改 API、Report Aggregator、ActionItem workflow、Prisma schema、数据查询或页面信息架构；未写入数据库，未自动归属 STR，未恢复 WBS fake WorkItem。
+
+## DATA VERIFICATION
+
+```text
+Project                 2
+ProjectMilestone       12
+WorkItem                9
+ActionItem             38
+WorkLog                58
+ProjectWbsNode        157
+ProjectWbsDeliverable 146
+WBS fake WorkItem       0
+integrity_check         ok
+foreign_key_check       []
+schema                  No difference detected.
+```
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- Prisma schema diff：`No difference detected.`
+
+## KNOWN RISKS
+
+- 本阶段只统一基础视觉规则，首页、项目、事项和 Reports 的专门体验优化仍分别留给 Phase 6.2–6.5。
+- 历史 CSS 规则较多，个别低频页面可能仍存在局部视觉覆盖差异，需后续阶段按页面验收。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6.2。
+
+## NEXT STEP
+
+Phase 6.1 完成。Phase 6.2 未执行，等待用户确认后再开始。
 
 ---
 
