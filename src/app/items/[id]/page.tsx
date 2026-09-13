@@ -253,6 +253,7 @@ export default function ItemDetailPage() {
           <div className="detail-title-row">
             <span className="section-eyebrow">WORK ITEM</span>
             <h1 className="detail-title">{item.title}</h1>
+            <p className="item-context-line">{projectName}{item.projectId ? ` · ${item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项"}` : ""}</p>
           </div>
           <div className="detail-status-row">
             <span className={`badge badge-${item.priority.toLowerCase()}`}>
@@ -263,9 +264,6 @@ export default function ItemDetailPage() {
             </span>
             <span className="entity-pill entity-pill--muted">
               {WORK_ITEM_TYPE_LABELS[item.type] || item.type}
-            </span>
-            <span className="entity-pill entity-pill--muted">
-              {HEALTH_LABELS[item.health] || item.health}
             </span>
             {overdue && <span className="badge badge-overdue">逾期</span>}
           </div>
@@ -318,158 +316,53 @@ export default function ItemDetailPage() {
       </header>
 
       <div className="detail-main-grid item-detail-main-grid">
-        <section className="card detail-main-card item-summary-card">
-          {item.description && (
+        <main className="item-detail-primary-column">
+          <section className="card detail-main-card item-description-card">
             <div className="detail-copy-block">
               <div className="detail-field-label">事项描述</div>
-              <p className="detail-body-text">
-                <AutoLinkText text={item.description} />
-              </p>
-            </div>
-          )}
-
-          <div className="detail-meta-grid">
-            <div className="detail-meta-item">
-              <span>健康度</span>
-              <strong>{HEALTH_LABELS[item.health] || item.health}</strong>
-            </div>
-            <div className="detail-meta-item">
-              <span>汇报层级</span>
-              <strong>{REPORT_LEVEL_LABELS[item.reportLevel] || item.reportLevel}</strong>
-            </div>
-            {projectName !== "未关联项目" && (
-              <div className="detail-meta-item">
-                <span>项目</span>
-                <strong>{projectName}</strong>
-              </div>
-            )}
-            {item.projectId && (
-              <div className="detail-meta-item">
-                <span>STR</span>
-                <strong>{item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）"}</strong>
-              </div>
-            )}
-            {item.module && (
-              <div className="detail-meta-item">
-                <span>模块</span>
-                <strong>{item.module}</strong>
-              </div>
-            )}
-            {item.owner && (
-              <div className="detail-meta-item">
-                <span>负责人</span>
-                <strong>{item.owner}</strong>
-              </div>
-            )}
-            {item.dueDate && (
-              <div className={`detail-meta-item ${overdue ? "detail-meta-item--danger" : ""}`}>
-                <span>截止日期</span>
-                <strong>{item.dueDate}</strong>
-              </div>
-            )}
-            {item.nextCheckpoint && (
-              <div className="detail-meta-item">
-                <span>下一检查点</span>
-                <strong>{item.nextCheckpoint}</strong>
-              </div>
-            )}
-            {item.sourceSystem && (
-              <div className="detail-meta-item">
-                <span>来源系统</span>
-                <strong>{SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem}</strong>
-              </div>
-            )}
-            {item.sourceId && (
-              <div className="detail-meta-item">
-                <span>来源编号</span>
-                <strong>{item.sourceId}</strong>
-              </div>
-            )}
-            {item.sourceUrl && (
-              <div className="detail-meta-item detail-meta-item--wide">
-                <span>来源链接</span>
-                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">
-                  打开来源链接
-                </a>
-              </div>
-            )}
-            <div className="detail-meta-item">
-              <span>创建时间</span>
-              <strong>{new Date(item.createdAt).toLocaleString("zh-CN")}</strong>
-            </div>
-            <div className="detail-meta-item">
-              <span>更新时间</span>
-              <strong>{new Date(item.updatedAt).toLocaleString("zh-CN")}</strong>
-            </div>
-          </div>
-
-          {item.tags && (
-            <div className="detail-tag-row">
-              {item.tags.split(",").map((tag) => (
-                <span key={tag.trim()} className="entity-pill entity-pill--muted">
-                  {tag.trim()}
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <aside className="item-action-items-column">
-          <section className="card detail-side-panel item-progress-panel">
-            <div className="detail-section-heading">
-              <div>
-                <span className="section-eyebrow">CURRENT PROGRESS</span>
-                <h2>当前进展</h2>
-              </div>
-            </div>
-            <div className="detail-side-panel-body">
-              <div className="detail-side-entry">
-                <span>进展摘要</span>
-                <strong>{item.currentSummary ? <AutoLinkText text={item.currentSummary} /> : "暂未补充进展摘要"}</strong>
-              </div>
-              <div className="detail-side-entry detail-side-entry--accent">
-                <span>下一行动</span>
-                <strong>{item.nextAction ? <AutoLinkText text={item.nextAction} /> : "暂未设置下一行动"}</strong>
-              </div>
-              {item.nextCheckpoint && (
-                <div className="detail-side-entry">
-                  <span>下一检查点</span>
-                  <strong className="mono">{item.nextCheckpoint}</strong>
-                </div>
-              )}
-              {item.trackingReason && (
-                <div className="detail-side-entry">
-                  <span>跟踪原因</span>
-                  <strong><AutoLinkText text={item.trackingReason} /></strong>
-                </div>
-              )}
+              <p className="detail-body-text">{item.description ? <AutoLinkText text={item.description} /> : "暂无事项描述"}</p>
             </div>
           </section>
           <ActionItemSection workItemId={item.id} projectId={item.projectId ?? undefined} />
-          <section className="card detail-side-panel item-relations-panel">
-            <div className="detail-section-heading">
-              <div>
-                <span className="section-eyebrow">RELATIONS</span>
-                <h2>关联</h2>
-              </div>
+        </main>
+
+        <aside className="item-detail-secondary-column">
+          <section className="card detail-main-card item-summary-card">
+            <div className="detail-section-heading"><div><h2>事项信息</h2></div></div>
+            <div className="detail-meta-grid">
+              {projectName !== "未关联项目" && <div className="detail-meta-item"><span>项目</span><strong>{projectName}</strong></div>}
+              {item.projectId && <div className="detail-meta-item"><span>STR</span><strong>{item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）"}</strong></div>}
+              <div className="detail-meta-item"><span>类型</span><strong>{WORK_ITEM_TYPE_LABELS[item.type] || item.type}</strong></div>
+              <div className="detail-meta-item"><span>状态</span><strong>{STATUS_LABELS[item.status] || item.status}</strong></div>
+              <div className="detail-meta-item"><span>负责人</span><strong>{item.owner || "未分配"}</strong></div>
+              <div className={`detail-meta-item ${overdue ? "detail-meta-item--danger" : ""}`}><span>截止日期</span><strong>{item.dueDate || "未设置"}</strong></div>
             </div>
+          </section>
+
+          <details className="card item-legacy-details">
+            <summary>更多信息</summary>
+            <div className="detail-side-panel-body">
+              <div className="detail-side-entry"><span>进展摘要</span><strong>{item.currentSummary ? <AutoLinkText text={item.currentSummary} /> : "暂无"}</strong></div>
+              <div className="detail-side-entry"><span>下一行动</span><strong>{item.nextAction ? <AutoLinkText text={item.nextAction} /> : "暂无"}</strong></div>
+              {item.nextCheckpoint && <div className="detail-side-entry"><span>下一检查点</span><strong>{item.nextCheckpoint}</strong></div>}
+              {item.trackingReason && <div className="detail-side-entry"><span>跟踪原因</span><strong><AutoLinkText text={item.trackingReason} /></strong></div>}
+              <div className="detail-side-entry"><span>健康度</span><strong>{HEALTH_LABELS[item.health] || item.health}</strong></div>
+              <div className="detail-side-entry"><span>汇报层级</span><strong>{REPORT_LEVEL_LABELS[item.reportLevel] || item.reportLevel}</strong></div>
+              {item.module && <div className="detail-side-entry"><span>模块</span><strong>{item.module}</strong></div>}
+              {item.sourceSystem && <div className="detail-side-entry"><span>来源</span><strong>{SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem}{item.sourceId ? ` · ${item.sourceId}` : ""}</strong></div>}
+              {item.sourceUrl && <div className="detail-side-entry"><span>来源链接</span><strong><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">打开来源链接</a></strong></div>}
+              <div className="detail-side-entry"><span>创建时间</span><strong>{new Date(item.createdAt).toLocaleString("zh-CN")}</strong></div>
+              <div className="detail-side-entry"><span>更新时间</span><strong>{new Date(item.updatedAt).toLocaleString("zh-CN")}</strong></div>
+              {item.tags && <div className="detail-tag-row">{item.tags.split(",").map((tag) => <span key={tag.trim()} className="entity-pill entity-pill--muted">{tag.trim()}</span>)}</div>}
+            </div>
+          </details>
+
+          <section className="card detail-side-panel item-relations-panel">
+            <div className="detail-section-heading"><div><h2>关联</h2></div></div>
             <div className="detail-side-panel-body item-relations-list">
-              {projectName !== "未关联项目" && <span>项目：{projectName}</span>}
-              {item.module && <span>模块：{item.module}</span>}
-              {item.sourceSystem && <span>来源：{SOURCE_SYSTEM_LABELS[item.sourceSystem] || item.sourceSystem}{item.sourceId ? ` · ${item.sourceId}` : ""}</span>}
               {item.projectId && <Link href={`/items?project=${item.projectId}`}>查看同项目事项</Link>}
-              {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">打开来源链接</a>}
-              {relatedItems.length > 0 && (
-                <div className="item-related-items">
-                  <span>相关事项</span>
-                  {relatedItems.map((related) => (
-                    <Link key={related.id} href={`/items/${related.id}`}>
-                      <b>{PRIORITY_LABELS[related.priority] || related.priority}</b>{related.title}
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {projectName === "未关联项目" && !item.module && !item.sourceSystem && !item.sourceUrl && <span>暂无关联信息</span>}
+              {relatedItems.length > 0 && <div className="item-related-items"><span>相关事项</span>{relatedItems.map((related) => <Link key={related.id} href={`/items/${related.id}`}><b>{PRIORITY_LABELS[related.priority] || related.priority}</b>{related.title}</Link>)}</div>}
+              {!item.projectId && relatedItems.length === 0 && <span>暂无关联信息</span>}
             </div>
           </section>
         </aside>

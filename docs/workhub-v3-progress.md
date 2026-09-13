@@ -14,15 +14,20 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 5 已完成（PASS）**
+- 当前阶段：**Phase 5.5.1 已完成（PASS_WITH_USER_CONFIRMATION，等待人工截图验收）**
 - 下一阶段：**Phase 6：视觉系统统一与旧逻辑清理（等待用户确认）**
-- Phase 5：**已完成；本轮未进入 Phase 6**
+- Phase 5：**已完成；Phase 5.5.1 已完成，本轮未进入 Phase 6**
 - 当前分支：`main`
-- 当前 HEAD：`66f7ac6 feat: unify WorkHub V3 reporting pipeline`
+- 当前 HEAD：`da0b60b feat: restructure WorkHub V3 core workspace`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
+  - `M docs/workhub-v3-deployment-plan.md`
   - `M docs/workhub-v3-progress.md`
-  - Phase 5 页面/API/测试改动（详见本文末尾 Phase 5 FILES CHANGED）
+  - `M src/app/globals.css`
+  - `M src/app/items/[id]/page.tsx`
+  - `M src/app/page.tsx`
+  - `M src/app/projects/[id]/page.tsx`
+  - `M src/app/reports/page.tsx`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1071,6 +1076,201 @@ Phase 5 验收通过。下一阶段为 Phase 6：视觉系统统一与旧逻辑�
 ?? src/lib/workItemMilestone.ts
  M tests/recordingTransaction.test.ts
 ?? tests/workItemMilestone.test.ts
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。
+
+---
+
+# Phase 5.5.1：Final Layout Fix
+
+## RESULT
+
+PASS_WITH_USER_CONFIRMATION
+
+Phase 5.5.1 已完成。本轮仅修复 Phase 5.5 的四类布局问题，等待用户进行最后一次人工截图验收；未进入 Phase 6。
+
+## ROOT CAUSE
+
+1. 项目详情 STR / WBS 被压缩：旧版三栏 cockpit 规则仍让 `.project-cockpit-v2` 继承固定视口高度和 `overflow: hidden`，自然增长的 STR/WBS 内容被根容器截断。
+2. 事项详情右侧大空白：事项页仍受旧的 1320px 宽度上限和级联布局规则约束，主内容网格没有充分利用项目详情同级的可用宽度。
+3. Reports 空白过多：项目事实树和 WBS 事实被放在整块外层白色 `.card` 中，内容少时仍保留完整外壳宽度和内边距。
+4. 首页最近进展拥挤：事实行的最小高度、上下 padding、标题/摘要行高和相邻分隔间距偏小，导致多条记录上下贴近。
+
+## FILES CHANGED
+
+- `D:\个人web\src\app\globals.css`
+- `D:\个人web\docs\workhub-v3-progress.md`
+
+本轮未修改其他 TSX、schema、数据或业务逻辑文件。
+
+## WHAT CHANGED
+
+- 项目详情：根容器改为自然高度并允许内容完整展开；STR/WBS 区域不再被固定高度或 overflow 裁切，顺序保持 Project Header → STR timeline → 当前/下一 STR → WBS readiness → 管理事项 → 最近进展 → 次要信息。
+- 事项详情：整体有效宽度提升至不超过 1440px，主列/辅助列保持约 70/30，Timeline 使用完整内容宽度，响应式断点继续保留。
+- 汇报页：项目事实和 WBS 事实去除低内容量外层白卡空壳，保留内部事实块与 Markdown 折叠；WBS 多项目事实采用内容驱动列宽。
+- 首页：最近进展增加行高、上下间距、标题与摘要间距和分隔留白，没有增加模块、查询或数据。
+
+## BEHAVIOR BEFORE / AFTER
+
+| 页面 | Before | After |
+| --- | --- | --- |
+| 项目详情 | 固定视口高度可能裁切 STR/WBS 内容 | 页面按真实内容自然撑高，STR/WBS 可完整阅读 |
+| 事项详情 | 1320px 上限导致可用宽度不足 | 最大 1440px，主列约 70%、辅助列约 30% |
+| 汇报 | 大白卡片包住少量事实 | 外层空壳收紧，事实块按内容自然增长 |
+| 首页最近进展 | 记录行间距和行高偏紧 | 标题、摘要、分隔线间距更易扫读 |
+
+## DATA MIGRATION
+
+无 schema/data migration。未写入、删除、迁移、修正或自动归属任何业务数据；未给 WorkItem 分配 STR，未恢复 WBS fake WorkItem。
+
+## DATA VERIFICATION
+
+```text
+Project                 2
+ProjectMilestone       12
+WorkItem                9
+ActionItem             38
+WorkLog                58
+ProjectWbsNode        157
+ProjectWbsDeliverable 146
+WBS fake WorkItem       0
+WorkItemWithMilestone   0
+integrity_check         ok
+foreign_key_check       []
+```
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- `npx.cmd prisma migrate diff --from-url file:./prisma/dev.db --to-schema-datamodel prisma/schema.prisma`：`No difference detected.`
+- HTTP smoke：`/`、`/projects/cmqz4m9gg0000s1douq1oyfby`、`/items/cmrj9www30001s1984njh1imj`、`/reports` 均返回 HTTP 200。
+- 浏览器截图：此前已完成 Phase 5.5 页面视觉检查；本轮重新启动服务后 CUA 浏览器会话失效，未生成新的持久化截图文件，保留人工截图验收为下一步。
+
+## KNOWN RISKS
+
+- 本轮未完成新的截图式人工验收，需用户确认项目 STR/WBS、事项宽度、Reports 空白占比和首页进展间距。
+- Phase 6 的统一视觉 token、字体、间距、表面、阴影和 legacy cleanup 尚未执行。
+- 真实 9 个 WorkItem 仍保持项目级/未归属 STR，页面没有进行事实推断。
+
+## NEXT PHASE READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 6 未执行。等待用户完成人工截图验收并明确确认后再进入 Phase 6。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-deployment-plan.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+ M src/app/items/[id]/page.tsx
+ M src/app/page.tsx
+ M src/app/projects/[id]/page.tsx
+ M src/app/reports/page.tsx
+```
+
+未 commit、未 push、未 reset、未 restore、未 stash、未 rebase；`docs/hermes-workhub-v1.md` 未处理，保持原有 deleted dirty 状态；未进入 Phase 6。
+
+---
+
+# Phase 5.5：核心页面产品层级修正
+
+## RESULT
+
+PASS_WITH_USER_CONFIRMATION
+
+Phase 5.5 已完成并验证通过。本轮只修正首页、项目详情、事项详情和汇报页的产品层级、首屏信息密度与旧式视觉提示；未进入 Phase 6，未修改 Prisma schema，未迁移或删除业务数据。
+
+## WHAT CHANGED
+
+- 首页首屏聚焦今日行动，行动信息横向呈现状态、事项、项目/STR、负责人和截止日期；项目卡展示当前/下一 STR、开放事项、开放行动项、逾期行动项和项目级事项，并将项目状态映射为中文；最近进展改为可读的横向事实列表并显示月日时分。
+- 项目详情调整为项目头部 → STR 时间轴 → 当前/下一 STR → 当前 STR WBS readiness → 管理事项 → 最近进展 → 次要事实/信号/链接/成员；当前 STR 无法确定时统一显示“暂无明确当前 STR”。事项卡补充 STR/项目级上下文、行动项数量、逾期数量和最近进展。
+- 事项详情改为约 70/30 主辅双栏：主列仅突出事项描述与 ActionItem，时间线位于主内容之后；右侧只保留 Project、STR、类型、状态、负责人、截止日期六项核心信息。`currentSummary`、`nextAction`、`nextCheckpoint`、`trackingReason`、`reportLevel`、`health`、来源等 legacy 信息全部收进默认折叠的“更多信息”。
+- 汇报页默认显示可读的项目 → STR/里程碑 → 事项 → 行动项 → 日志事实树；内部状态映射为中文；Markdown 原文改为默认折叠；顶部 5 格 debug 风格统计收敛成一行轻量摘要，标题收敛为“汇报”。WBS 仅保留轻量事实摘要。
+- 页面宽度、字号、行高、卡片间距和响应式列布局做了本阶段范围内的局部修正；完整视觉 token、字体、间距和 legacy cleanup 留给 Phase 6。
+
+## DATA MIGRATION
+
+无 schema/data migration。执行前数据库基线备份：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-13T04-14-54-636Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+本轮仅读取数据库，没有创建、更新、删除或重新归属任何业务记录。
+
+## FILES CHANGED
+
+- `docs/workhub-v3-deployment-plan.md`
+- `docs/workhub-v3-progress.md`
+- `src/app/globals.css`
+- `src/app/items/[id]/page.tsx`
+- `src/app/page.tsx`
+- `src/app/projects/[id]/page.tsx`
+- `src/app/reports/page.tsx`
+
+## BEHAVIOR BEFORE / AFTER
+
+| 场景 | Before | After |
+| --- | --- | --- |
+| 首页 | 首屏信息较密，项目与进展层级不够清晰 | 今日行动 → 项目 STR → 最近进展，行动和项目指标可直接阅读 |
+| 项目详情 | 事项、WBS、信号和项目资料并列，主次不明显 | Project Header → STR timeline → 当前/下一 STR → WBS readiness → 管理事项 → 最近进展 → 次要信息 |
+| 当前 STR | 无当前 STR 时存在多种提示文案 | 统一为“暂无明确当前 STR”，不根据标题推断归属 |
+| 事项详情 | ActionItem 与旧进展/关系信息竞争首屏 | ActionItem 主链进入主列，项目/STR上下文明确，legacy 信息降为辅助 |
+| 汇报 | Markdown 原文默认占据较大空间，状态存在内部枚举 | 默认先读事实树，Markdown 折叠，状态映射为中文 |
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- `npx.cmd prisma migrate diff --from-url file:./prisma/dev.db --to-schema-datamodel prisma/schema.prisma`：`No difference detected.`
+- 本轮最终只读数据核对：Project 2、ProjectMilestone 12、WorkItem 9、ActionItem 38、WorkLog 58、ProjectWbsNode 157、ProjectWbsDeliverable 146、WBS fake WorkItem 0；`milestoneId != null` 的 WorkItem 为 0
+- `PRAGMA integrity_check`：`ok`
+- `PRAGMA foreign_key_check`：`[]`
+- CodexPro 的 WSL `git diff --check` 会把仓库既有 CRLF 文件整体误报为 trailing whitespace，因此本轮不把该命令作为验收依据；未做任何换行符清理或无关文件改写。
+- 浏览器真实本地页面可达并完成视觉检查：`/`、`/projects/cmqz4m9gg0000s1douq1oyfby`、`/items/cmrj9www30001s1984njh1imj`、`/reports`；检查未写入数据库。截图通过本机浏览器即时查看，未保存为本地截图文件，因此无持久化截图路径。
+- 最终数据库备份：
+
+```text
+D:\个人web\.workhub\backups\workhub-2026-09-13T04-43-41-716Z.db
+Backup verified: projects=2, items=9, logs=58
+```
+
+- 最终备份 restore-check：PASS
+
+## KNOWN RISKS
+
+- 本阶段未做 Phase 6 的统一设计 token、字体、间距、表面、边框和阴影治理，旧页面仍可能存在视觉语言差异。
+- 真实 9 个 WorkItem 仍未自动归属任何 STR；页面继续按真实数据显示项目级事项，不做产品事实推断。
+- 事项详情和项目详情仍保留 legacy 辅助信息区块；本轮只调整层级和可读性，没有删除 legacy 字段或重做业务模块。
+- 本轮完成了浏览器页面级视觉检查，但没有通过页面操作写入测试数据；数据库交互回归仍依赖既有测试和后续阶段的人工验收。
+
+## NEXT PHASE READINESS
+
+PASS_WITH_USER_CONFIRMATION。
+
+Phase 5.5 验收通过。下一阶段为 Phase 6：视觉系统统一与旧逻辑清理；本轮未执行，需用户明确确认后再开始。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-deployment-plan.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+ M src/app/items/[id]/page.tsx
+ M src/app/page.tsx
+ M src/app/projects/[id]/page.tsx
+ M src/app/reports/page.tsx
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。

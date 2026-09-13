@@ -359,7 +359,7 @@ export default function ProjectDetailPage() {
       <section className="project-cockpit-panel project-cockpit-str-context">
         <div className="project-cockpit-panel-head"><div><span>STR CONTEXT</span><h2>当前 / 下一 STR</h2></div></div>
         <div className="project-cockpit-signal-list">
-          <div><span>当前 STR</span><strong>{currentMilestone?.title || "暂无当前 STR"}</strong><small>{currentMilestone ? `状态：${PROJECT_MILESTONE_STATUS_LABELS[currentMilestone.status] || currentMilestone.status}` : "按真实状态、日期和排序计算"}</small></div>
+          <div><span>当前 STR</span><strong>{currentMilestone?.title || "暂无明确当前 STR"}</strong><small>{currentMilestone ? `状态：${PROJECT_MILESTONE_STATUS_LABELS[currentMilestone.status] || currentMilestone.status}` : "按真实状态、日期和排序计算"}</small></div>
           <div><span>下一 STR</span><strong>{nextMilestone?.title || "暂无下一 STR"}</strong><small>{nextMilestone ? milestoneScheduleLabel(nextMilestone) : "暂无未来计划"}</small></div>
         </div>
       </section>
@@ -378,12 +378,13 @@ export default function ProjectDetailPage() {
       <section className="project-cockpit-panel project-cockpit-items">
         <div className="project-cockpit-panel-head"><div><span>ITEMS · STR</span><h2>事项主链 · {items.length} open</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
         <div className="project-cockpit-item-list">
-          {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>)}
+          {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => { const openActions = (item.actionItems || []).filter((action) => action.status !== "done"); const overdueActions = openActions.filter((action) => Boolean(action.dueDate && action.dueDate < today)); const latestLog = (item.logs || [])[0]; return <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.milestone?.title || "项目级事项"} · {item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em><small>{openActions.length} 个开放行动项{overdueActions.length ? ` · ${overdueActions.length} 个逾期` : ""}{latestLog ? ` · 最近进展：${latestLog.note || latestLog.content || latestLog.title}` : ""}</small></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>; })}
         </div>
         <div className="project-cockpit-module-summary"><strong>STR 事项 {milestoneItems.length} · 项目级事项 {projectLevelItems.length}</strong><span>事项的 STR 归属只来自 milestoneId；未归属事项保持项目级。</span></div>
+        {projectLevelItems.length > 0 && <div className="project-cockpit-sublist"><strong>项目级事项 / 未归属 STR</strong>{projectLevelItems.slice(0, 4).map((item) => <Link key={item.id} href={`/items/${item.id}`}><span>{item.title}</span><small>{item.owner || "未分配"} · {dateLabel(item.dueDate)}</small></Link>)}</div>}
       </section>
 
-      <section className="project-cockpit-panel project-cockpit-items">
+      <section className="project-cockpit-panel project-cockpit-items project-cockpit-wbs">
         <div className="project-cockpit-panel-head"><div><span>WBS READINESS</span><h2>{currentMilestone ? `${currentMilestone.title} · WBS readiness` : "当前 STR · WBS readiness"}</h2></div></div>
         <ProjectWbsSummarySection projectId={project.id} />
       </section>

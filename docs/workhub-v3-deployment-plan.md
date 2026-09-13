@@ -1059,6 +1059,38 @@ Project[]
 
 ---
 
+## Phase 5.5：核心页面产品层级修正
+
+### 目标
+
+Phase 5 的产品验收修正阶段。保持 `Project → STR → WorkItem → ActionItem → WorkLog` 数据模型和业务边界不变，只修正核心页面的主次顺序、首屏层级、空间占用、旧字段视觉降级、窄列碎裂换行和汇报阅读方式；不提前执行 Phase 6 的完整 Design System 重构。
+
+### 页面验收范围
+
+- 首页 `/`：首屏突出今日行动、项目当前/下一 STR、最近进展；行动项采用横向可扫描结构，项目卡避免空洞和过度堆叠，最近进展不得逐字竖排。
+- 项目详情 `/projects/[id]`：Project Header 后直接展示 STR timeline、当前/下一 STR、当前 STR WBS readiness、管理事项和项目级事项；Links、Members、Facts、详细 metadata 降为次级信息。
+- 事项详情 `/items/[id]`：ActionItem 和统一时间线为主角；Project/STR/owner/status/due/type 保留为核心摘要，其余 legacy metadata 后置且不删除字段。
+- 汇报 `/reports`：默认展示可阅读的 Project/STR/WorkItem/ActionItem 层级汇报，Markdown 退为复制/查看/折叠入口；旧内部枚举不得直接作为主要正文。
+- Sidebar / Topbar：主导航保持“今日 / 项目 / 事项 / 汇报”，工具入口弱化，不重复抢占视觉焦点。
+
+### 可用性基线
+
+- 中文为一级信息语言；无必要的英文 uppercase eyebrow 删除或降级。
+- 正文不明显小于约 14px，辅助文字不大量使用 10～11px。
+- 主体宽度和列比例可长期阅读，防止中文逐字竖排和窄列碎裂换行。
+- 不修改 Prisma schema、数据模型、Report Aggregator 业务规则、Hermes/MCP contract，不自动为真实 WorkItem 归属 STR，不恢复 WBS fake WorkItem。
+
+### 验收与记录
+
+- 真实检查首页、tOS17.1 项目详情、内容丰富的事项详情和 Reports 页面。
+- 验证 Phase 3 ActionItem workflow、Phase 4 Report Aggregator、WBS fake WorkItem=0 和真实数据数量不变。
+- 执行 `npm.cmd run typecheck`、`npm.cmd run test`、`npm.cmd run lint`、`npm.cmd run build`，并确认 schema 无变化、数据库完整性和外键检查通过。
+- 完成后在 `docs/workhub-v3-progress.md` 按固定 RESULT 格式记录页面 before/after、布局修正、legacy 降级方式、验证结果、数据数量、截图路径（如有）和 Phase 6 readiness；本阶段不 commit、不 push、不进入 Phase 6。
+
+完成后停止。
+
+---
+
 ## Phase 6：视觉系统统一与旧逻辑清理
 
 ### 目标

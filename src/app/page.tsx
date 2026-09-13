@@ -5,12 +5,22 @@ import SidebarNavigation from "@/components/SidebarNavigation";
 import { prisma } from "@/lib/prisma";
 import { getLocalDateString } from "@/lib/utils";
 import { selectCurrentAndNextMilestones } from "@/lib/projectMilestoneView";
-import { ACTION_ITEM_STATUS_LABELS } from "@/lib/constants";
+import { ACTION_ITEM_STATUS_LABELS, PROJECT_STATUS_LABELS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 function displayDate(value?: string | null) {
   return value || "未设置截止日期";
+}
+
+function displayProgressTime(value: Date | string) {
+  return new Date(value).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default async function WorkbenchPage() {
@@ -85,12 +95,12 @@ export default async function WorkbenchPage() {
 
           <section className="card cockpit-card">
             <div className="cockpit-card-head"><div><span className="section-eyebrow">PROJECTS</span><h2>项目</h2></div><Link href="/projects" className="section-link">查看全部 <Icon name="chevron-right" size={14} /></Link></div>
-            <div className="content-card-grid">{projects.map((project) => { const { current, next } = selectCurrentAndNextMilestones(project.milestones, today); const openActions = project.items.flatMap((item) => item.actionItems).filter((item) => item.status !== "done"); const overdueActions = openActions.filter((item) => Boolean(item.dueDate && item.dueDate < today)); const projectLevel = project.items.filter((item) => !item.milestoneId).length; return <Link key={project.id} href={`/projects/${project.id}`} className="card card-hover" style={{ padding: 16, textDecoration: "none" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{project.name}</strong><span className="entity-pill entity-pill--muted">{project.status}</span></div><div className="detail-side-entry"><span>当前 STR</span><strong>{current?.title || "暂无当前 STR"}</strong></div><div className="today-action-item-meta"><span>下一 STR：{next?.title || "暂无"}</span><span>{project.items.length} 个开放事项</span><span>{openActions.length} 个开放行动项</span>{overdueActions.length > 0 && <span>逾期行动项 {overdueActions.length}</span>}<span>项目级事项 {projectLevel}</span></div></Link>})}</div>
+            <div className="content-card-grid">{projects.map((project) => { const { current, next } = selectCurrentAndNextMilestones(project.milestones, today); const openActions = project.items.flatMap((item) => item.actionItems).filter((item) => item.status !== "done"); const overdueActions = openActions.filter((item) => Boolean(item.dueDate && item.dueDate < today)); const projectLevel = project.items.filter((item) => !item.milestoneId).length; return <Link key={project.id} href={`/projects/${project.id}`} className="card card-hover" style={{ padding: 16, textDecoration: "none" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{project.name}</strong><span className="entity-pill entity-pill--muted">{PROJECT_STATUS_LABELS[project.status] || project.status}</span></div><div className="detail-side-entry"><span>当前 STR</span><strong>{current?.title || "暂无明确当前 STR"}</strong></div><div className="today-action-item-meta"><span>下一 STR：{next?.title || "暂无"}</span><span>{project.items.length} 个开放事项</span><span>{openActions.length} 个开放行动项</span>{overdueActions.length > 0 && <span>逾期行动项 {overdueActions.length}</span>}<span>项目级事项 {projectLevel}</span></div></Link>})}</div>
           </section>
 
           <section className="card cockpit-card">
             <div className="cockpit-card-head"><div><span className="section-eyebrow">RECENT PROGRESS</span><h2>最近进展</h2></div><Link href="/logs" className="section-link">打开记录库 <Icon name="chevron-right" size={14} /></Link></div>
-            {recentLogs.length === 0 ? <div className="redesign-empty">暂无最近进展。</div> : <div className="project-cockpit-fact-list">{recentLogs.map((log) => { const itemTitle = log.actionItem?.workItem?.title || log.item?.title; const actionTitle = log.actionItem?.title; return <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{log.workDate}</time><span className="project-cockpit-kind">{actionTitle ? `行动项 · ${actionTitle}` : itemTitle ? "事项记录" : "项目记录"}</span><div><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || "未关联事项"}{log.item?.milestone ? ` · ${log.item.milestone.title}` : ""}</em></div></Link>; })}</div>}
+            {recentLogs.length === 0 ? <div className="redesign-empty">暂无最近进展。</div> : <div className="project-cockpit-fact-list">{recentLogs.map((log) => { const itemTitle = log.actionItem?.workItem?.title || log.item?.title; const actionTitle = log.actionItem?.title; return <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{displayProgressTime(log.createdAt)}</time><span className="project-cockpit-kind">{actionTitle ? `行动项 · ${actionTitle}` : itemTitle ? "事项记录" : "项目记录"}</span><div><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || "未关联事项"}{log.item?.milestone ? ` · ${log.item.milestone.title}` : ""}</em></div></Link>; })}</div>}
           </section>
         </main>
       </div>
