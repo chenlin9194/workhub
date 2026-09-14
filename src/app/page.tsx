@@ -52,6 +52,9 @@ export default async function WorkbenchPage() {
       },
     }),
   ]);
+  const overdueActions = actions.filter((action) => Boolean(action.dueDate && action.dueDate < today));
+  const dueTodayActions = actions.filter((action) => action.dueDate === today);
+  const dueSoonActions = actions.filter((action) => Boolean(action.dueDate && action.dueDate > today && action.dueDate <= dueSoonKey));
 
   return (
     <div className="dashboard-shell redesign-dashboard-shell">
@@ -65,6 +68,15 @@ export default async function WorkbenchPage() {
 
         <main className="redesign-dashboard">
           <header className="redesign-page-header"><div><span>WORKHUB V3 WORKBENCH</span><h1>工作台</h1><p>先处理行动项，再查看项目和最近发生的进展。</p></div><Link href="/reports" className="btn btn-secondary btn-sm">进入汇报</Link></header>
+
+          <section className="card cockpit-card home-attention-card">
+            <div className="cockpit-card-head"><div><span className="section-eyebrow">TODAY FOCUS</span><h2>今日关注</h2></div><Link href="/today" className="section-link">打开行动队列 <Icon name="chevron-right" size={14} /></Link></div>
+            <div className="home-attention-grid">
+              <Link href="/today" className="home-attention-item home-attention-item--danger"><strong>{overdueActions.length}</strong><span>个逾期行动</span><small>截止日期早于今天</small></Link>
+              <Link href="/today" className="home-attention-item home-attention-item--warning"><strong>{dueTodayActions.length}</strong><span>个今日到期行动</span><small>今天需要处理</small></Link>
+              <Link href="/today" className="home-attention-item home-attention-item--neutral"><strong>{dueSoonActions.length}</strong><span>个临近截止行动</span><small>未来 7 天内到期</small></Link>
+            </div>
+          </section>
 
           <section className="card cockpit-card">
             <div className="cockpit-card-head"><div><span className="section-eyebrow">TODAY ACTIONS</span><h2>今日行动</h2></div><Link href="/today" className="section-link">查看完整队列 <Icon name="chevron-right" size={14} /></Link></div>
@@ -100,7 +112,7 @@ export default async function WorkbenchPage() {
 
           <section className="card cockpit-card">
             <div className="cockpit-card-head"><div><span className="section-eyebrow">RECENT PROGRESS</span><h2>最近进展</h2></div><Link href="/logs" className="section-link">打开记录库 <Icon name="chevron-right" size={14} /></Link></div>
-            {recentLogs.length === 0 ? <div className="redesign-empty">暂无最近进展。</div> : <div className="project-cockpit-fact-list">{recentLogs.map((log) => { const itemTitle = log.actionItem?.workItem?.title || log.item?.title; const actionTitle = log.actionItem?.title; return <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{displayProgressTime(log.createdAt)}</time><span className="project-cockpit-kind">{actionTitle ? `行动项 · ${actionTitle}` : itemTitle ? "事项记录" : "项目记录"}</span><div><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || "未关联事项"}{log.item?.milestone ? ` · ${log.item.milestone.title}` : ""}</em></div></Link>; })}</div>}
+            {recentLogs.length === 0 ? <div className="redesign-empty">暂无最近进展。</div> : <div className="project-cockpit-fact-list">{recentLogs.map((log) => { const itemTitle = log.actionItem?.workItem?.title || log.item?.title; const actionTitle = log.actionItem?.title; const note = log.note || log.content; return <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{displayProgressTime(log.createdAt)}</time><span className="project-cockpit-kind">{actionTitle ? "行动项记录" : itemTitle ? "事项记录" : "项目记录"}</span><div className="home-progress-main"><strong>{actionTitle || itemTitle || log.title}</strong><p>{note || "暂无补充记录"}</p><em>{itemTitle || "未关联事项"}{log.item?.milestone ? ` · ${log.item.milestone.title}` : ""}</em></div></Link>; })}</div>}
           </section>
         </main>
       </div>

@@ -21,11 +21,11 @@ export default async function TodayPage() {
   return (
     <div className="page-shell auxiliary-page today-page">
       <header className="command-page-header">
-        <div><span className="section-eyebrow">ACTION QUEUE</span><h1>今日</h1><p>逾期、今日到期和即将处理的 ActionItem 队列 · {today}</p></div>
+        <div><h1>行动队列</h1><p>集中处理逾期、今日到期和即将处理的行动项 · {today}</p></div>
         <div className="page-header-actions"><Link href="/items" className="btn btn-secondary"><Icon name="list" size={14} />查看事项</Link><Link href="/reports" className="btn btn-primary">进入汇报</Link></div>
       </header>
       <TodayActionQueue initialItems={actions} today={today} />
-      <section className="card cockpit-card"><div className="cockpit-card-head"><div><span className="section-eyebrow">COMPLETED</span><h2>已完成行动项</h2></div><span className="section-count">完成记录在事项时间线中查看</span></div><p className="today-compact-empty"><span />今日页聚焦待处理队列；已完成行动项请进入对应事项查看统一时间线。</p></section>
+      <section className="card cockpit-card today-completed-card"><div className="cockpit-card-head"><div><h2>已完成行动项</h2></div><span className="section-count">完成记录在事项时间线中查看</span></div><p className="today-compact-empty"><span />今日页聚焦待处理队列；已完成行动项请进入对应事项查看统一时间线。</p></section>
     </div>
   );
 }

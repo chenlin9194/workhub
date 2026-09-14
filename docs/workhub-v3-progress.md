@@ -14,15 +14,17 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 6.1 已完成（PASS）**
-- 下一阶段：**Phase 6.2：Home Cockpit（等待用户确认）**
-- Phase 5：**已完成；Phase 5.5.1 与 Phase 6.1 已完成，本轮未进入 Phase 6.2**
+- 当前阶段：**Phase 6.2.1 已完成（PASS）**
+- 下一阶段：**Phase 6.3：Project Cockpit（等待用户确认）**
+- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2 与 Phase 6.2.1 已完成，本轮未进入 Phase 6.3**
 - 当前分支：`main`
-- 当前 HEAD：`74cb51c docs: add WorkHub V3 Phase 6 design plan`
+- 当前 HEAD：`ebeff74 feat: introduce WorkHub V3 design foundation`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
   - `M docs/workhub-v3-progress.md`
   - `M src/app/globals.css`
+  - `M src/app/page.tsx`
+  - `M src/app/today/page.tsx`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1156,7 +1158,7 @@ Phase 6.1 完成。Phase 6.2 未执行，等待用户确认后再开始。
 
 ## RESULT
 
-PASS_WITH_USER_CONFIRMATION
+PASS
 
 Phase 5.5.1 已完成。本轮仅修复 Phase 5.5 的四类布局问题，等待用户进行最后一次人工截图验收；未进入 Phase 6。
 
@@ -1330,17 +1332,183 @@ PASS_WITH_USER_CONFIRMATION。
 
 Phase 5.5 验收通过。下一阶段为 Phase 6：视觉系统统一与旧逻辑清理；本轮未执行，需用户明确确认后再开始。
 
+---
+
+# Phase 6.2：Home Cockpit
+
+## RESULT
+
+PASS
+
+Phase 6.2 已完成，首页已按“每日 PM 驾驶舱”目标收敛；本轮未进入 Phase 6.3/6.4/6.5。
+
+## PHASE
+
+Phase 6.2 Home Cockpit
+
+## FILES CHANGED
+
+- `D:\个人web\src\app\page.tsx`
+- `D:\个人web\src\app\globals.css`
+- `D:\个人web\docs\workhub-v3-progress.md`
+
+## WHAT CHANGED
+
+- 新增“今日关注”轻量事实区，展示逾期 ActionItem、今日到期 ActionItem 和临近截止事项；数据来自既有真实查询，不自动判断风险。
+- 优化项目卡片，突出项目名称、当前/下一 STR、未完成 ActionItem、逾期 ActionItem 和项目级 WorkItem 数量，继续按真实 `milestoneId` 展示未归属 STR。
+- 将最近进展保持为既有 WorkLog 真实数据流，按时间、事项/ActionItem、note、Project/STR 展示，减少 tag 堆叠并提升可读性。
+- 继续使用 Phase 6.1 Design Foundation；未新增模块、指标、查询或依赖。
+
+## BEFORE / AFTER
+
+| 区域 | Before | After |
+| --- | --- | --- |
+| 今日关注 | 行动项直接进入列表，缺少关注分组 | 先按逾期、今日到期、临近截止呈现事实 |
+| 项目 | 项目卡信息较分散 | 快速看到当前/下一 STR、行动项和项目级事项数量 |
+| 最近进展 | 内容层级和元信息较拥挤 | 以事实流展示时间、来源、note 和项目上下文 |
+
+## BUSINESS IMPACT
+
+无业务逻辑变化。未修改 Prisma schema、API、ActionItem workflow、Report Aggregator 或其他页面；未自动归属 STR，未恢复 WBS fake WorkItem。
+
+## DATA MIGRATION
+
+无 schema/data migration，未写入数据库。
+
+## DATA VERIFICATION
+
+```text
+Project                 2
+ProjectMilestone       12
+WorkItem                9
+ActionItem             38
+WorkLog                58
+WBS fake WorkItem       0
+WorkItemWithMilestone   0
+schema                  No difference detected.
+integrity_check         ok
+foreign_key_check       []
+```
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- Prisma schema diff：`No difference detected.`
+- 首页本地页面可达性检查：HTTP 200；未执行页面写入操作。
+
+## KNOWN RISKS
+
+- 首页人工视觉验收仍需用户确认，尤其是“今日关注”的实际帮助程度、项目卡扫读效率和最近进展密度。
+- 真实 9 个 WorkItem 仍未归属 STR，首页继续诚实显示项目级/未归属 STR。
+
 ## GIT STATUS
 
 ```text
  D docs/hermes-workhub-v1.md
- M docs/workhub-v3-deployment-plan.md
  M docs/workhub-v3-progress.md
  M src/app/globals.css
- M src/app/items/[id]/page.tsx
  M src/app/page.tsx
- M src/app/projects/[id]/page.tsx
- M src/app/reports/page.tsx
+```
+
+未 commit、未 push、未 reset、未 restore、未 stash、未 rebase；未处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6.3。
+
+## NEXT STEP
+
+Phase 6.2 完成。Phase 6.3 Project Cockpit 未执行，等待用户确认后再开始。
+
+---
+
+# Phase 6.2.1：Home Cockpit Final Polish
+
+## RESULT
+
+PASS_WITH_USER_CONFIRMATION
+
+Phase 6.2.1 已完成并通过人工截图验收。本轮只收口首页最近进展和 `/today` 行动队列的视觉层级，未进入 Phase 6.3。
+
+## PHASE
+
+Phase 6.2.1 Home Cockpit Final Polish
+
+## FILES CHANGED
+
+- `D:\个人web\src\app\page.tsx`
+- `D:\个人web\src\app\today\page.tsx`
+- `D:\个人web\src\app\globals.css`
+- `D:\个人web\docs\workhub-v3-progress.md`
+
+## WHAT CHANGED
+
+- 首页最近进展拆分为记录标题、事实 note、记录来源和事项/STR 上下文；增加行间距与 line-height，时间降为辅助信息。
+- `/today` 去除英文 `ACTION QUEUE`、`ACTION ITEMS`、`COMPLETED` eyebrow，统一为中文标题和 Phase 6.1 字体层级。
+- 通过页面限定样式移除行动队列中残留的 `ACTION ITEMS` eyebrow，不改变行动项组件结构或行为。
+- `/today` 统一 card、spacing、empty state 和行动项行样式；未完成行动保持主视线，已完成区域降低视觉权重。
+- 行动队列根据真实内容自然撑高，保留现有交互、数据查询和 ActionItem workflow。
+
+## BEFORE / AFTER
+
+| 区域 | Before | After |
+| --- | --- | --- |
+| 首页最近进展 | 标题、note、来源和上下文贴近，阅读拥挤 | 标题与事实 note 分层，时间和上下文降级为辅助信息 |
+| `/today` 页头 | 英文 eyebrow 与中文标题并存，留白和层级不统一 | 中文“行动队列”作为主标题，副标题说明完整处理定位 |
+| `/today` 行动区 | 旧卡片和标签规则主导，字号偏小 | 使用统一卡片、间距和正文层级；已完成区保持次级 |
+
+## BUSINESS IMPACT
+
+无业务逻辑变化。未修改查询、排序、API、ActionItem workflow、Prisma schema、Report Aggregator 或其他页面；未写入数据库，未自动归属 STR，未恢复 WBS fake WorkItem。
+
+## DATA VERIFICATION
+
+沿用 Phase 6.2 真实数据基线：
+
+```text
+Project                 2
+ProjectMilestone       12
+WorkItem                9
+ActionItem             38
+WorkLog                58
+ProjectWbsNode        157
+ProjectWbsDeliverable 146
+WBS fake WorkItem       0
+WorkItemWithMilestone   0
+schema                  No difference detected.
+integrity_check         ok
+foreign_key_check       []
+```
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- Prisma schema diff：`No difference detected.`
+- 只读数据库核对：Project 2、ProjectMilestone 12、WorkItem 9、ActionItem 38、WorkLog 58、ProjectWbsNode 157、ProjectWbsDeliverable 146、WBS fake WorkItem 0、WorkItemWithMilestone 0。
+- `PRAGMA integrity_check`：`ok`
+- `PRAGMA foreign_key_check`：`[]`
+- HTTP smoke：`/` 与 `/today` 均返回 HTTP 200，确认新标题与最近进展内容可达；未执行页面写入操作。
+- 浏览器人工截图验收：PASS；确认 `/` 的今日关注、今日行动、项目、最近进展层级正确，`/today` 视觉语言统一且无新增 BI 感。
+
+## KNOWN RISKS
+
+- 本轮仅完成视觉残留清理，真实数据较少造成的页面下方空白按预期保留。
+- `docs/hermes-workhub-v1.md` 保持原有 deleted dirty 状态，未处理。
+
+## NEXT PHASE READINESS
+
+Phase 6.2.1 完成后，Phase 6.3 Project Cockpit 仍未执行，等待用户确认。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+ M src/app/page.tsx
+ M src/app/today/page.tsx
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。

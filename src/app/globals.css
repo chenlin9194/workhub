@@ -13681,3 +13681,275 @@ body {
   font-size: var(--ds-font-caption);
   letter-spacing: 0.08em;
 }
+
+/* ===== Phase 6.2 Home Cockpit ===== */
+.home-attention-card {
+  padding: var(--ds-space-5) var(--ds-space-6);
+}
+
+.home-attention-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ds-space-4);
+}
+
+.home-attention-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--ds-space-2);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border-left: 3px solid var(--text-tertiary);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.home-attention-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.home-attention-item strong {
+  grid-row: span 2;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.home-attention-item span {
+  font-size: var(--ds-font-content);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.home-attention-item small {
+  color: var(--text-secondary);
+  font-size: var(--ds-font-meta);
+  line-height: 1.5;
+}
+
+.home-attention-item--danger { border-left-color: var(--accent-red); }
+.home-attention-item--danger strong { color: var(--accent-red); }
+.home-attention-item--warning { border-left-color: var(--accent-orange); }
+.home-attention-item--warning strong { color: var(--accent-orange); }
+.home-attention-item--neutral { border-left-color: var(--accent-blue); }
+.home-attention-item--neutral strong { color: var(--accent-blue); }
+
+@media (max-width: 700px) {
+  .home-attention-card { padding: var(--ds-space-4); }
+  .home-attention-grid { grid-template-columns: 1fr; gap: var(--ds-space-2); }
+  .home-attention-item { padding: var(--ds-space-3); }
+}
+
+/* ===== Phase 6.2.1 Home Cockpit Final Polish ===== */
+.redesign-dashboard .project-cockpit-fact-list > a {
+  grid-template-columns: 92px 132px minmax(0, 1fr);
+  align-items: start;
+  min-height: 0;
+  padding: var(--ds-space-4) 4px;
+  gap: var(--ds-space-4);
+}
+
+.redesign-dashboard .project-cockpit-fact-list > a + a {
+  padding-top: var(--ds-space-5);
+}
+
+.redesign-dashboard .project-cockpit-fact-list time {
+  padding-top: 2px;
+  color: var(--text-tertiary);
+  font-size: var(--ds-font-meta);
+  line-height: 1.5;
+}
+
+.redesign-dashboard .project-cockpit-kind {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 2px 0;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: var(--ds-font-meta);
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.redesign-dashboard .home-progress-main {
+  display: grid;
+  gap: var(--ds-space-2);
+  min-width: 0;
+}
+
+.redesign-dashboard .home-progress-main strong {
+  overflow: visible;
+  color: var(--text-primary);
+  font-size: var(--ds-font-content);
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.redesign-dashboard .home-progress-main p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--ds-font-content);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.redesign-dashboard .home-progress-main em {
+  margin-top: var(--ds-space-1);
+  color: var(--text-tertiary);
+  font-size: var(--ds-font-meta);
+  line-height: 1.55;
+  white-space: normal;
+}
+
+.today-page {
+  width: min(1120px, 100%);
+  max-width: 1120px;
+  gap: var(--ds-space-6);
+  padding-bottom: var(--ds-space-8);
+}
+
+.today-page .command-page-header {
+  align-items: end;
+  gap: var(--ds-space-5);
+  padding: 0 2px;
+}
+
+.today-page .command-page-header h1 {
+  margin: 0;
+  font-size: var(--ds-font-page-title);
+  line-height: 1.2;
+}
+
+.today-page .command-page-header p {
+  margin-top: var(--ds-space-2);
+  color: var(--text-secondary);
+  font-size: var(--ds-font-body);
+  line-height: 1.6;
+}
+
+.today-page .today-action-items-card,
+.today-page .today-completed-card {
+  padding: var(--ds-space-5) var(--ds-space-6);
+}
+
+.today-page .today-action-items-card .section-eyebrow {
+  display: none;
+}
+
+.today-page .today-action-items-card {
+  gap: var(--ds-space-5);
+}
+
+.today-page .today-action-items-card .cockpit-card-head,
+.today-page .today-completed-card .cockpit-card-head {
+  margin-bottom: 0;
+}
+
+.today-page .today-action-items-card .cockpit-card-head h2,
+.today-page .today-completed-card .cockpit-card-head h2 {
+  font-size: var(--ds-font-section-title);
+  line-height: 1.3;
+}
+
+.today-page .today-action-items-card > div[style*="display: grid"] {
+  gap: var(--ds-space-5) !important;
+}
+
+.today-page .today-action-items-card > div[style*="display: grid"] > div {
+  gap: var(--ds-space-3) !important;
+}
+
+.today-page .today-action-item-list {
+  display: grid;
+  gap: var(--ds-space-3);
+}
+
+.today-page .today-action-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--ds-space-4);
+  padding: var(--ds-space-4);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-card-radius);
+  background: var(--ds-surface-soft);
+}
+
+.today-page .today-action-item--overdue {
+  border-color: color-mix(in srgb, var(--accent-red) 30%, var(--ds-border));
+  background: color-mix(in srgb, var(--accent-red-light) 18%, var(--ds-surface));
+}
+
+.today-page .today-action-item-main {
+  display: grid;
+  gap: var(--ds-space-3);
+  min-width: 0;
+}
+
+.today-page .today-action-item-title {
+  color: var(--text-primary);
+  font-size: var(--ds-font-content);
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.today-page .today-action-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2);
+  color: var(--text-secondary);
+  font-size: var(--ds-font-meta);
+  line-height: 1.5;
+}
+
+.today-page .today-action-item-meta span {
+  min-height: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.today-page .today-completed-card {
+  opacity: 0.82;
+}
+
+.today-page .today-completed-card .today-compact-empty {
+  min-height: 0;
+  padding: var(--ds-space-2) 0 0;
+  font-size: var(--ds-font-body);
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .redesign-dashboard .project-cockpit-fact-list > a {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: var(--ds-space-2) var(--ds-space-3);
+  }
+
+  .redesign-dashboard .project-cockpit-kind,
+  .redesign-dashboard .home-progress-main {
+    grid-column: 2;
+  }
+
+  .redesign-dashboard .project-cockpit-kind {
+    grid-row: 1;
+  }
+
+  .redesign-dashboard .home-progress-main {
+    grid-row: 2;
+  }
+
+  .today-page .today-action-items-card,
+  .today-page .today-completed-card {
+    padding: var(--ds-space-4);
+  }
+
+  .today-page .today-action-item {
+    grid-template-columns: 1fr;
+  }
+
+  .today-page .today-action-item > div:last-child {
+    justify-content: flex-start !important;
+  }
+}
