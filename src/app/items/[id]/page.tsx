@@ -253,12 +253,8 @@ export default function ItemDetailPage() {
           <div className="detail-title-row">
             <span className="section-eyebrow">WORK ITEM</span>
             <h1 className="detail-title">{item.title}</h1>
-            <p className="item-context-line">{projectName}{item.projectId ? ` · ${item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项"}` : ""}</p>
           </div>
           <div className="detail-status-row">
-            <span className={`badge badge-${item.priority.toLowerCase()}`}>
-              {PRIORITY_LABELS[item.priority] || item.priority}
-            </span>
             <span className={`badge badge-${item.status}`}>
               {STATUS_LABELS[item.status] || item.status}
             </span>
@@ -313,6 +309,12 @@ export default function ItemDetailPage() {
             )}
           </button>
         </div>
+        <div className="item-header-facts" aria-label="事项执行信息">
+          <span><b>项目</b>{projectName}</span>
+          <span><b>STR</b>{item.projectId ? (item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）") : "项目外事项"}</span>
+          <span><b>负责人</b>{item.owner || "未分配"}</span>
+          <span className={overdue ? "is-overdue" : ""}><b>截止</b>{item.dueDate || "未设置"}</span>
+        </div>
       </header>
 
       <div className="detail-main-grid item-detail-main-grid">
@@ -333,6 +335,7 @@ export default function ItemDetailPage() {
               {projectName !== "未关联项目" && <div className="detail-meta-item"><span>项目</span><strong>{projectName}</strong></div>}
               {item.projectId && <div className="detail-meta-item"><span>STR</span><strong>{item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）"}</strong></div>}
               <div className="detail-meta-item"><span>类型</span><strong>{WORK_ITEM_TYPE_LABELS[item.type] || item.type}</strong></div>
+              <div className="detail-meta-item"><span>优先级</span><strong>{PRIORITY_LABELS[item.priority] || item.priority}</strong></div>
               <div className="detail-meta-item"><span>状态</span><strong>{STATUS_LABELS[item.status] || item.status}</strong></div>
               <div className="detail-meta-item"><span>负责人</span><strong>{item.owner || "未分配"}</strong></div>
               <div className={`detail-meta-item ${overdue ? "detail-meta-item--danger" : ""}`}><span>截止日期</span><strong>{item.dueDate || "未设置"}</strong></div>
