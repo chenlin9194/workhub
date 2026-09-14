@@ -14,17 +14,16 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 6.2.1 已完成（PASS）**
-- 下一阶段：**Phase 6.3：Project Cockpit（等待用户确认）**
-- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2 与 Phase 6.2.1 已完成，本轮未进入 Phase 6.3**
+- 当前阶段：**Phase 6.3 已完成（PASS）**
+- 下一阶段：**Phase 6.4：WorkItem Experience（等待用户确认）**
+- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2、Phase 6.2.1 与 Phase 6.3 已完成，本轮未进入 Phase 6.4**
 - 当前分支：`main`
-- 当前 HEAD：`ebeff74 feat: introduce WorkHub V3 design foundation`
+- 当前 HEAD：`b6cacd0 feat: upgrade WorkHub V3 home cockpit`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
   - `M docs/workhub-v3-progress.md`
   - `M src/app/globals.css`
-  - `M src/app/page.tsx`
-  - `M src/app/today/page.tsx`
+  - `M src/app/projects/[id]/page.tsx`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1499,7 +1498,88 @@ foreign_key_check       []
 
 ## NEXT PHASE READINESS
 
-Phase 6.2.1 完成后，Phase 6.3 Project Cockpit 仍未执行，等待用户确认。
+Phase 6.2.1 完成后，Phase 6.3 Project Cockpit 已执行，本轮未进入 Phase 6.4。
+
+---
+
+# Phase 6.3：Project Cockpit
+
+## RESULT
+
+PASS
+
+Phase 6.3 已完成实现、工程验证和人工项目页截图验收，项目详情页已收口为 PM 推动驾驶舱；未进入 Phase 6.4。
+
+## PHASE
+
+Phase 6.3 Project Cockpit
+
+## FILES CHANGED
+
+- `D:\个人web\src\app\projects\[id]\page.tsx`
+- `D:\个人web\src\app\globals.css`
+- `D:\个人web\docs\workhub-v3-progress.md`
+
+## WHAT CHANGED
+
+- 项目头部保留项目名称、状态、健康度、阶段、负责人、PM、日期和基础操作；减少 P0/P1/阻塞/逾期信号在头部的堆叠，次要元数据统一中文并降级。
+- STR Timeline 继续作为阶段导航；当前/下一 STR 区域强化为独立阶段上下文，继续显示真实日期和状态；无明确数据时保持“暂无明确当前 STR”。
+- WBS 保持 readiness 信号定位，当前 gate 视觉优先，其余 gate 降为次级；保留真实完成数、待交付数和进入 WBS 详情入口。
+- 管理事项区成为核心执行区，继续展示事项标题、状态、负责人、截止日期、STR/项目级上下文和 ActionItem 信息。
+- 新增轻量行动执行摘要：未完成行动项、逾期行动项、最近到期日期及所属事项，全部由已有 ActionItem 字段计算。
+- 最近事实继续使用真实 WorkLog，按时间、来源、事实内容和事项上下文展示；风险信号、链接、成员保留在次要区域。
+
+## BEFORE / AFTER
+
+| 区域 | Before | After |
+| --- | --- | --- |
+| 项目头部 | 项目状态与多组 P0/P1/阻塞/逾期信号并列 | 项目身份、阶段和核心元数据优先，风险信号降到次要区域 |
+| STR / WBS | 阶段上下文和 readiness 视觉权重接近 | 当前/下一 STR 独立突出，当前 WBS gate 优先，其余次级 |
+| 管理事项 | 行动项数量分散在事项行中 | 事项列表上方增加真实行动执行摘要，事项仍是主线 |
+| 最近事实 | 信息密度和标签感较强 | 时间、来源、事实内容和事项上下文分层展示 |
+
+## BUSINESS IMPACT
+
+无业务逻辑变化。未修改 API、Prisma schema、ActionItem workflow、Report Aggregator 或其他页面；未写入数据库，未自动归属 STR，未恢复 WBS fake WorkItem。
+
+## DATA VERIFICATION
+
+本轮只读核对结果：
+
+```text
+Project                 2
+ProjectMilestone       12
+WorkItem                9
+ActionItem             38
+WorkLog                58
+ProjectWbsNode        157
+ProjectWbsDeliverable 146
+WBS fake WorkItem       0
+WorkItemWithMilestone   0
+schema                  No difference detected.
+integrity_check         ok
+foreign_key_check       []
+```
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- Prisma schema diff：`No difference detected.`
+- `PRAGMA integrity_check`：`ok`
+- `PRAGMA foreign_key_check`：`[]`
+- 浏览器人工截图验收：PASS；已打开 `tOS17.1` 项目详情，确认主链层级、WBS 当前 gate 优先、管理事项行动信号、最近事实和次要区域符合 Phase 6.3 目标。
+
+## KNOWN RISKS
+
+- 当前 9 个 WorkItem 仍未归属 STR，页面继续显示“项目级事项 / 未归属 STR”，不做事实推断。
+- `docs/hermes-workhub-v1.md` 保持原有 deleted dirty 状态，未处理。
+
+## NEXT PHASE READINESS
+
+Phase 6.3 完成后，Phase 6.4 WorkItem Experience 未执行，等待用户确认。
 
 ## GIT STATUS
 
@@ -1507,8 +1587,7 @@ Phase 6.2.1 完成后，Phase 6.3 Project Cockpit 仍未执行，等待用户确
  D docs/hermes-workhub-v1.md
  M docs/workhub-v3-progress.md
  M src/app/globals.css
- M src/app/page.tsx
- M src/app/today/page.tsx
+ M src/app/projects/[id]/page.tsx
 ```
 
-未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6。
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`；未进入 Phase 6.4。

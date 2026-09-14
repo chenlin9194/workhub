@@ -254,6 +254,12 @@ export default function ProjectDetailPage() {
   const blockedCount = items.filter((item) => item.status === "blocked").length;
   const overdueCount = items.filter((item) => Boolean(item.dueDate && item.dueDate < today)).length;
   const riskCount = items.filter((item) => item.health === "red" || item.health === "yellow").length;
+  const actionEntries = items.flatMap((item) => (item.actionItems || []).map((action) => ({ action, item })));
+  const openActionEntries = actionEntries.filter(({ action }) => action.status !== "done");
+  const overdueActionEntries = openActionEntries.filter(({ action }) => Boolean(action.dueDate && action.dueDate < today));
+  const nextDueActionEntry = [...openActionEntries]
+    .filter(({ action }) => Boolean(action.dueDate))
+    .sort((a, b) => String(a.action.dueDate).localeCompare(String(b.action.dueDate)))[0];
   const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
   const cockpitItems = [...items].sort((a, b) => {
     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -306,22 +312,18 @@ export default function ProjectDetailPage() {
             <span className={`project-cockpit-pill is-${project.health}`}>健康 · {HEALTH_LABELS[project.health] || project.health}</span>
             <span className="project-cockpit-pill">{PROJECT_STATUS_LABELS[project.status] || project.status}</span>
             <span className="project-cockpit-pill">{PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</span>
-            <span className="project-cockpit-signal is-critical">P0 {p0Count}</span>
-            <span className="project-cockpit-signal is-warning">阻塞 {blockedCount}</span>
-            <span className="project-cockpit-signal is-critical">逾期 {overdueCount}</span>
-            <span className="project-cockpit-signal">P1 {p1Count}</span>
           </div>
           <p className="project-cockpit-summary">{project.currentSummary || project.description || project.nextAction || "暂未补充项目进展摘要。"}</p>
         </div>
         <div className="project-cockpit-meta" aria-label="项目元信息">
-          <div><span>PM</span><strong>{project.pm || "—"}</strong></div>
-          <div><span>OWNER</span><strong>{project.owner || "—"}</strong></div>
-          <div><span>START</span><strong>{dateLabel(project.startDate)}</strong></div>
-          <div><span>TARGET</span><strong>{dateLabel(project.targetDate)}</strong></div>
-          <div><span>STAGE</span><strong>{PROJECT_STAGE_LABELS[project.stage || ""] || "—"}</strong></div>
-          <div><span>RELEASE</span><strong>{dateLabel(project.releaseDate)}</strong></div>
-          <div><span>ITEMS</span><strong>{items.length} open</strong></div>
-          <div><span>MEMBERS</span><strong>{panelsLoading ? "加载中" : `${coreMembers} core · ${members.length} total`}</strong></div>
+          <div><span>项目经理</span><strong>{project.pm || "—"}</strong></div>
+          <div><span>负责人</span><strong>{project.owner || "—"}</strong></div>
+          <div><span>开始日期</span><strong>{dateLabel(project.startDate)}</strong></div>
+          <div><span>目标日期</span><strong>{dateLabel(project.targetDate)}</strong></div>
+          <div><span>项目阶段</span><strong>{PROJECT_STAGE_LABELS[project.stage || ""] || "—"}</strong></div>
+          <div><span>发布日期</span><strong>{dateLabel(project.releaseDate)}</strong></div>
+          <div><span>开放事项</span><strong>{items.length} 项</strong></div>
+          <div><span>核心成员</span><strong>{panelsLoading ? "加载中" : `${coreMembers} 名 · 共 ${members.length} 名`}</strong></div>
         </div>
       </section>
 
@@ -376,7 +378,12 @@ export default function ProjectDetailPage() {
       </div>
 
       <section className="project-cockpit-panel project-cockpit-items">
-        <div className="project-cockpit-panel-head"><div><span>ITEMS · STR</span><h2>事项主链 · {items.length} open</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
+        <div className="project-cockpit-panel-head"><div><span>ITEMS · STR</span><h2>开放事项 · {items.length} 项</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
+        <div className="project-cockpit-action-summary" aria-label="行动执行信号">
+          <div><span>未完成行动项</span><strong>{openActionEntries.length}</strong><small>仍需推动</small></div>
+          <div><span>逾期行动项</span><strong>{overdueActionEntries.length}</strong><small>截止日期早于今天</small></div>
+          <div><span>最近到期</span><strong>{nextDueActionEntry ? dateLabel(nextDueActionEntry.action.dueDate) : "暂无"}</strong><small>{nextDueActionEntry?.item.title || "没有设置截止日期的开放行动"}</small></div>
+        </div>
         <div className="project-cockpit-item-list">
           {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => { const openActions = (item.actionItems || []).filter((action) => action.status !== "done"); const overdueActions = openActions.filter((action) => Boolean(action.dueDate && action.dueDate < today)); const latestLog = (item.logs || [])[0]; return <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.milestone?.title || "项目级事项"} · {item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em><small>{openActions.length} 个开放行动项{overdueActions.length ? ` · ${overdueActions.length} 个逾期` : ""}{latestLog ? ` · 最近进展：${latestLog.note || latestLog.content || latestLog.title}` : ""}</small></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>; })}
         </div>
