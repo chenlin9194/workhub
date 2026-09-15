@@ -14,17 +14,16 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 6.4 WorkItem Experience 已完成（PASS）**
-- 下一阶段：**Phase 6.5 Report Experience（未执行）**
-- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2、Phase 6.2.1、Phase 6.3 与 Phase 6.4 已完成，本轮未进入 Phase 6.5**
+- 当前阶段：**Phase 6 Final Acceptance 已完成（PASS）**
+- 下一阶段：**等待 Phase 6 Final checkpoint commit**
+- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2、Phase 6.2.1、Phase 6.3、Phase 6.4、Phase 6.5 与 Phase 6 Final Acceptance 已完成**
 - 当前分支：`main`
-- 当前 HEAD：`c7f4638 feat: upgrade WorkHub V3 project cockpit`
+- 当前 HEAD：`ae50c06 feat: upgrade WorkHub V3 work item experience`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
   - `M docs/workhub-v3-progress.md`
   - `M src/app/globals.css`
-  - `M src/app/items/[id]/page.tsx`
-  - `M src/components/ActionItemSection.tsx`
+  - `M src/app/reports/page.tsx`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1684,6 +1683,179 @@ Phase 6.4 完成；Phase 6.5 Report Experience 未执行，等待用户确认。
  M src/app/globals.css
  M src/app/items/[id]/page.tsx
  M src/components/ActionItemSection.tsx
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`。
+
+---
+
+# Phase 6 FINAL ACCEPTANCE
+
+## RESULT
+
+PASS
+
+Phase 6 已完成整体验收与文档收口。Phase 7 未执行，未进行 legacy cleanup，等待最终 checkpoint commit。
+
+## ACCEPTANCE SUMMARY
+
+| 子阶段 | 结果 | 验收结论 |
+| --- | --- | --- |
+| Phase 6.1 | PASS | Typography、spacing、card、badge/status、empty state 统一 |
+| Phase 6.2 / 6.2.1 | PASS | 首页形成今日关注 → 今日行动 → 项目 → 最近进展的 PM cockpit 路径 |
+| Phase 6.3 | PASS | 项目页形成 Project → STR → readiness → WorkItem → Action signal → Facts 主链 |
+| Phase 6.4 | PASS | 事项页形成 ActionItem 主导的推动闭环和统一时间线 |
+| Phase 6.5 | PASS | Reports 形成范围 → 管理摘要 → 事实树 → Markdown/WBS 辅助出口 |
+
+人工检查路径：
+
+- `/`：今日关注、今日行动、项目状态、最近进展可扫读，无 BI 大屏化。
+- `/today`：完整行动队列、逾期行动和已完成行动区域层级清晰。
+- `/projects/cmqz4m9gg0000s1douq1oyfby`：当前/下一 STR、WBS readiness、管理事项、行动信号和最近事实顺序清晰；项目级事项保持未归属 STR 的真实状态。
+- `/items/cmrj9www30001s1984njh1imj`：ActionItem 为视觉主角，未完成/逾期优先，已完成行动可查看且降级，Timeline 可读，legacy metadata 未抢首屏。
+- `/reports?preset=week`：范围、摘要、事实树、未完成/逾期行动、Markdown 辅助出口和 WBS 独立事实区均可读；今日/本周/本月切换正常。
+
+## DATA VERIFICATION
+
+只读数据库核验结果：
+
+```text
+Project                  2
+ProjectMilestone        12
+WorkItem                 9
+ActionItem              38
+WorkLog                  58
+ProjectWbsNode          157
+ProjectWbsDeliverable   146
+WBS fake WorkItem        0
+WorkItemWithMilestone    0
+integrity_check          ok
+foreign_key_check       []
+```
+
+Prisma schema diff：`No difference detected.`
+
+未修改 schema 或 data，未恢复 WBS fake WorkItem。
+
+## ENGINEERING VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个测试跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- 浏览器人工验收：PASS；以上五条路径均返回 200 并完成截图/快照检查。
+
+## KNOWN RISKS
+
+- 真实业务日志主要集中在历史日期，今日/本周 Reports 可能显示较少 WorkLog；这是数据现状，不在本次验收中补写数据。
+- 9 个 WorkItem 中的未归属 STR 事项继续按真实关系展示，不做自动推断。
+- legacy DB 字段仍保留，legacy cleanup 不属于 Phase 6。
+- `docs/hermes-workhub-v1.md` 保持历史 deleted dirty 状态，未处理。
+
+## NEXT PHASE SUGGESTION
+
+建议先建立 Phase 6 Final checkpoint commit；在用户另行确认前不开始 Phase 7，不做 legacy cleanup 或 schema/data 变更。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+ M src/app/reports/page.tsx
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`。
+
+---
+
+# Phase 6.5：Report Experience
+
+## RESULT
+
+PASS
+
+Phase 6.5 已完成 Reports 汇报输出体验升级；未修改 Report Aggregator 核心逻辑，Phase 6 核心页面升级全部完成，等待最终人工验收。
+
+## PHASE
+
+Phase 6.5 Report Experience
+
+## FILES CHANGED
+
+- `src/app/reports/page.tsx`
+- `src/app/globals.css`
+- `docs/workhub-v3-progress.md`
+
+## WHAT CHANGED
+
+- 汇报入口明确显示本次日期范围、项目范围和今日/本周/本月快捷入口；自定义日期和项目筛选保持原有查询行为。
+- 在事实树前增加轻量“管理摘要”，只基于现有聚合结果显示项目数、事项数、行动项数、本期 WorkLog 数、未完成行动数和逾期行动数。
+- Project → STR → WorkItem → ActionItem → WorkLog 继续作为唯一阅读主链；项目级事项明确显示“未归属 STR”，不做自动归属。
+- 项目、事项、行动项和日志重新组织为管理输出层级，降低枚举和 badge 堆叠；未完成/逾期行动项在行动项区优先展示。
+- Markdown 保留为复制/导出辅助出口，原文默认折叠，按钮文案统一为“复制 Markdown / 导出 Markdown”。
+- WBS 事实保持独立区块并压缩内容宽度，少量数据不再形成大片空白。
+- 空结果统一显示“本周期暂无新增进展”，保留当前范围说明。
+
+## BEFORE / AFTER
+
+- BEFORE：日期范围、项目筛选、事实树和导出入口存在，但摘要为单行信息；行动状态埋在树中；WBS 区域内容少时留白明显。
+- AFTER：打开 Reports 先看到范围，再看到管理摘要和未完成/逾期行动，再阅读项目→STR→事项→日志事实树；Markdown 与 WBS 明确降级为辅助出口和独立事实区。
+
+## BUSINESS IMPACT
+
+- 无业务模型、业务 API 或数据逻辑变化。
+- 未修改 `src/lib/reportAggregator.ts`、Report Aggregator 算法、Markdown 生成器或数据库。
+- 未新增 AI 总结、风险推断或管理判断；所有摘要均由已有真实字段直接计数。
+- 未自动归属 STR，未恢复 WBS fake WorkItem，未进入其他阶段。
+
+## DATA VERIFICATION
+
+只读数据库核验结果：
+
+```text
+Project                  2
+ProjectMilestone        12
+WorkItem                 9
+ActionItem              38
+WorkLog                  58
+ProjectWbsNode          157
+ProjectWbsDeliverable   146
+WBS fake WorkItem        0
+WorkItemWithMilestone    0
+integrity_check          ok
+foreign_key_check       []
+```
+
+Prisma schema diff：`No difference detected.`
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个测试跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- 浏览器人工验收：PASS
+  - `/reports?preset=week`：日期范围、项目范围、管理摘要、项目级事项、逾期行动、Markdown 辅助出口和 WBS 独立事实区均可读。
+  - `/reports?preset=today`、`/reports?preset=week`、`/reports?preset=month`：快捷切换后日期范围正确更新，页面结构和事实链保持稳定。
+
+## KNOWN RISKS
+
+- 当前真实业务日志主要集中在历史日期；今日/本周范围可能显示较少 WorkLog，但未完成行动仍按真实状态保留。
+- 未完成/逾期计数基于当前 Report Aggregate 返回的相关 ActionItem，不扩展聚合器查询范围。
+- `docs/hermes-workhub-v1.md` 保持原有 deleted dirty 状态，未处理。
+
+## NEXT PHASE READINESS
+
+Phase 6.5 完成。Phase 6 核心页面升级全部完成，等待最终人工验收。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/globals.css
+ M src/app/reports/page.tsx
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`。
