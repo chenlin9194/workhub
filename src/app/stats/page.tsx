@@ -102,11 +102,11 @@ export default function StatsPage() {
   const todayLogContribution = stats.logs.total > 0 ? Math.round((stats.logs.today / stats.logs.total) * 100) : 0;
 
   const situationMetrics: Metric[] = [
-    { label: "闭环率", value: `${completionRate}%`, meta: "CLOSED", icon: "check-circle", tone: "neutral" },
-    { label: "活跃事项", value: activeItems, meta: "ACTIVE", icon: "activity", tone: activeItems > 0 ? "blue" : "neutral", href: buildItemsLink({ visibility: "open" }) },
-    { label: "P0/P1", value: highPriorityCount, meta: "HIGH", icon: "zap", tone: highPriorityCount > 0 ? "warning" : "neutral", href: buildItemsLink({ visibility: "open", priority: "P0,P1" }) },
-    { label: "逾期", value: stats.items.overdue, meta: "OVERDUE", icon: "clock", tone: stats.items.overdue > 0 ? "danger" : "neutral", href: buildItemsLink({ visibility: "open", overdue: true }) },
-    { label: "今日日志", value: stats.logs.today, meta: "LOGS", icon: "file-text", tone: "slate", href: buildLogsLink({ startDate: today, endDate: today, view: "" }) },
+    { label: "闭环率", value: `${completionRate}%`, meta: "已闭环", icon: "check-circle", tone: "neutral" },
+    { label: "活跃事项", value: activeItems, meta: "进行中", icon: "activity", tone: activeItems > 0 ? "blue" : "neutral", href: buildItemsLink({ visibility: "open" }) },
+    { label: "P0/P1", value: highPriorityCount, meta: "高优事项", icon: "zap", tone: highPriorityCount > 0 ? "warning" : "neutral", href: buildItemsLink({ visibility: "open", priority: "P0,P1" }) },
+    { label: "逾期", value: stats.items.overdue, meta: "逾期事项", icon: "clock", tone: stats.items.overdue > 0 ? "danger" : "neutral", href: buildItemsLink({ visibility: "open", overdue: true }) },
+    { label: "今日日志", value: stats.logs.today, meta: "日志", icon: "file-text", tone: "slate", href: buildLogsLink({ startDate: today, endDate: today, view: "" }) },
   ];
 
   const riskSignals = [
@@ -127,17 +127,17 @@ export default function StatsPage() {
     <div className="page-shell auxiliary-page stats-page stats-cockpit-page delivery-health-page">
       <header className="command-page-header">
         <div>
-          <span className="section-eyebrow">DELIVERY HEALTH MONITOR</span>
-          <h1>交付健康监控</h1>
+          <span className="section-eyebrow">辅助观察</span>
+          <h1>统计概览</h1>
           <p>用于观察交付健康水位、风险分布和日志活跃度。这里辅助判断状态，不直接生成管理结论。</p>
         </div>
-        <span className="monitor-status"><i />MONITORING</span>
+        <span className="monitor-status"><i />观察中</span>
       </header>
 
       <section className="card cockpit-card stats-situation-card">
         <div className="cockpit-card-head">
           <div>
-            <span className="section-eyebrow">01 / HEALTH WATERLINE</span>
+            <span className="section-eyebrow">健康水位</span>
             <h2>整体健康水位</h2>
           </div>
           <span className="section-count">指标可辅助判断，不自动输出结论</span>
@@ -152,7 +152,7 @@ export default function StatsPage() {
       <section className="monitor-section">
         <div className="monitor-section-heading">
           <div><span>02</span><h2>交付健康度</h2></div>
-          <small>DELIVERY HEALTH</small>
+          <small>交付健康</small>
         </div>
         <div className="health-layout">
           <div className="card completion-card">
@@ -160,7 +160,7 @@ export default function StatsPage() {
               <div><strong>{completionRate}%</strong><small>闭环率</small></div>
             </div>
             <div className="completion-copy">
-              <span>Overall Delivery</span>
+              <span>事项闭环</span>
               <strong>{stats.items.closed} / {stats.items.total} 已关闭</strong>
               <p>当前仍有 {activeItems} 个事项需要持续跟进。闭环率没有固定阈值，因此保持中性表达。</p>
             </div>
@@ -179,7 +179,7 @@ export default function StatsPage() {
       <section className="monitor-section">
         <div className="monitor-section-heading">
           <div><span>03</span><h2>事项分布</h2></div>
-          <small>WORK ITEM DISTRIBUTION</small>
+          <small>事项状态分布</small>
         </div>
         <div className="stats-two-column">
           <div className="card distribution-panel">
@@ -200,8 +200,8 @@ export default function StatsPage() {
           <div className="card priority-monitor">
             <div className="priority-monitor-heading"><Icon name="alert-triangle" size={17} /><span>优先级雷达</span></div>
             <div className="priority-monitor-grid">
-              <Link href={buildItemsLink({ visibility: "open", priority: "P0" })} className="priority-readout critical"><small>P0 / CRITICAL</small><strong>{stats.items.p0}</strong></Link>
-              <Link href={buildItemsLink({ visibility: "open", priority: "P1" })} className="priority-readout high"><small>P1 / HIGH</small><strong>{stats.items.p1}</strong></Link>
+              <Link href={buildItemsLink({ visibility: "open", priority: "P0" })} className="priority-readout critical"><small>P0 · 紧急</small><strong>{stats.items.p0}</strong></Link>
+              <Link href={buildItemsLink({ visibility: "open", priority: "P1" })} className="priority-readout high"><small>P1 · 高</small><strong>{stats.items.p1}</strong></Link>
             </div>
             <div className="priority-note"><span>未关闭高优事项</span><strong>{highPriorityCount}</strong></div>
           </div>
@@ -211,12 +211,12 @@ export default function StatsPage() {
       <section className="monitor-section">
         <div className="monitor-section-heading">
           <div><span>04</span><h2>日志活跃</h2></div>
-          <small>LOG ACTIVITY</small>
+          <small>日志活跃度</small>
         </div>
         <div className="card log-activity-panel">
           <Link href={buildLogsLink({ startDate: today, endDate: today, view: "" })} className="log-activity-primary">
             <span className="health-signal-icon"><Icon name="activity" size={19} /></span>
-            <div><small>TODAY CAPTURED</small><strong>{stats.logs.today}</strong><p>条今日日志</p></div>
+            <div><small>今日记录</small><strong>{stats.logs.today}</strong><p>条今日日志</p></div>
           </Link>
           <div className="log-activity-divider" />
           <div className="log-activity-total"><small>累计事实记录</small><strong>{stats.logs.total}</strong></div>

@@ -392,7 +392,7 @@ export default function ProjectDetailPage() {
       </section>
 
       <section className="project-cockpit-panel project-cockpit-items project-cockpit-wbs">
-        <div className="project-cockpit-panel-head"><div><span>WBS READINESS</span><h2>{currentMilestone ? `${currentMilestone.title} · WBS readiness` : "当前 STR · WBS readiness"}</h2></div></div>
+        <div className="project-cockpit-panel-head"><div><span>WBS 准备度</span><h2>WBS 当前门禁</h2></div></div>
         <ProjectWbsSummarySection projectId={project.id} />
       </section>
 

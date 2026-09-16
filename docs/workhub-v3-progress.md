@@ -14,16 +14,24 @@
 
 ## 当前状态
 
-- 当前阶段：**Phase 6 Final Acceptance 已完成（PASS）**
-- 下一阶段：**等待 Phase 6 Final checkpoint commit**
-- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2、Phase 6.2.1、Phase 6.3、Phase 6.4、Phase 6.5 与 Phase 6 Final Acceptance 已完成**
+- 当前阶段：**Phase 7.0 Auxiliary Surface & Semantic Consistency 已完成（PASS）**
+- 下一阶段：**进入真实使用观察期；不自动进行 legacy cleanup 或后续产品阶段**
+- Phase 5：**已完成；Phase 5.5.1、Phase 6.1、Phase 6.2、Phase 6.2.1、Phase 6.3、Phase 6.4、Phase 6.5、Phase 6 Final Acceptance 与 Phase 7.0 已完成**
 - 当前分支：`main`
-- 当前 HEAD：`ae50c06 feat: upgrade WorkHub V3 work item experience`
+- 当前 HEAD：`0eb704b feat: complete WorkHub V3 Phase 6 experience upgrade`
 - 当前 Git dirty：
   - `D docs/hermes-workhub-v1.md`
   - `M docs/workhub-v3-progress.md`
-  - `M src/app/globals.css`
-  - `M src/app/reports/page.tsx`
+  - `M src/app/export/range/page.tsx`
+  - `M src/app/export/today/page.tsx`
+  - `M src/app/items/page.tsx`
+  - `M src/app/projects/[id]/page.tsx`
+  - `M src/app/settings/tools/page.tsx`
+  - `M src/app/stats/page.tsx`
+  - `M src/components/ProjectWbsSummarySection.tsx`
+  - `M src/components/WbsTemplateManager.tsx`
+  - `M src/lib/export.ts`
+  - `M tests/reportAggregator.test.ts`
 - 用户已有 dirty 改动不得覆盖或恢复。
 
 ---
@@ -1683,6 +1691,115 @@ Phase 6.4 完成；Phase 6.5 Report Experience 未执行，等待用户确认。
  M src/app/globals.css
  M src/app/items/[id]/page.tsx
  M src/components/ActionItemSection.tsx
+```
+
+未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`。
+
+---
+
+# Phase 7.0：Auxiliary Surface & Semantic Consistency
+
+## RESULT
+
+PASS
+
+Phase 7.0 已完成辅助页面和展示语义收口。未修改核心业务模型、Prisma schema、数据库数据、ActionItem workflow 或 Report Aggregator 核心算法；未执行 legacy cleanup。
+
+## FILES CHANGED
+
+- `src/app/projects/[id]/page.tsx`
+- `src/components/ProjectWbsSummarySection.tsx`
+- `src/app/items/page.tsx`
+- `src/app/stats/page.tsx`
+- `src/app/export/today/page.tsx`
+- `src/app/export/range/page.tsx`
+- `src/lib/export.ts`
+- `src/app/settings/tools/page.tsx`
+- `src/components/WbsTemplateManager.tsx`
+- `tests/reportAggregator.test.ts`
+- `docs/workhub-v3-progress.md`
+
+## SEMANTIC FIXES
+
+- 项目页“当前 / 下一 STR”继续只由 `ProjectMilestone` 的真实状态、日期和排序得出；无明确当前 STR 时保持“暂无明确当前 STR”，不做自动推断。
+- 已确认 `ProjectWbsSummarySection` 的 `currentGate` 是第一个 readiness 未闭环的 WBS gateKey，不是 ProjectMilestone 当前 STR。
+- WBS 区域改为“WBS 当前门禁”，摘要明确显示“WBS 当前门禁：STR1”，不再与项目当前 STR 语义混淆。
+
+## UI CONSISTENCY CHANGES
+
+- 事项列表移除 `EXECUTION QUEUE`、`SORTED · UPDATED DESC`，使用中文的排序与数量说明；搜索、筛选、排序、表格和行动进展保持原样。
+- 统计概览保留既有图表和事实统计，仅将监控/分布/日志等英文 dashboard 文案替换为中文；定位仍是辅助观察，不自动生成管理判断。
+- 工具入口与全局 WBS 模板改用“工具设置 / 工具菜单 / WBS 模板”等中文文案，未改导入、链接、排序或外部系统行为。
+- 今日与区间导出页移除 `FACT PACKAGE` 等开发者式 eyebrow，预览元信息改为中文。
+
+## EXPORT LABEL CHANGES
+
+- `generateReportMarkdown()` 复用现有 `PROJECT_STATUS_LABELS`、`PROJECT_MILESTONE_STATUS_LABELS`、`STATUS_LABELS`、`ACTION_ITEM_STATUS_LABELS`、`HEALTH_LABELS` 和 `PRIORITY_LABELS`。
+- Project、STR/里程碑、WorkItem、ActionItem 的 Markdown 状态/健康度/优先级均输出用户可读中文，例如“规划中 / 正常 / 跟进中 / 待处理”。
+- 新增测试覆盖，确认 Markdown 不再泄露 `active`、`open`、`pending`、`green` 等内部枚举。
+
+## BUSINESS IMPACT
+
+无业务逻辑变化。未修改查询、筛选、排序、WBS readiness 推导、STR 归属、导出事实结构或 API；未新增风险算法、KPI 或 BI 模块。
+
+## DATA VERIFICATION
+
+```text
+Project                  2
+ProjectMilestone        12
+WorkItem                 9
+ActionItem              38
+WorkLog                  58
+ProjectWbsNode          157
+ProjectWbsDeliverable   146
+WBS fake WorkItem        0
+WorkItemWithMilestone    0
+integrity_check          ok
+foreign_key_check       []
+Prisma schema diff       No difference detected.
+```
+
+未修改 schema 或 data，未恢复 WBS fake WorkItem。
+
+## VERIFICATION
+
+- `npm.cmd run typecheck`：PASS
+- `npm.cmd run test`：PASS，21 个测试文件通过、1 个跳过；85 个测试通过、9 个跳过
+- `npm.cmd run lint`：PASS
+- `npm.cmd run build`：PASS
+- 浏览器人工验收：PASS
+  - 项目详情：当前 STR 的“暂无明确当前 STR”与“WBS 当前门禁：STR1”同时清晰展示。
+  - 事项列表：中文排序说明与原有筛选/表格完整可用。
+  - 统计概览：图表保留，英文 dashboard 标签已清理，仍为辅助观察。
+  - `/export/today`：页面和 Markdown 均使用中文文案与状态标签。
+  - `/settings/tools`：工具设置、WBS 模板、工具菜单均中文化，未触发任何写入。
+- `/api/export/range?start=2026-07-01&end=2026-08-31`：HTTP 200；验证 Project、WorkItem、ActionItem、health 标签均为中文，未发现内部 enum 泄露。
+
+## KNOWN RISKS
+
+- 统计页仍使用既有统计口径，只改变展示语言；未扩展为管理判断或风险算法。
+- WBS 当前门禁是 readiness 执行位置，不表示项目当前 STR；页面文案已明确区分，底层数据关系未变。
+- legacy DB 字段及 `docs/hermes-workhub-v1.md` 的历史 deleted dirty 状态均保留，未处理。
+
+## NEXT STEP
+
+Phase 7.0 完成。建议进入真实使用观察期，再由用户决定是否开始 legacy cleanup 或下一阶段产品演进。
+
+## GIT STATUS
+
+```text
+ D docs/hermes-workhub-v1.md
+ M docs/workhub-v3-progress.md
+ M src/app/export/range/page.tsx
+ M src/app/export/today/page.tsx
+ M src/app/items/page.tsx
+ M src/app/projects/[id]/page.tsx
+ M src/app/settings/tools/page.tsx
+ M src/app/stats/page.tsx
+ M src/components/ProjectWbsSummarySection.tsx
+ M src/components/WbsTemplateManager.tsx
+ M src/lib/export.ts
+ M tests/reportAggregator.test.ts
 ```
 
 未执行 commit、push、reset、restore、stash、rebase；未修改或处理 `docs/hermes-workhub-v1.md`。

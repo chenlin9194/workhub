@@ -322,9 +322,8 @@ export default function ItemsPage() {
       {/* Header */}
       <div className="command-page-header">
         <div>
-          <span className="section-eyebrow">EXECUTION QUEUE</span>
           <h1>工作事项</h1>
-          <p>EXECUTION QUEUE · {total} 条事项</p>
+          <p>按最近更新时间排序 · 共 {total} 条事项</p>
         </div>
         <div className="page-header-actions">
           <button onClick={copyMarkdown} className="btn btn-secondary list-action-button">
@@ -337,7 +336,7 @@ export default function ItemsPage() {
       <div className="card item-quick-view-panel">
         <div className="item-quick-view-head">
           <span>快速视图</span>
-          <strong>SORTED · UPDATED DESC</strong>
+          <strong>按最近更新时间排序</strong>
         </div>
         <div className="item-quick-view-actions">
           {quickViews.map((view) => (

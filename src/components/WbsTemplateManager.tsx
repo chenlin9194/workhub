@@ -79,7 +79,7 @@ export default function WbsTemplateManager() {
     <section id="wbs-template" className="card wbs-template-manager">
       <div className="tool-list-header">
         <div>
-          <span className="section-eyebrow">WBS / GLOBAL TEMPLATE</span>
+          <span className="section-eyebrow">WBS 模板</span>
           <h2>全局 WBS 模板</h2>
           <p className="entity-card-note">所有项目共用同一套 WBS 任务；项目只保存自己的执行进度。</p>
         </div>

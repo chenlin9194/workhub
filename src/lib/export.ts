@@ -8,6 +8,7 @@
  */
 
 import {
+  ACTION_ITEM_STATUS_LABELS,
   HEALTH_LABELS,
   PROJECT_LINK_CATEGORIES,
   PROJECT_MILESTONE_STAGE_LABELS,
@@ -48,8 +49,9 @@ function renderReportLog(log: ReportLog, indent = "") {
 }
 
 function renderReportAction(action: ReportActionItem, indent = "") {
+  const status = ACTION_ITEM_STATUS_LABELS[action.status] || action.status;
   let md = `${indent}### ${action.title}\n`;
-  md += `${indent}- 状态: ${action.status}`;
+  md += `${indent}- 状态: ${status}`;
   if (action.owner) md += ` | 负责人: ${action.owner}`;
   if (action.dueDate) md += ` | 截止日期: ${action.dueDate}`;
   if (action.doneAt) md += ` | 完成日期: ${action.doneAt}`;
@@ -65,8 +67,11 @@ function renderReportAction(action: ReportActionItem, indent = "") {
 }
 
 function renderReportWorkItem(item: ReportWorkItem) {
+  const status = STATUS_LABELS[item.status] || item.status;
+  const priority = PRIORITY_LABELS[item.priority] || item.priority;
+  const health = HEALTH_LABELS[item.health] || item.health;
   let md = `### ${item.title}\n`;
-  md += `- 状态: ${item.status} | 优先级: ${item.priority} | 健康度: ${item.health}`;
+  md += `- 状态: ${status} | 优先级: ${priority} | 健康度: ${health}`;
   if (item.owner) md += ` | 负责人: ${item.owner}`;
   if (item.dueDate) md += ` | 截止日期: ${item.dueDate}`;
   md += "\n";
@@ -96,8 +101,10 @@ export function generateReportMarkdown(report: ReportAggregate) {
   if (report.projects.length === 0) return `${md}区间内暂无已关联项目的事项、行动项或日志事实。\n`;
 
   for (const project of report.projects) {
+    const projectStatus = PROJECT_STATUS_LABELS[project.status] || project.status;
+    const projectHealth = HEALTH_LABELS[project.health] || project.health;
     md += `## 项目：${project.name}\n\n`;
-    md += `- 状态: ${project.status} | 健康度: ${project.health}`;
+    md += `- 状态: ${projectStatus} | 健康度: ${projectHealth}`;
     if (project.owner) md += ` | 负责人: ${project.owner}`;
     if (project.pm) md += ` | PM: ${project.pm}`;
     md += "\n\n";
@@ -107,8 +114,9 @@ export function generateReportMarkdown(report: ReportAggregate) {
       md += "\n";
     }
     for (const milestone of project.milestones) {
+      const milestoneStatus = PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status;
       md += `### STR/里程碑：${milestone.title}\n\n`;
-      md += `- 状态: ${milestone.status}`;
+      md += `- 状态: ${milestoneStatus}`;
       if (milestone.targetDate) md += ` | 目标日期: ${milestone.targetDate}`;
       if (milestone.actualDate) md += ` | 实际日期: ${milestone.actualDate}`;
       if (milestone.actualEndDate) md += ` | 实际结束: ${milestone.actualEndDate}`;

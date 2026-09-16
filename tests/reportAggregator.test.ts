@@ -104,6 +104,13 @@ describe("Phase 4 report aggregator", () => {
     expect(markdown).toContain("项目：项目一");
     expect(markdown).toContain("STR/里程碑：STR1 交付");
     expect(markdown).toContain("计划调整：2026-09-10 → 2026-09-18");
+    expect(markdown).toContain("状态: 进行中 | 健康度: 正常");
+    expect(markdown).toContain("状态: 待处理 | 优先级: P1 - 高 | 健康度: 正常");
+    expect(markdown).toContain("状态: 待处理");
+    expect(markdown).not.toContain("状态: active");
+    expect(markdown).not.toContain("状态: open");
+    expect(markdown).not.toContain("状态: pending");
+    expect(markdown).not.toContain("健康度: green");
     expect(markdown).not.toContain("事项变化：状态更新");
     expect(buildReportAggregate({ startDate: "2026-09-10", endDate: "2026-09-10" }, source).startDate).toBe("2026-09-10");
     expect(buildReportAggregate({ startDate: "2026-09-09", endDate: "2026-09-15" }, source).endDate).toBe("2026-09-15");

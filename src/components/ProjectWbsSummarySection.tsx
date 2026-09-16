@@ -89,7 +89,7 @@ export default function ProjectWbsSummarySection({ projectId }: { projectId: str
   return (
     <section className="project-cockpit-panel wbs-project-summary">
       <div className="project-cockpit-panel-head"><div><span className="wbs-eyebrow">WBS</span><h2>WBS 执行摘要</h2></div><Link href={`/projects/${projectId}/wbs`} className="project-cockpit-action-link">打开 WBS 总览</Link></div>
-      <div className="wbs-project-summary-meta"><span>统一任务集 {summary.plan.template.version}</span><span>{summary.plan.nodes.length} 个节点</span><span>当前 {currentGate || "全部闭环"}</span></div>
+      <div className="wbs-project-summary-meta"><span>统一任务集 {summary.plan.template.version}</span><span>{summary.plan.nodes.length} 个节点</span><span>WBS 当前门禁：{currentGate || "全部闭环"}</span></div>
       <div className="wbs-project-summary-grid">{gates.map((gate) => <Link key={gate.gateKey} href={`/projects/${projectId}/wbs/${gate.gateKey}`} aria-current={gate.gateKey === currentGate ? "step" : undefined} className={`wbs-project-summary-card is-${gate.readiness.status}${gate.gateKey === currentGate ? " is-current" : ""}`}><div className="wbs-project-summary-card-head"><strong>{gate.gateKey}</strong>{gate.gateKey === currentGate && <span>当前推进</span>}</div><span>{gate.readiness.completedExecutionNodes}/{gate.readiness.totalExecutionNodes} 完成</span><small>待交付 {gate.readiness.pendingRequiredDeliverables} · {gate.readiness.nextAction || "继续推进"}</small></Link>)}</div>
     </section>
   );

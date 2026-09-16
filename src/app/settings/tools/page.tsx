@@ -280,7 +280,7 @@ export default function ToolSettingsPage() {
     <div className="page-shell auxiliary-page tool-settings-page tool-console-page tool-drawer-page">
       <div className="command-page-header tool-settings-header">
         <div>
-          <span className="section-eyebrow">TOOLS / SETUP</span>
+          <span className="section-eyebrow">工具设置</span>
           <h1>工具入口</h1>
           <p>维护右上角常用工具菜单，只做外部链接跳转，不做登录、OAuth、API 同步。</p>
         </div>
@@ -296,7 +296,7 @@ export default function ToolSettingsPage() {
       <section className="card tool-console-summary tool-drawer-summary">
         <div className="tool-drawer-summary-main">
           <div>
-            <span className="section-eyebrow">TOOL MENU</span>
+            <span className="section-eyebrow">工具菜单</span>
             <h2>工具菜单状态</h2>
           </div>
           <p>
