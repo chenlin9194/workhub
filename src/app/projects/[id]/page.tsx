@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import Icon from "@/components/Icon";
 import PageLoadingState from "@/components/PageLoadingState";
 import ProjectLinkSection from "@/components/ProjectLinkSection";
 import ProjectMemberSection from "@/components/ProjectMemberSection";
@@ -11,16 +10,18 @@ import ProjectMilestoneSection from "@/components/ProjectMilestoneSection";
 import ProjectWbsSummarySection from "@/components/ProjectWbsSummarySection";
 import {
   HEALTH_LABELS,
+  ACTION_ITEM_STATUS_LABELS,
   PRIORITY_LABELS,
   PROJECT_MILESTONE_STATUS_LABELS,
   PROJECT_MILESTONE_STAGE_LABELS,
   PROJECT_PLAN_TYPE_LABELS,
   PROJECT_STAGE_LABELS,
   PROJECT_STATUS_LABELS,
+  STATUS_LABELS,
   WORK_LOG_TYPE_LABELS,
 } from "@/lib/constants";
 import { getLocalDateString } from "@/lib/utils";
-import type { Project, ProjectLink, ProjectMember, ProjectMilestone, WorkItem, WorkLog } from "@/lib/types";
+import type { ActionItem, Project, ProjectLink, ProjectMember, ProjectMilestone, WorkLog } from "@/lib/types";
 import { selectCurrentAndNextMilestones } from "@/lib/projectMilestoneView";
 
 function toTime(value?: Date | string | null) {
@@ -33,14 +34,6 @@ function dateLabel(value?: Date | string | null) {
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.replaceAll("-", "/");
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replaceAll("-", "/") : "—";
-}
-
-function logTime(log: WorkLog, today: string) {
-  const created = new Date(log.createdAt);
-  const time = Number.isFinite(created.getTime())
-    ? created.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
-    : "";
-  return log.workDate === today ? time : `昨 ${time}`.trim();
 }
 
 function milestonePhase(milestone: ProjectMilestone, today: string) {
@@ -142,6 +135,21 @@ function factKind(log: WorkLog) {
   return WORK_LOG_TYPE_LABELS[log.type] || "记录";
 }
 
+function actionRank(action: ActionItem, today: string) {
+  if (action.dueDate && action.dueDate < today) return 0;
+  if (action.status === "pending") return 1;
+  return 2;
+}
+
+function compareActions(a: ActionItem, b: ActionItem, today: string) {
+  return actionRank(a, today) - actionRank(b, today) ||
+    Number(Boolean(b.dueDate)) - Number(Boolean(a.dueDate)) ||
+    (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") ||
+    a.sortOrder - b.sortOrder ||
+    toTime(a.createdAt) - toTime(b.createdAt) ||
+    a.id.localeCompare(b.id);
+}
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -154,8 +162,12 @@ export default function ProjectDetailPage() {
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [panelsLoading, setPanelsLoading] = useState(true);
-  const [milestoneView, setMilestoneView] = useState<"timeline" | "list">("timeline");
+  const [milestoneView, setMilestoneView] = useState<"timeline" | "list">("list");
   const [deleting, setDeleting] = useState(false);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [actionReadState, setActionReadState] = useState<"loading" | "ready" | "error">("loading");
+  const [itemsExpanded, setItemsExpanded] = useState(false);
+  const [factsExpanded, setFactsExpanded] = useState(false);
 
   const handleDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!project || actionInFlightRef.current) return;
@@ -222,6 +234,28 @@ export default function ProjectDetailPage() {
     fetchProject();
   }, [fetchProject]);
 
+  const projectId = project?.id;
+  useEffect(() => {
+    if (!projectId || manageModule) return;
+    const controller = new AbortController();
+    setActionReadState("loading");
+    setActionItems([]);
+    fetch(`/api/action-items?projectId=${encodeURIComponent(projectId)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("读取行动项失败");
+        const payload: { actionItems?: ActionItem[] } = await response.json();
+        if (!Array.isArray(payload.actionItems)) throw new Error("行动项数据无效");
+        setActionItems(payload.actionItems);
+        setActionReadState("ready");
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error("Error fetching project action summary:", error);
+        setActionReadState("error");
+      });
+    return () => controller.abort();
+  }, [projectId, manageModule]);
+
   if (loading) return <PageLoadingState title="加载项目驾驶舱..." description="正在读取项目态势、节点和事实记录。" rows={5} />;
   if (!project) return <div className="page-shell"><div className="card empty-state"><p>项目不存在</p><Link href="/projects" className="btn btn-secondary">返回项目列表</Link></div></div>;
 
@@ -267,7 +301,7 @@ export default function ProjectDetailPage() {
     if (a.status === "blocked" && b.status !== "blocked") return -1;
     if (a.status !== "blocked" && b.status === "blocked") return 1;
     return toTime(b.updatedAt) - toTime(a.updatedAt);
-  }).slice(0, 5);
+  });
   const cockpitMilestones = selectCockpitMilestones(milestones, today);
   const { current: currentMilestone, next: nextMilestone } = selectCurrentAndNextMilestones(milestones, today);
   const projectLevelItems = items.filter((item) => !item.milestoneId);
@@ -275,7 +309,7 @@ export default function ProjectDetailPage() {
   const recentProgress = Array.from(new Map([
     ...logs.map((log) => [log.id, { log, itemTitle: log.item?.title || null }] as const),
     ...items.flatMap((item) => (item.logs || []).map((log) => [log.id, { log, itemTitle: item.title }] as const)),
-  ]).values()).sort((a, b) => toTime(b.log.createdAt) - toTime(a.log.createdAt)).slice(0, 8);
+  ]).values()).sort((a, b) => toTime(b.log.createdAt) - toTime(a.log.createdAt));
   const extraMilestones = Math.max(0, milestones.length - cockpitMilestones.length);
   const milestonePhaseCounts = cockpitMilestones.reduce((counts, milestone) => {
     counts[milestonePhase(milestone, today)] += 1;
@@ -288,121 +322,178 @@ export default function ProjectDetailPage() {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = yesterday.toISOString().slice(0, 10);
   const yesterdayLogCount = logs.filter((log) => log.workDate === yesterdayKey).length;
+  const openItemIds = new Set(items.map((item) => item.id));
+  const openReadActions = actionReadState === "ready"
+    ? actionItems.filter((action) => action.projectId === project.id && action.workItemId && openItemIds.has(action.workItemId) && action.status !== "done")
+    : [];
+  const completedReadActionCount = actionReadState === "ready"
+    ? actionItems.filter((action) => action.projectId === project.id && action.workItemId && openItemIds.has(action.workItemId) && action.status === "done").length
+    : 0;
+  const actionsByItem = new Map<string, ActionItem[]>();
+  for (const action of openReadActions) {
+    const itemActions = actionsByItem.get(action.workItemId!) || [];
+    itemActions.push(action);
+    actionsByItem.set(action.workItemId!, itemActions);
+  }
+  for (const itemActions of actionsByItem.values()) itemActions.sort((a, b) => compareActions(a, b, today));
+  const executionItems = [...cockpitItems].sort((a, b) => {
+    if (actionReadState !== "ready") return 0;
+    const aAction = actionsByItem.get(a.id)?.[0];
+    const bAction = actionsByItem.get(b.id)?.[0];
+    if (aAction && bAction) return compareActions(aAction, bAction, today);
+    return Number(Boolean(bAction)) - Number(Boolean(aAction));
+  });
+  const visibleItems = itemsExpanded ? executionItems : executionItems.slice(0, 5);
+  const leadActionId = [...openReadActions].sort((a, b) => compareActions(a, b, today))[0]?.id;
+  const visibleFacts = factsExpanded ? recentProgress : recentProgress.slice(0, 3);
 
   return (
-    <main className="project-cockpit-v2">
-      <section className="project-cockpit-hero">
-        <div className="project-cockpit-hero-main">
-          <Link href="/projects" className="project-cockpit-back">← 项目列表</Link>
-          <div className="project-cockpit-kicker">{project.code || "PROJECT"} · {PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</div>
-          <div className="project-cockpit-title-row">
+    <div className="project-quiet">
+      <header className="project-quiet-header">
+        <div className="project-quiet-header-main">
+          <Link href="/projects" className="project-quiet-back">← 项目列表</Link>
+          <div className="project-quiet-title-line">
             <h1>{project.name}</h1>
-            <Link href={`/projects/${project.id}/edit`} className="project-cockpit-edit-link">
-              <Icon name="edit" size={13} /> 编辑项目资料
-            </Link>
-            <button onClick={handleDelete} className="btn btn-danger item-delete-quiet" disabled={deleting}>
-              {deleting ? "删除中..." : (
-                <>
-                  <Icon name="trash" size={14} /> 删除项目
-                </>
-              )}
-            </button>
+            {project.code && <span className="project-quiet-code">{project.code}</span>}
           </div>
-          <div className="project-cockpit-pills">
-            <span className={`project-cockpit-pill is-${project.health}`}>健康 · {HEALTH_LABELS[project.health] || project.health}</span>
-            <span className="project-cockpit-pill">{PROJECT_STATUS_LABELS[project.status] || project.status}</span>
-            <span className="project-cockpit-pill">{PROJECT_STAGE_LABELS[project.stage || ""] || "阶段待定"}</span>
+          <div className="project-quiet-status">
+            <span>{PROJECT_STATUS_LABELS[project.status] || project.status}</span>
+            <span className={"is-" + project.health}>健康 · {HEALTH_LABELS[project.health] || project.health}</span>
+            <span className="is-stage">阶段 · {PROJECT_STAGE_LABELS[project.stage || ""] || "待定"}</span>
           </div>
-          <p className="project-cockpit-summary">{project.currentSummary || project.description || project.nextAction || "暂未补充项目进展摘要。"}</p>
+          <p className="project-quiet-summary">{project.currentSummary || project.description || project.nextAction || "暂未补充项目进展摘要。"}</p>
         </div>
-        <div className="project-cockpit-meta" aria-label="项目元信息">
-          <div><span>项目经理</span><strong>{project.pm || "—"}</strong></div>
-          <div><span>负责人</span><strong>{project.owner || "—"}</strong></div>
-          <div><span>开始日期</span><strong>{dateLabel(project.startDate)}</strong></div>
-          <div><span>目标日期</span><strong>{dateLabel(project.targetDate)}</strong></div>
-          <div><span>项目阶段</span><strong>{PROJECT_STAGE_LABELS[project.stage || ""] || "—"}</strong></div>
-          <div><span>发布日期</span><strong>{dateLabel(project.releaseDate)}</strong></div>
-          <div><span>开放事项</span><strong>{items.length} 项</strong></div>
-          <div><span>核心成员</span><strong>{panelsLoading ? "加载中" : `${coreMembers} 名 · 共 ${members.length} 名`}</strong></div>
-        </div>
-      </section>
-
-      <section className="project-cockpit-panel project-cockpit-milestones">
-        <div className="project-cockpit-panel-head"><div><span>PLANS & NODES · {stageLabel}</span><h2>当前计划与节点</h2></div><div className="project-cockpit-view-switch"><button type="button" className={milestoneView === "timeline" ? "is-active" : ""} onClick={() => setMilestoneView("timeline")}>时间轴</button><button type="button" className={milestoneView === "list" ? "is-active" : ""} onClick={() => setMilestoneView("list")}>列表</button><Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-action-link">维护计划</Link></div></div>
-        {panelsLoading ? <div className="project-cockpit-panel-loading">正在读取里程碑与计划…</div> : <>
-        <div className="project-cockpit-phase-legend"><span className="is-past">已完成 {milestonePhaseCounts.past}</span><span className="is-current">当前推进 {milestonePhaseCounts.current}</span><span className="is-future">后续计划 {milestonePhaseCounts.future}</span></div>
-        {milestoneView === "timeline" ? (
-          <div className="project-cockpit-axis" aria-label="里程碑时间轴">
-            {cockpitMilestones.length === 0 ? <p className="project-cockpit-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => (
-              <div key={milestone.id} className={`project-cockpit-axis-node is-${milestonePhase(milestone, today)}${isRangeMilestone(milestone) ? " is-range" : " is-point"}`}>
-                <i /><small>{milestoneScheduleLabel(milestone)}</small><strong>{milestone.title}</strong><em><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em>
-              </div>
-            ))}
-            {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看其余 {extraMilestones} 项 →</Link>}
+        <div className="project-quiet-header-side">
+          <dl className="project-quiet-head-facts">
+            <div><dt>PM / 负责人</dt><dd>{project.pm && project.owner && project.pm !== project.owner ? project.pm + " / " + project.owner : project.pm || project.owner || "—"}</dd></div>
+            <div><dt>目标日期</dt><dd>{dateLabel(project.targetDate)}</dd></div>
+            <div><dt>开始日期</dt><dd>{dateLabel(project.startDate)}</dd></div>
+          </dl>
+          <div className="project-quiet-head-actions">
+            <Link href={"/projects/" + project.id + "/edit"} className="project-quiet-text-action">编辑项目资料</Link>
+            <button type="button" onClick={handleDelete} className="project-quiet-danger-action" disabled={deleting}>{deleting ? "删除中..." : "删除项目"}</button>
           </div>
-        ) : <div className="project-cockpit-timeline">
-          {cockpitMilestones.length === 0 ? <p className="project-cockpit-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => (
-            <div key={milestone.id} className={`project-cockpit-node is-${milestonePhase(milestone, today)}${isRangeMilestone(milestone) ? " is-range" : " is-point"}`}><i /><div><small><b>{isRangeMilestone(milestone) ? "周期" : "节点"}</b>{milestoneScheduleLabel(milestone)} · {milestonePhase(milestone, today) === "past" ? "已完成" : milestonePhase(milestone, today) === "current" ? "当前推进" : "后续计划"}</small><strong>{milestone.title}</strong><em>{PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</em></div></div>
-          ))}
-          {extraMilestones > 0 && <Link href={`/projects/${project.id}?manage=milestones`} className="project-cockpit-more">查看其余 {extraMilestones} 项 →</Link>}
-        </div>}</>}
-      </section>
-
-      <section className="project-cockpit-panel project-cockpit-signals">
-        <div className="project-cockpit-panel-head"><div><span>SIGNALS</span><h2>当前风险信号</h2></div></div>
-        <div className="project-cockpit-signal-list">
-          <div><span className="is-critical">P0 / P1</span><strong>{p0Count + p1Count}</strong><small>需优先关注事项</small></div>
-          <div><span className="is-critical">阻塞</span><strong>{blockedCount}</strong><small>等待外部条件或决策</small></div>
-          <div><span className="is-critical">逾期</span><strong>{overdueCount}</strong><small>超过截止日期的开放事项</small></div>
-          <div><span className="is-warning">红黄风险</span><strong>{riskCount}</strong><small>健康度需跟踪</small></div>
         </div>
+      </header>
+
+      <section className="project-quiet-risk" aria-label="当前风险信号">
+        <h2>风险信号</h2>
+        <div className={p0Count + p1Count ? undefined : "is-zero"}><span>P0 / P1</span><strong className={p0Count + p1Count ? "is-risk" : ""}>{p0Count + p1Count}</strong></div>
+        <div className={overdueCount ? undefined : "is-zero"}><span>逾期事项</span><strong className={overdueCount ? "is-risk" : ""}>{overdueCount}</strong></div>
+        <div className={blockedCount ? undefined : "is-zero"}><span>阻塞</span><strong className={blockedCount ? "is-risk" : ""}>{blockedCount}</strong></div>
+        <div className={riskCount ? undefined : "is-zero"}><span>红黄风险</span><strong className={riskCount ? "is-warning" : ""}>{riskCount}</strong></div>
       </section>
 
-      <section className="project-cockpit-panel project-cockpit-str-context">
-        <div className="project-cockpit-panel-head"><div><span>STR CONTEXT</span><h2>当前 / 下一 STR</h2></div></div>
-        <div className="project-cockpit-signal-list">
-          <div><span>当前 STR</span><strong>{currentMilestone?.title || "暂无明确当前 STR"}</strong><small>{currentMilestone ? `状态：${PROJECT_MILESTONE_STATUS_LABELS[currentMilestone.status] || currentMilestone.status}` : "按真实状态、日期和排序计算"}</small></div>
-          <div><span>下一 STR</span><strong>{nextMilestone?.title || "暂无下一 STR"}</strong><small>{nextMilestone ? milestoneScheduleLabel(nextMilestone) : "暂无未来计划"}</small></div>
-        </div>
-      </section>
-
-      <div className="project-cockpit-right-stack">
-        <section className="project-cockpit-panel project-cockpit-links">
-          <div className="project-cockpit-panel-head"><div><span>KEY LINKS</span><h2>关键链接</h2></div><Link href={`/projects/${project.id}?manage=links`} className="project-cockpit-action-link">打开链接库</Link></div>
-          <div className="project-cockpit-module-summary"><strong>{panelsLoading ? "正在读取链接…" : `${links.length || (project.sourceUrl ? 1 : 0)} 个已收录链接`}</strong><span>统一查看项目计划、规格和协作入口。</span></div>
+      <div className="project-quiet-body">
+        <section className="project-quiet-execution" id="project-execution">
+          <div className="project-quiet-section-head">
+            <div><h2>开放事项</h2><span>{items.length} 项 · 当前已加载事项</span></div>
+            <Link href={"/items?projectId=" + project.id}>查看所有事项 ↗</Link>
+          </div>
+          <p className="project-quiet-execution-note">
+            {actionReadState === "ready" ? "待推行动 " + openReadActions.length + " 项" : actionReadState === "loading" ? "正在读取待推行动…" : "行动详情暂不可用"}
+            {actionReadState === "ready" && openReadActions.length > 0 && <span> · 逾期 {openReadActions.filter((action) => Boolean(action.dueDate && action.dueDate < today)).length} 项</span>}
+            {completedReadActionCount > 0 && <span> · 已完成 {completedReadActionCount} 项</span>}
+            <span> · 完整行动处理请进入事项详情</span>
+          </p>
+          {actionReadState === "error" && <div className="project-quiet-action-fallback" role="status">
+            <strong>行动详情读取失败</strong>
+            <span>当前已加载事项中，未完成 {openActionEntries.length} 项 · 逾期 {overdueActionEntries.length} 项 · 最近到期 {nextDueActionEntry ? dateLabel(nextDueActionEntry.action.dueDate) : "暂无"}</span>
+            <span>可从下方事项进入完整行动记录。</span>
+          </div>}
+          {visibleItems.length === 0 && <p className="project-quiet-empty">暂无开放事项；可从全部事项查看历史记录。</p>}
+          <div className="project-quiet-item-list">
+            {visibleItems.map((item) => {
+              const itemActions = actionsByItem.get(item.id) || [];
+              const embeddedOpenActions = (item.actionItems || []).filter((action) => action.status !== "done");
+              const latestLog = (item.logs || [])[0];
+              return <article key={item.id} className="project-quiet-item">
+                <div className="project-quiet-item-heading">
+                  <span className={"project-quiet-priority is-" + item.priority.toLowerCase()}>{PRIORITY_LABELS[item.priority]}</span>
+                  <h3><Link href={"/items/" + item.id}>{item.title}</Link></h3>
+                  <span className="project-quiet-item-state">{STATUS_LABELS[item.status] || item.status}</span>
+                </div>
+                {(item.currentSummary || item.description || item.nextAction) && <p className="project-quiet-item-summary">{item.currentSummary || item.description || item.nextAction}</p>}
+                <div className="project-quiet-item-meta">
+                  <span>{item.owner || "未分配负责人"}</span>
+                  <span className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>截止 {dateLabel(item.dueDate)}{item.dueDate && item.dueDate < today ? " · 已逾期" : ""}</span>
+                  <span>{item.milestone?.title || "项目级 · 未归属 STR"}</span>
+                </div>
+                {actionReadState === "ready" && itemActions.length > 0 && <div className="project-quiet-actions">
+                  <div className="project-quiet-actions-label">待推行动 {itemActions.length} 项</div>
+                  {itemActions.map((action) => {
+                    const progress = action.progressLogs?.[0];
+                    const overdue = Boolean(action.dueDate && action.dueDate < today);
+                    return <div key={action.id} className={"project-quiet-action" + (action.id === leadActionId ? " is-lead" : "")}>
+                      <div className="project-quiet-action-top">
+                        <span>待推进行动{overdue ? " · 已逾期" : ""}</span>
+                        <span>{ACTION_ITEM_STATUS_LABELS[action.status] || action.status}</span>
+                      </div>
+                      <h4>{action.title}</h4>
+                      <div className="project-quiet-action-meta">
+                        <span>负责人 {action.owner || "未分配"}</span>
+                        <span className={overdue ? "is-overdue" : ""}>截止 {dateLabel(action.dueDate)}</span>
+                      </div>
+                      <div className="project-quiet-action-bottom">
+                        <span>最近进展 {progress ? progress.note || progress.content || progress.title : "暂无进展记录"}</span>
+                        <Link href={"/items/" + item.id}>查看行动 →</Link>
+                      </div>
+                    </div>;
+                  })}
+                </div>}
+                {actionReadState === "ready" && itemActions.length === 0 && <p className="project-quiet-no-action">暂无待推行动{embeddedOpenActions.length ? "；请在事项详情核对行动记录" : ""}</p>}
+                {actionReadState === "loading" && <p className="project-quiet-no-action" role="status">正在读取此事项的行动…</p>}
+                {latestLog && <p className="project-quiet-latest"><span>最近进展</span>{latestLog.note || latestLog.content || latestLog.title}</p>}
+              </article>;
+            })}
+          </div>
+          {executionItems.length > 5 && <button type="button" className="project-quiet-expand" onClick={() => setItemsExpanded(!itemsExpanded)} aria-expanded={itemsExpanded}>{itemsExpanded ? "收起事项" : "查看其余 " + (executionItems.length - 5) + " 项已加载事项"}</button>}
+          {project.nextAction && project.nextAction !== project.currentSummary && <p className="project-quiet-next"><strong>项目下一步</strong>{project.nextAction}</p>}
         </section>
-        <section className="project-cockpit-panel project-cockpit-members">
-          <div className="project-cockpit-panel-head"><div><span>MEMBERS</span><h2>项目成员</h2></div><Link href={`/projects/${project.id}?manage=members`} className="project-cockpit-action-link">查看全体成员</Link></div>
-          <div className="project-cockpit-module-summary"><strong>{panelsLoading ? "正在读取成员…" : `${coreMembers} 名核心成员 · ${members.length} 名成员`}</strong><span>在成员页查看角色、职责和联系方式。</span></div>
-        </section>
+
+        <aside className="project-quiet-context" aria-label="阶段与 WBS 上下文">
+          <section className="project-quiet-plan" id="project-plan">
+            <div className="project-quiet-section-head"><h2>STR / 阶段计划</h2><Link href={"/projects/" + project.id + "?manage=milestones"}>维护计划 ↗</Link></div>
+            <div className="project-quiet-current-str"><span>当前 STR</span><strong>{currentMilestone?.title || "暂无明确当前 STR"}</strong><small>{currentMilestone ? "状态：" + (PROJECT_MILESTONE_STATUS_LABELS[currentMilestone.status] || currentMilestone.status) : "按真实状态、日期和排序计算"}</small></div>
+            {nextMilestone && <p className="project-quiet-next-str">下一 STR <strong>{nextMilestone.title}</strong><time>{milestoneScheduleLabel(nextMilestone)}</time></p>}
+            <div className="project-quiet-plan-toolbar">
+              <span>{stageLabel} · 已完成 {milestonePhaseCounts.past} / 当前 {milestonePhaseCounts.current} / 后续 {milestonePhaseCounts.future}</span>
+              <div><button type="button" className={milestoneView === "timeline" ? "is-active" : ""} onClick={() => setMilestoneView("timeline")}>时间轴</button><button type="button" className={milestoneView === "list" ? "is-active" : ""} onClick={() => setMilestoneView("list")}>列表</button></div>
+            </div>
+            {panelsLoading ? <p className="project-quiet-empty">正在读取里程碑与计划…</p> : <div className={"project-quiet-plan-list is-" + milestoneView}>
+              {cockpitMilestones.length === 0 ? <p className="project-quiet-empty">暂无里程碑</p> : cockpitMilestones.map((milestone) => <div key={milestone.id} className={"project-quiet-plan-row is-" + milestonePhase(milestone, today)}>
+                <div><strong>{milestone.title}</strong>{(isRangeMilestone(milestone) || milestone.planType !== "milestone" || milestonePhase(milestone, today) !== "future") && <small>{isRangeMilestone(milestone) ? "周期" : "节点"} · {PROJECT_PLAN_TYPE_LABELS[milestone.planType] || PROJECT_MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</small>}</div>
+                <time>{milestoneScheduleLabel(milestone)}</time>
+              </div>)}
+            </div>}
+            {extraMilestones > 0 && <Link className="project-quiet-more" href={"/projects/" + project.id + "?manage=milestones"}>查看其余 {extraMilestones} 项计划节点 ↗</Link>}
+          </section>
+          <ProjectWbsSummarySection projectId={project.id} compact />
+        </aside>
       </div>
 
-      <section className="project-cockpit-panel project-cockpit-items">
-        <div className="project-cockpit-panel-head"><div><span>ITEMS · STR</span><h2>开放事项 · {items.length} 项</h2></div><Link href={`/items?projectId=${project.id}`} className="project-cockpit-action-link">查看所有事项</Link></div>
-        <div className="project-cockpit-action-summary" aria-label="行动执行信号">
-          <div><span>未完成行动项</span><strong>{openActionEntries.length}</strong><small>仍需推动</small></div>
-          <div><span>逾期行动项</span><strong>{overdueActionEntries.length}</strong><small>截止日期早于今天</small></div>
-          <div><span>最近到期</span><strong>{nextDueActionEntry ? dateLabel(nextDueActionEntry.action.dueDate) : "暂无"}</strong><small>{nextDueActionEntry?.item.title || "没有设置截止日期的开放行动"}</small></div>
+      <section className="project-quiet-facts" id="project-facts">
+        <div className="project-quiet-section-head"><div><h2>最近事实</h2><span>{recentProgress.length} 条 · 今日 {todayLogCount} / 昨日 {yesterdayLogCount}</span></div></div>
+        <div className="project-quiet-fact-list">
+          {visibleFacts.map(({ log, itemTitle }) => <Link key={log.id} href={"/logs/" + log.id} className="project-quiet-fact">
+            <time>{dateLabel(log.workDate)}</time><span>{itemTitle ? "事项进展" : factKind(log)}</span><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || log.item?.title || log.module || "项目记录"} ↗</em>
+          </Link>)}
+          {recentProgress.length === 0 && <p className="project-quiet-empty">暂无项目进展记录</p>}
         </div>
-        <div className="project-cockpit-item-list">
-          {cockpitItems.length === 0 ? <p className="project-cockpit-empty">暂无开放事项</p> : cockpitItems.map((item: WorkItem) => { const openActions = (item.actionItems || []).filter((action) => action.status !== "done"); const overdueActions = openActions.filter((action) => Boolean(action.dueDate && action.dueDate < today)); const latestLog = (item.logs || [])[0]; return <Link key={item.id} href={`/items/${item.id}`}><span className={`badge badge-${item.priority.toLowerCase()}`}>{PRIORITY_LABELS[item.priority]}</span><small className="mono">{item.sourceId || item.id.slice(-6)}</small><div><strong>{item.title}</strong><em>{item.milestone?.title || "项目级事项"} · {item.owner || "未分配"} · {item.status === "blocked" ? "阻塞" : "跟进中"}</em><small>{openActions.length} 个开放行动项{overdueActions.length ? ` · ${overdueActions.length} 个逾期` : ""}{latestLog ? ` · 最近进展：${latestLog.note || latestLog.content || latestLog.title}` : ""}</small></div><time className={item.dueDate && item.dueDate < today ? "is-overdue" : ""}>{dateLabel(item.dueDate)}</time></Link>; })}
-        </div>
-        <div className="project-cockpit-module-summary"><strong>STR 事项 {milestoneItems.length} · 项目级事项 {projectLevelItems.length}</strong><span>事项的 STR 归属只来自 milestoneId；未归属事项保持项目级。</span></div>
-        {projectLevelItems.length > 0 && <div className="project-cockpit-sublist"><strong>项目级事项 / 未归属 STR</strong>{projectLevelItems.slice(0, 4).map((item) => <Link key={item.id} href={`/items/${item.id}`}><span>{item.title}</span><small>{item.owner || "未分配"} · {dateLabel(item.dueDate)}</small></Link>)}</div>}
+        {recentProgress.length > 3 && <button type="button" className="project-quiet-expand" onClick={() => setFactsExpanded(!factsExpanded)} aria-expanded={factsExpanded}>{factsExpanded ? "收起事实" : "查看全部 " + recentProgress.length + " 条事实"}</button>}
       </section>
 
-      <section className="project-cockpit-panel project-cockpit-items project-cockpit-wbs">
-        <div className="project-cockpit-panel-head"><div><span>WBS 准备度</span><h2>WBS 当前门禁</h2></div></div>
-        <ProjectWbsSummarySection projectId={project.id} />
-      </section>
-
-      <section className="project-cockpit-panel project-cockpit-facts">
-        <div className="project-cockpit-panel-head"><div><span>FACTS</span><h2>最近事实（本项目）</h2></div><small>今日 {todayLogCount} · 昨日 {yesterdayLogCount}</small></div>
-        <div className="project-cockpit-fact-list">
-          {recentProgress.map(({ log, itemTitle }) => <Link key={log.id} href={`/logs/${log.id}`}><time className="mono">{logTime(log, today)}</time><span className={`project-cockpit-kind is-${log.type}`}>{itemTitle ? "事项进展" : factKind(log)}</span><div><strong>{log.note || log.content || log.title}</strong><em>{itemTitle || log.item?.title || log.module || "项目记录"}</em></div></Link>)}
-          {recentProgress.length === 0 && <p className="project-cockpit-empty">暂无项目进展记录</p>}
+      <section className="project-quiet-resources">
+        <div className="project-quiet-section-head"><h2>项目资料</h2><Link href={"/projects/" + project.id + "/edit"}>编辑资料 ↗</Link></div>
+        {project.description && project.description !== project.currentSummary && <p className="project-quiet-description">{project.description}</p>}
+        <div className="project-quiet-resource-facts"><span>开始 {dateLabel(project.startDate)}</span><span>发布 {dateLabel(project.releaseDate)}</span><span>STR 事项 {milestoneItems.length} · 项目级事项 {projectLevelItems.length}</span></div>
+        <div className="project-quiet-resource-links">
+          <Link href={"/projects/" + project.id + "?manage=members"}>项目成员 <strong>{panelsLoading ? "加载中" : coreMembers + " 核心 · 共 " + members.length + " 名"}</strong> ↗</Link>
+          <Link href={"/projects/" + project.id + "?manage=links"}>关键链接 <strong>{panelsLoading ? "加载中" : (links.length || (project.sourceUrl ? 1 : 0)) + " 个已收录"}</strong> ↗</Link>
+          <Link href={"/projects/" + project.id + "?manage=milestones"}>完整阶段计划 <strong>{panelsLoading ? "加载中" : milestones.length + " 个节点"}</strong> ↗</Link>
         </div>
+        <p className="project-quiet-footnote">事项的 STR 归属仅来自已有里程碑关系；WBS 当前门禁独立表示执行准备度。</p>
       </section>
-    </main>
+    </div>
   );
 }
