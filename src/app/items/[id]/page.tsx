@@ -244,14 +244,13 @@ export default function ItemDetailPage() {
 
   return (
     <div className="detail-page detail-page--item item-detail-command-page">
-      <header className="card detail-header">
+      <header className="detail-header">
         <div className="detail-header-main">
           <Link href="/items" className="detail-back-link">
             <Icon name="arrow-left" size={14} />
             返回列表
           </Link>
           <div className="detail-title-row">
-            <span className="section-eyebrow">WORK ITEM</span>
             <h1 className="detail-title">{item.title}</h1>
           </div>
           <div className="detail-status-row">
@@ -296,7 +295,7 @@ export default function ItemDetailPage() {
             <Icon name="edit" size={14} />
             编辑
           </Link>
-          <Link href={addLogHref} className="btn btn-primary">
+          <Link href={addLogHref} className="btn btn-secondary">
             <Icon name="plus" size={14} />
             添加日志
           </Link>
@@ -309,7 +308,7 @@ export default function ItemDetailPage() {
             )}
           </button>
         </div>
-        <div className="item-header-facts" aria-label="事项执行信息">
+        <div className="item-header-facts" role="group" aria-label="事项执行信息">
           <span><b>项目</b>{projectName}</span>
           <span><b>STR</b>{item.projectId ? (item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）") : "项目外事项"}</span>
           <span><b>负责人</b>{item.owner || "未分配"}</span>
@@ -318,30 +317,40 @@ export default function ItemDetailPage() {
       </header>
 
       <div className="detail-main-grid item-detail-main-grid">
-        <main className="item-detail-primary-column">
-          <section className="card detail-main-card item-description-card">
+        <div className="item-detail-primary-column">
+          <section className="item-description-card">
             <div className="detail-copy-block">
               <div className="detail-field-label">事项描述</div>
               <p className="detail-body-text">{item.description ? <AutoLinkText text={item.description} /> : "暂无事项描述"}</p>
             </div>
           </section>
           <ActionItemSection workItemId={item.id} projectId={item.projectId ?? undefined} />
-        </main>
-
-        <aside className="item-detail-secondary-column">
-          <section className="card detail-main-card item-summary-card">
-            <div className="detail-section-heading"><div><h2>事项信息</h2></div></div>
-            <div className="detail-meta-grid">
-              {projectName !== "未关联项目" && <div className="detail-meta-item"><span>项目</span><strong>{projectName}</strong></div>}
-              {item.projectId && <div className="detail-meta-item"><span>STR</span><strong>{item.milestone ? `${item.milestone.gateKey ? `${item.milestone.gateKey} · ` : ""}${item.milestone.title}` : "项目级事项（未归属 STR）"}</strong></div>}
-              <div className="detail-meta-item"><span>类型</span><strong>{WORK_ITEM_TYPE_LABELS[item.type] || item.type}</strong></div>
-              <div className="detail-meta-item"><span>优先级</span><strong>{PRIORITY_LABELS[item.priority] || item.priority}</strong></div>
-              <div className="detail-meta-item"><span>状态</span><strong>{STATUS_LABELS[item.status] || item.status}</strong></div>
-              <div className="detail-meta-item"><span>负责人</span><strong>{item.owner || "未分配"}</strong></div>
-              <div className={`detail-meta-item ${overdue ? "detail-meta-item--danger" : ""}`}><span>截止日期</span><strong>{item.dueDate || "未设置"}</strong></div>
+          <section className="item-related-log-section item-facts-section">
+            <div className="detail-section-heading">
+              <div><h2>时间线 · 事实与进展</h2></div>
+              <Link href={itemToLogsHref(item.id)} className="section-link">
+                查看全部 <Icon name="chevron-right" size={14} />
+              </Link>
+            </div>
+            <div className="item-related-log-controls">
+              {visibleLogs.length > 3 && (
+                <button type="button" className="btn btn-secondary item-fact-filter-button" onClick={() => setShowAllLogs((value) => !value)}>
+                  {showAllLogs ? "收起日志" : "展开全部日志"}（{visibleLogs.length}）
+                </button>
+              )}
+              <button type="button" className={`btn item-fact-filter-button${timelineFilter === "all" ? " is-active" : ""}`} onClick={() => setTimelineFilter("all")}>全部（{timelineEntries.length}）</button>
+              <button type="button" className={`btn item-fact-filter-button${timelineFilter === "manual" ? " is-active" : ""}`} onClick={() => setTimelineFilter("manual")}>仅人工（{timelineEntries.length - systemLogs.length}）</button>
+              {systemLogs.length > 0 && <button type="button" className={`btn item-fact-filter-button${timelineFilter === "system" ? " is-active" : ""}`} onClick={() => setTimelineFilter("system")}>仅系统（{systemLogs.length}）</button>}
+            </div>
+            <Timeline logs={timelineLogs} />
+            <div className="item-static-composer" role="group" aria-label="追加事实输入区">
+              <textarea readOnly placeholder="追加一条事实…（请通过添加日志提交）" />
+              <Link href={addLogHref} className="btn btn-secondary">添加日志</Link>
             </div>
           </section>
+        </div>
 
+        <aside className="item-detail-secondary-column">
           <details className="card item-legacy-details">
             <summary>更多信息</summary>
             <div className="detail-side-panel-body">
@@ -368,43 +377,15 @@ export default function ItemDetailPage() {
               {!item.projectId && relatedItems.length === 0 && <span>暂无关联信息</span>}
             </div>
           </section>
+          {item.managedBy === "wbs" && item.projectId && (
+            <WbsExecutionSummary
+              projectId={item.projectId}
+              originWbsNodeId={item.originWbsNodeId}
+              executionMilestoneId={item.executionMilestoneId}
+            />
+          )}
         </aside>
       </div>
-
-      <section className="card detail-section-card item-related-log-section">
-        <div className="detail-section-heading">
-          <div>
-            <span className="section-eyebrow">TIMELINE</span>
-            <h2>时间线 · 事实与进展</h2>
-          </div>
-          <Link href={itemToLogsHref(item.id)} className="section-link">
-            查看全部 <Icon name="chevron-right" size={14} />
-          </Link>
-        </div>
-        <div className="item-related-log-controls">
-          {visibleLogs.length > 3 && (
-            <button type="button" className="btn btn-secondary" onClick={() => setShowAllLogs((value) => !value)}>
-              {showAllLogs ? "收起日志" : "展开全部日志"}（{visibleLogs.length}）
-            </button>
-          )}
-          <button type="button" className={`btn ${timelineFilter === "all" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("all")}>全部（{timelineEntries.length}）</button>
-          <button type="button" className={`btn ${timelineFilter === "manual" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("manual")}>仅人工（{timelineEntries.length - systemLogs.length}）</button>
-          {systemLogs.length > 0 && <button type="button" className={`btn ${timelineFilter === "system" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTimelineFilter("system")}>仅系统（{systemLogs.length}）</button>}
-        </div>
-        <Timeline logs={timelineLogs} />
-        <div className="item-static-composer" aria-label="追加事实输入区">
-          <textarea readOnly placeholder="追加一条事实…（请通过添加日志提交）" />
-          <Link href={addLogHref} className="btn btn-secondary">添加日志</Link>
-        </div>
-      </section>
-
-      {item.managedBy === "wbs" && item.projectId && (
-        <WbsExecutionSummary
-          projectId={item.projectId}
-          originWbsNodeId={item.originWbsNodeId}
-          executionMilestoneId={item.executionMilestoneId}
-        />
-      )}
     </div>
   );
 }
