@@ -96,7 +96,6 @@ export default function ProjectsPage() {
     <div className="command-list-page project-list-page">
       <div className="command-page-header">
         <div>
-          <span className="section-eyebrow">PROJECT PORTFOLIO</span>
           <h1>项目管理</h1>
           <p>统一查看关键项目的状态、风险信号和下一步动作。</p>
           <div className="project-portfolio-summary">
@@ -115,7 +114,7 @@ export default function ProjectsPage() {
       <div className="card filter-panel">
         <div className="filter-panel-label">
           <Icon name="search" size={14} />
-          Portfolio 筛选
+          项目筛选
         </div>
         <div className="filter-grid">
           <input
@@ -159,7 +158,6 @@ export default function ProjectsPage() {
       <section>
         <div className="dashboard-section-title">
           <div>
-            <span className="section-eyebrow">PROJECTS</span>
             <h2>项目列表</h2>
           </div>
           <span className="section-live">
@@ -219,7 +217,10 @@ export default function ProjectsPage() {
                   tabIndex={0}
                   onClick={(event) => handleProjectCardClick(event, project.id)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") router.push(`/projects/${project.id}`);
+                    const target = event.target as HTMLElement;
+                    if (event.key === "Enter" && !target.closest("a,button")) {
+                      router.push(`/projects/${project.id}`);
+                    }
                   }}
                 >
                   <div className="project-card-layer project-card-layer--identity">
@@ -247,15 +248,15 @@ export default function ProjectsPage() {
                   </div>
 
                   <div className="project-card-layer project-card-layer--status project-card-signals">
-                    <span className="entity-pill entity-pill--muted">
+                    <span className="project-card-meta-text">
                       {PROJECT_STATUS_LABELS[project.status] || project.status}
                     </span>
                     {project.stage && (
-                      <span className="entity-pill entity-pill--muted">
+                      <span className="project-card-meta-text">
                         {PROJECT_STAGE_LABELS[project.stage] || project.stage}
                       </span>
                     )}
-                    <span className="entity-pill entity-pill--muted">
+                    <span className="project-card-meta-text">
                       {PROJECT_TYPE_LABELS[project.type] || project.type}
                     </span>
                   </div>
@@ -284,12 +285,12 @@ export default function ProjectsPage() {
                         </Link>
                       )}
                       {hasPrimaryLink && (
-                        <span className="entity-pill entity-pill--muted">
+                        <span className="project-card-meta-text">
                           <Icon name="external-link" size={11} /> 主要链接
                         </span>
                       )}
                       {hasMemberSignal && (
-                        <span className="entity-pill entity-pill--muted">
+                        <span className="project-card-meta-text">
                           核心 {coreMemberCount} / 成员 {memberCount}
                         </span>
                       )}

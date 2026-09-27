@@ -323,7 +323,7 @@ export default function ItemsPage() {
       <div className="command-page-header">
         <div>
           <h1>工作事项</h1>
-          <p>按最近更新时间排序 · 共 {total} 条事项</p>
+          <p>共 {total} 条事项，按最近更新时间排序</p>
         </div>
         <div className="page-header-actions">
           <button onClick={copyMarkdown} className="btn btn-secondary list-action-button">
@@ -333,26 +333,6 @@ export default function ItemsPage() {
         </div>
       </div>
 
-      <div className="card item-quick-view-panel">
-        <div className="item-quick-view-head">
-          <span>快速视图</span>
-          <strong>按最近更新时间排序</strong>
-        </div>
-        <div className="item-quick-view-actions">
-          {quickViews.map((view) => (
-            <button
-              key={view.label}
-              type="button"
-              onClick={() => applyQuickView(view.filters)}
-              className={`item-quick-chip${isQuickViewActive(view.filters) ? " is-active" : ""}`}
-            >
-              {view.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Filters */}
       <div className="card filter-panel item-filter-panel">
         <div className="item-filter-toolbar">
           <div className="item-filter-search">
@@ -385,8 +365,30 @@ export default function ItemsPage() {
           >
             {showAdvancedFilters ? "收起高级筛选" : "展开高级筛选"}
           </button>
+          <button
+            type="button"
+            className={`item-quick-chip item-low-activity-toggle${hideLowActivity ? " is-active" : ""}`}
+            onClick={() => setHideLowActivity((value) => !value)}
+            title="仅对普通、未关闭、超过 30 天无更新且无临近风险的事项生效"
+          >
+            {hideLowActivity ? "已隐藏低活跃" : "隐藏低活跃"}（{lowActivityCount}）
+          </button>
         </div>
-        <div className="filter-panel-label"><Icon name="search" size={14} />高级筛选</div>
+        <div className="item-quick-view-row">
+          <span className="item-quick-view-label">快速视图</span>
+          <div className="item-quick-view-actions">
+            {quickViews.map((view) => (
+              <button
+                key={view.label}
+                type="button"
+                onClick={() => applyQuickView(view.filters)}
+                className={`item-quick-chip${isQuickViewActive(view.filters) ? " is-active" : ""}`}
+              >
+                {view.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {activeFilterLabels.length > 0 && (
           <div className="filter-scope-note active-filter-summary">
             {activeFilterLabels.map((label) => (
@@ -483,16 +485,6 @@ export default function ItemsPage() {
       </div>
 
       {/* Results */}
-      <div className="item-low-activity-row">
-        <button
-          type="button"
-          className={`item-quick-chip${hideLowActivity ? " is-active" : ""}`}
-          onClick={() => setHideLowActivity((value) => !value)}
-          title="仅对普通、未关闭、超过 30 天无更新且无临近风险的事项生效"
-        >
-          {hideLowActivity ? "已隐藏低活跃" : "隐藏低活跃"}（{lowActivityCount}）
-        </button>
-      </div>
       <div className="command-list-count">
         共 {total} 条记录
       </div>
