@@ -82,7 +82,7 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
     const isCompleting = completionId === item.id;
 
     return (
-      <div key={item.id} className={`today-action-item ${isOverdue ? "today-action-item--overdue" : ""}`}>
+      <article key={item.id} className={`today-action-item today-queue-row ${isOverdue ? "today-action-item--overdue" : ""}`}>
         <div className="today-action-item-main">
           <div className="today-action-item-title">{item.title}</div>
           <div className="today-action-item-meta">
@@ -94,16 +94,15 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
             {contextTitle && <span>来源：{contextTitle}</span>}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="today-queue-actions">
           {item.status !== "in_progress" && (
-            <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }} disabled={busy} onClick={() => void updateStatus(item, "in_progress")}>
+            <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void updateStatus(item, "in_progress")}>
               处理中
             </button>
           )}
           <button
             type="button"
             className="btn btn-primary"
-            style={{ fontSize: 12 }}
             disabled={busy}
             onClick={() => setCompletionId((current) => current === item.id ? null : item.id)}
           >
@@ -116,8 +115,8 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
           )}
         </div>
         {isCompleting && (
-          <div style={{ gridColumn: "1 / -1", display: "grid", gap: 8, marginTop: 4 }}>
-            <label style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 650 }} htmlFor={`action-done-note-${item.id}`}>
+          <div className="today-completion-form">
+            <label htmlFor={`action-done-note-${item.id}`}>
               处理结论 <span style={{ color: "var(--danger)" }}>*</span>
             </label>
             <textarea
@@ -127,14 +126,12 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
               rows={3}
               placeholder="记录处理结果、同步结论或后续决定"
               disabled={busy}
-              style={{ width: "100%", resize: "vertical", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-primary)", background: "var(--bg-secondary)", color: "var(--text-primary)" }}
             />
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }} disabled={busy} onClick={() => setCompletionId(null)}>取消</button>
+            <div className="today-completion-actions">
+              <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setCompletionId(null)}>取消</button>
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ fontSize: 12 }}
                 disabled={busy || !(doneNotes[item.id] || "").trim()}
                 onClick={() => void updateStatus(item, "done", doneNotes[item.id])}
               >
@@ -143,7 +140,7 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
             </div>
           </div>
         )}
-      </div>
+      </article>
     );
   };
 
@@ -154,24 +151,21 @@ export default function TodayActionQueue({ initialItems, today }: { initialItems
   ];
 
   return (
-    <section className="card cockpit-card today-group-card today-action-items-card">
-      <div className="cockpit-card-head">
-        <div>
-          <span className="section-eyebrow">ACTION ITEMS</span>
-          <h2>今日行动项</h2>
-        </div>
-        <span className="section-count">完成时必须记录处理结论，确保后续汇报可追溯。</span>
+    <section className="today-group-card today-action-items-card" aria-label="待处理行动队列">
+      <div className="today-queue-header">
+        <h2>待处理行动</h2>
+        <span>完成时记录处理结论，后续汇报可追溯。</span>
       </div>
       {notice && <div className="action-item-notice">{notice}</div>}
       {items.length === 0 ? (
         <div className="today-compact-empty"><span />当前没有未处理行动项。</div>
       ) : (
-        <div style={{ display: "grid", gap: 14 }}>
+        <div className="today-queue-groups">
           {sections.filter((section) => section.items.length > 0).map((section) => (
-            <div key={section.key} style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 750, color: section.key === "overdue" ? "var(--danger)" : "var(--text-secondary)" }}>
+            <div key={section.key} className="today-queue-group">
+              <h3 className={section.key === "overdue" ? "is-overdue" : ""}>
                 {section.title}（{section.items.length}）
-              </div>
+              </h3>
               <div className="today-action-item-list">{section.items.map(renderAction)}</div>
             </div>
           ))}

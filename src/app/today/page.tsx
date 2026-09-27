@@ -25,7 +25,7 @@ export default async function TodayPage() {
         <div className="page-header-actions"><Link href="/items" className="btn btn-secondary"><Icon name="list" size={14} />查看事项</Link><Link href="/reports" className="btn btn-primary">进入汇报</Link></div>
       </header>
       <TodayActionQueue initialItems={actions} today={today} />
-      <section className="card cockpit-card today-completed-card"><div className="cockpit-card-head"><div><h2>已完成行动项</h2></div><span className="section-count">完成记录在事项时间线中查看</span></div><p className="today-compact-empty"><span />今日页聚焦待处理队列；已完成行动项请进入对应事项查看统一时间线。</p></section>
+      <p className="today-completed-note">已完成行动的处理结论保存在对应事项时间线中。</p>
     </div>
   );
 }
