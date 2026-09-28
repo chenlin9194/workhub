@@ -280,7 +280,6 @@ export default function ToolSettingsPage() {
     <div className="page-shell auxiliary-page tool-settings-page tool-console-page tool-drawer-page">
       <div className="command-page-header tool-settings-header">
         <div>
-          <span className="section-eyebrow">工具设置</span>
           <h1>工具入口</h1>
           <p>维护右上角常用工具菜单，只做外部链接跳转，不做登录、OAuth、API 同步。</p>
         </div>
@@ -290,8 +289,6 @@ export default function ToolSettingsPage() {
           </Link>
         </div>
       </div>
-
-      <WbsTemplateManager />
 
       <section className="card tool-console-summary tool-drawer-summary">
         <div className="tool-drawer-summary-main">
@@ -454,6 +451,7 @@ export default function ToolSettingsPage() {
       <div className="tool-boundary-note">
         这里只维护右上角工具菜单的外部链接。WorkHub 不检测连接状态，不保存账号凭据，也不做第三方系统同步。
       </div>
+      <WbsTemplateManager />
     </div>
   );
 }

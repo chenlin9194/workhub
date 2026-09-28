@@ -118,7 +118,6 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     <div className="page-shell auxiliary-page reports-page report-workbench-page">
       <header className="command-page-header reports-header">
         <div>
-          <span className="section-eyebrow">汇报工作台</span>
           <h1>汇报</h1>
           <p>围绕本期真实事实组织项目、事项、行动项和日志，快速形成可发送的管理输出。</p>
         </div>
@@ -127,7 +126,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <section className="card report-filter-panel">
         <div className="report-filter-heading">
-          <div><span>汇报范围</span><h2>选择本次汇报范围</h2></div>
+          <div><h2>汇报范围</h2></div>
           <strong>{range.start} 至 {range.end}</strong>
         </div>
         <div className="report-filter-presets">
@@ -145,7 +144,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       </section>
 
       <section className="card report-summary-panel">
-        <div className="report-summary-heading"><div><span>管理摘要</span><h2>本期发生了什么</h2></div><small>只基于已记录事实</small></div>
+        <div className="report-summary-heading"><div><h2>本期摘要</h2></div><small>只基于已记录事实</small></div>
         <div className="report-summary-grid">
           <div><span>汇报项目</span><strong>{report.summary.projects}</strong></div>
           <div><span>事项</span><strong>{report.summary.workItems}</strong></div>

@@ -127,7 +127,6 @@ export default function StatsPage() {
     <div className="page-shell auxiliary-page stats-page stats-cockpit-page delivery-health-page">
       <header className="command-page-header">
         <div>
-          <span className="section-eyebrow">辅助观察</span>
           <h1>统计概览</h1>
           <p>用于观察交付健康水位、风险分布和日志活跃度。这里辅助判断状态，不直接生成管理结论。</p>
         </div>
@@ -137,7 +136,6 @@ export default function StatsPage() {
       <section className="card cockpit-card stats-situation-card">
         <div className="cockpit-card-head">
           <div>
-            <span className="section-eyebrow">健康水位</span>
             <h2>整体健康水位</h2>
           </div>
           <span className="section-count">指标可辅助判断，不自动输出结论</span>
@@ -151,8 +149,7 @@ export default function StatsPage() {
 
       <section className="monitor-section">
         <div className="monitor-section-heading">
-          <div><span>02</span><h2>交付健康度</h2></div>
-          <small>交付健康</small>
+          <div><h2>交付健康度</h2></div>
         </div>
         <div className="health-layout">
           <div className="card completion-card">
@@ -178,8 +175,7 @@ export default function StatsPage() {
 
       <section className="monitor-section">
         <div className="monitor-section-heading">
-          <div><span>03</span><h2>事项分布</h2></div>
-          <small>事项状态分布</small>
+          <div><h2>事项分布</h2></div>
         </div>
         <div className="stats-two-column">
           <div className="card distribution-panel">
@@ -210,8 +206,7 @@ export default function StatsPage() {
 
       <section className="monitor-section">
         <div className="monitor-section-heading">
-          <div><span>04</span><h2>日志活跃</h2></div>
-          <small>日志活跃度</small>
+          <div><h2>日志活跃</h2></div>
         </div>
         <div className="card log-activity-panel">
           <Link href={buildLogsLink({ startDate: today, endDate: today, view: "" })} className="log-activity-primary">
