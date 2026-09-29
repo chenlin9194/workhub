@@ -13864,7 +13864,6 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
 .wbs-related-items { display: grid; grid-column: 1 / -1; gap: 5px; }.wbs-related-items > strong { color: var(--fg-2); font-size: 11px; }.wbs-related-items a { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border: 1px solid var(--line-1); border-radius: var(--r-sm); color: var(--fg-1); background: var(--bg-1); font-size: 11px; text-decoration: none; }.wbs-related-items a:hover { border-color: var(--accent); }.wbs-related-items small { color: var(--fg-3); font-size: 10px; }
 
 /* ===== Phase 5.5 product hierarchy correction ===== */
-.redesign-dashboard { width: min(1440px, 100%); padding: 28px 40px 48px; }
 .redesign-dashboard > .cockpit-card { margin-bottom: 18px; padding: 22px 24px; }
 .redesign-dashboard .redesign-page-header > div:first-child > span,
 .redesign-dashboard .cockpit-card-head .section-eyebrow,
@@ -13875,10 +13874,6 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
 .redesign-dashboard .redesign-page-header h1 { font-size: 32px; }
 .redesign-dashboard .redesign-page-header p { font-size: 15px; }
 .redesign-dashboard-shell .cockpit-path { display: none; }
-.redesign-dashboard .today-action-item { min-height: 64px; padding: 14px 16px; }
-.redesign-dashboard .today-action-item-title { font-size: 15px; line-height: 1.45; }
-.redesign-dashboard .today-action-item-meta { gap: 8px; font-size: 13px; }
-.redesign-dashboard .today-action-item-meta span { padding: 3px 8px; }
 .redesign-dashboard .content-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .redesign-dashboard .content-card-grid > .card { min-height: 148px; }
 .redesign-dashboard .detail-side-entry { gap: 4px; margin-top: 18px; }
@@ -13892,15 +13887,9 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
 
 
 
-.reports-page { width: min(1320px, 100%); margin: 0 auto; }
+.reports-page { margin: 0 auto; }
 .reports-page .reports-header h1 { font-size: 32px; }
 .reports-page .reports-header p { max-width: 820px; font-size: 15px; line-height: 1.65; }
-.reports-page .report-summary-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 2px 14px; color: var(--fg-2); font-size: 14px; }
-.reports-page .report-summary-inline strong { color: var(--fg-1); font-size: 15px; }
-.reports-page .report-summary-inline span { line-height: 1.5; }
-.reports-page .report-project-tree { padding: 24px; }
-.reports-page .report-project-tree > .dashboard-section-title h2 { font-size: 24px; }
-.reports-page .report-project-tree > .dashboard-section-title > span { font-size: 14px; }
 .reports-page .report-milestone-heading strong { font-size: 17px; }
 .reports-page .report-milestone-heading span, .reports-page .report-tree-row span { font-size: 13px; }
 .reports-page .report-tree-row strong { font-size: 16px; line-height: 1.45; }
@@ -13910,8 +13899,6 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
 .reports-page .report-draft-panel > summary strong { font-size: 15px; }
 .reports-page .report-draft-panel > summary span { color: var(--fg-2); font-size: 13px; }
 .reports-page .wbs-report-facts .wbs-eyebrow { display: none; }
-.reports-page .report-project-tree { padding: 0; border: 0; box-shadow: none; background: transparent; }
-.reports-page .report-project-tree > .dashboard-section-title { padding: 0 2px 8px; }
 .reports-page .report-project-tree > .report-project-log-context,
 .reports-page .report-project-tree > .report-milestone-block { padding: 14px 16px; border: 1px solid var(--line-1); border-radius: var(--r-lg); background: var(--bg-2); }
 .reports-page .report-project-tree > .report-milestone-block + .report-milestone-block,
@@ -13942,7 +13929,6 @@ html body .dashboard-shell .cockpit-metrics .stat-card-warning:not(.stat-card-em
   .project-cockpit-v2 .project-cockpit-panel { padding: 16px; }
   .project-cockpit-v2 .project-cockpit-item-list > a { grid-template-columns: 46px minmax(0, 1fr) 74px; }
   .project-cockpit-v2 .project-cockpit-item-list > a > small { display: none; }
-  .reports-page .report-summary-strip { grid-template-columns: 1fr 1fr; }
 }
 
 /* ===== Phase 8.1: Quiet Execution project detail ===== */
@@ -14364,12 +14350,6 @@ body {
   padding: var(--ds-space-5) var(--ds-space-6);
 }
 
-.home-attention-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--ds-space-4);
-}
-
 .home-attention-item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -14513,10 +14493,6 @@ body {
   display: none;
 }
 
-.today-page .today-action-items-card {
-  gap: var(--ds-space-5);
-}
-
 .today-page .today-action-items-card .cockpit-card-head,
 .today-page .today-completed-card .cockpit-card-head {
   margin-bottom: 0;
@@ -14534,11 +14510,6 @@ body {
 
 .today-page .today-action-items-card > div[style*="display: grid"] > div {
   gap: var(--ds-space-3) !important;
-}
-
-.today-page .today-action-item-list {
-  display: grid;
-  gap: var(--ds-space-3);
 }
 
 .today-page .today-action-item {
@@ -16099,4 +16070,252 @@ html[data-theme="dark"] body .app-main .stats-page.stats-cockpit-page .signal-wa
 html[data-theme="dark"] body .app-main .stats-page.stats-cockpit-page .metric-danger .stat-value,
 html[data-theme="dark"] body .app-main .stats-page.stats-cockpit-page .signal-danger strong {
   color: #fb7185 !important;
+}
+
+/* Keep Reports inside its Quiet Execution reading width despite the generic auxiliary-page rule. */
+.app-shell-main > .page-shell.auxiliary-page.reports-page.report-workbench-page {
+  width: min(1480px, 100%);
+  max-width: 1480px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.reports-page.report-workbench-page .report-summary-grid > .is-warning.has-nonzero strong {
+  color: var(--accent-orange);
+  font-size: 22px;
+  font-weight: 750;
+}
+.reports-page.report-workbench-page .report-summary-grid > .is-danger.has-nonzero strong {
+  color: var(--accent-red);
+  font-size: 22px;
+  font-weight: 750;
+}
+.reports-page.report-workbench-page .report-summary-grid > .is-zero strong {
+  color: var(--text-tertiary);
+  font-size: 16px;
+  font-weight: 600;
+}
+html[data-theme="dark"] body .app-main .reports-page.report-workbench-page .report-summary-grid > .is-warning.has-nonzero strong {
+  color: #fbbf24 !important;
+}
+html[data-theme="dark"] body .app-main .reports-page.report-workbench-page .report-summary-grid > .is-danger.has-nonzero strong {
+  color: #fb7185 !important;
+}
+html[data-theme="dark"] body .app-main .reports-page.report-workbench-page .report-summary-grid > .is-zero strong {
+  color: #98a8bd !important;
+}
+
+/* Restore dark surfaces on the Logs shell without changing shared theme tokens. */
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-sidebar {
+  color: #b6c3d4 !important;
+  border-color: #35445f !important;
+  background: #101a2b !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-nav-item {
+  color: #b6c3d4 !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-nav-item.is-active {
+  color: #e5edf7 !important;
+  background: #223047 !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-nav-label,
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-sidebar-footer {
+  color: #98a8bd !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .dashboard-shell .cockpit-topbar {
+  color: #b6c3d4 !important;
+  border-color: #35445f !important;
+  background: #0f172a !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-search {
+  color: #98a8bd !important;
+  border-color: #475775 !important;
+  background: #111d30 !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-search input {
+  color: #e5edf7 !important;
+  background: transparent !important;
+}
+:root[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-search input::placeholder {
+  color: #98a8bd !important;
+}
+
+html[data-theme="dark"] body .app-main .log-evidence-page .log-quick-view-panel,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-panel,
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-header,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-evidence-body-card,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-card {
+  color: #b6c3d4 !important;
+  border-color: #35445f !important;
+  background: #111d30 !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page {
+  color: #b6c3d4 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card:hover {
+  border-color: #475775 !important;
+  background: #142138 !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card.is-high-value:not(.log-type-risk):not(.log-type-blocker):not(.is-system-update) {
+  border-color: #3b526d !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card.is-high-value:not(.log-type-risk):not(.log-type-blocker):not(.is-system-update)::after {
+  background: #60a5fa !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-quick-view-head strong,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-card-heading h3,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-title,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-card-head h2,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-list strong {
+  color: #e5edf7 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-quick-view-head span,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-quick-view-head p,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-quick-group-label,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-date-rail,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-date-rail small,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-card-heading p,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-card-meta > span,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-field-label,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-list span {
+  color: #98a8bd !important;
+}
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .section-eyebrow {
+  color: #b6c3d4 !important;
+}
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-evidence-body,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-list strong,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-list a {
+  color: #cbd6e5 !important;
+}
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-back-link,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-context-list a,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .log-evidence-body a {
+  color: #93c5fd !important;
+}
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-actions .btn-danger {
+  color: #fecaca !important;
+  border-color: #7f3b4a !important;
+  background: #3b1d29 !important;
+}
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-actions .btn-secondary,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-toggle {
+  color: #d7e0ec !important;
+  border-color: #475775 !important;
+  background: #162033 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .pagination-row .btn {
+  color: #d7e0ec !important;
+  border-color: #475775 !important;
+  background: #162033 !important;
+  opacity: 1 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .pagination-row .btn:disabled {
+  color: #98a8bd !important;
+  border-color: #35445f !important;
+  background: #101a2b !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-chip {
+  color: #cbd6e5 !important;
+  border-color: #475775 !important;
+  background: #162033 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-chip:hover,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-chip.is-active {
+  color: #bfdbfe !important;
+  border-color: #3b82f6 !important;
+  background: #1e3a5f !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-search,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-search input,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-advanced > select,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-toolbar > input {
+  color: #e5edf7 !important;
+  border-color: #475775 !important;
+  background: #0f172a !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-search input::placeholder {
+  color: #98a8bd !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-search svg {
+  color: #98a8bd !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-type-icon {
+  background: #223047 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-type-risk,
+html[data-theme="dark"] body .app-main .log-evidence-page .log-type-blocker {
+  border-color: #7f3b4a !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card.is-system-update {
+  color: #b6c3d4 !important;
+  border-color: #35445f !important;
+  background: #0f192b !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .work-log-card.is-system-update .log-card-heading h3 {
+  color: #cbd6e5 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-card-badges .badge,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .detail-status-row .badge {
+  border-color: #475775 !important;
+  background: #162033 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-risk,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-risk,
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-blocker,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-blocker { color: #fda4af !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-decision,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-decision,
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-reportable,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-reportable { color: #86efac !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-update,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-update { color: #93c5fd !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-meeting,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-meeting { color: #d8b4fe !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-todo,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-todo,
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-issue,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-issue { color: #fcd34d !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-feishu,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-feishu { color: #67e8f9 !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-note,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-note { color: #cbd6e5 !important; }
+html[data-theme="dark"] body .app-main .log-evidence-page .badge-other,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .badge-other,
+html[data-theme="dark"] body .app-main .log-evidence-page .entity-pill,
+html[data-theme="dark"] body .app-main .log-detail-evidence-page .entity-pill {
+  color: #b6c3d4 !important;
+  border-color: #35445f !important;
+  background: #162033 !important;
+}
+html[data-theme="dark"]:has(.log-evidence-page, .log-detail-evidence-page) .cockpit-sidebar .cockpit-brand strong {
+  color: #e5edf7 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page > .command-page-header h1 {
+  color: #e5edf7 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page > .command-page-header p {
+  color: #98a8bd !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page > .command-page-header .section-eyebrow {
+  color: #b6c3d4 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .log-filter-toolbar > .log-filter-clear {
+  color: #d7e0ec !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .compact-list-empty {
+  background: #111d30 !important;
+  color: #b6c3d4 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .compact-list-empty > strong {
+  color: #e5edf7 !important;
+}
+html[data-theme="dark"] body .app-main .log-evidence-page .compact-list-empty > p {
+  color: #98a8bd !important;
 }

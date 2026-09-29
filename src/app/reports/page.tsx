@@ -150,8 +150,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           <div><span>事项</span><strong>{report.summary.workItems}</strong></div>
           <div><span>行动项</span><strong>{report.summary.actionItems}</strong></div>
           <div><span>本期 WorkLog</span><strong>{report.summary.logs}</strong></div>
-          <div className="is-warning"><span>未完成行动</span><strong>{openActionCount}</strong></div>
-          <div className="is-danger"><span>逾期行动</span><strong>{overdueActionCount}</strong></div>
+          <div className={`is-warning ${openActionCount > 0 ? "has-nonzero" : "is-zero"}`}><span>未完成行动</span><strong>{openActionCount}</strong></div>
+          <div className={`is-danger ${overdueActionCount > 0 ? "has-nonzero" : "is-zero"}`}><span>逾期行动</span><strong>{overdueActionCount}</strong></div>
         </div>
         <div className="report-summary-foot">当前范围：{selectedProjectName} · {totalVisibleLogs} 条人工进展，系统变化日志保留在事实树中但默认降级。</div>
       </section>
